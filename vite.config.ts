@@ -17,6 +17,15 @@ export default defineConfig(async () => {
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
+    optimizeDeps: {
+      exclude: [
+        '@base-ui/react',
+        '@base-ui/utils',
+        '@mediapipe/tasks-vision',
+        'lucide-react',
+        'next/link',
+      ],
+    },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,

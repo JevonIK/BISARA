@@ -10,7 +10,11 @@ type AppHeaderProps = {
 const navigation = [
   { label: 'Beranda', href: '/', key: 'home' },
   { label: 'Perjalanan', href: '/missions', key: 'journey' },
-  { label: 'Latihan', href: '/missions/berkenalan', key: 'practice' },
+  {
+    label: 'Latihan',
+    href: '/missions/berkenalan/practice',
+    key: 'practice',
+  },
 ] as const;
 
 export function AppHeader({ active = 'home' }: AppHeaderProps) {

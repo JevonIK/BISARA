@@ -24,9 +24,19 @@ camera-assisted feedback, to using it in a conversation scenario.
 - learning objectives, vocabulary scope, stages, and scenario preview
 - explicit Banten regional and isolated-sign prototype boundaries
 
+### Milestone 3 — Camera practice foundation
+
+- real browser camera permission flow
+- clear idle, loading, ready, denied, unavailable, and error states
+- live MediaPipe Hand Landmarker inference for up to two hands
+- 21-point landmark overlay for each detected hand
+- camera, lighting, and hand-visibility calibration checks
+- local video-frame processing with explicit privacy messaging
+- honest separation between landmark detection and BISINDO correctness scoring
+
 The current progress values are representative UI data. Authentication,
-persistence, camera inference, and trained-model integration will be added in
-later milestones.
+persistence, BISINDO classification, and validated corrective feedback will be
+added in later milestones.
 
 ## Tech stack
 
@@ -36,6 +46,7 @@ later milestones.
 - Tailwind CSS 4
 - shadcn/ui
 - Lucide icons
+- MediaPipe Tasks Vision
 
 ## Local development
 
@@ -62,6 +73,7 @@ pnpm build
 - `/` — learning dashboard
 - `/missions` — complete learning journey
 - `/missions/berkenalan` — active mission detail
+- `/missions/berkenalan/practice` — camera and hand-landmark practice
 
 ## Product principles
 
@@ -70,3 +82,17 @@ pnpm build
 3. Involve Deaf language experts in content validation and release decisions.
 4. Process camera input locally by default whenever the device supports it.
 5. Present model uncertainty honestly and never replace qualified interpreters.
+
+## Camera privacy note
+
+Camera frames are processed in the browser and are not uploaded or stored by
+BISARA. The MediaPipe runtime and hand model are downloaded when the camera is
+first activated. MediaPipe may send performance and usage metrics as described
+in its vendor privacy notice, but camera input remains on the device.
+
+## Third-party attribution
+
+Hand landmark detection uses
+[`@mediapipe/tasks-vision`](https://www.npmjs.com/package/@mediapipe/tasks-vision)
+by Google under the Apache License 2.0. Implementation guidance follows the
+[official MediaPipe Hand Landmarker documentation](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js).

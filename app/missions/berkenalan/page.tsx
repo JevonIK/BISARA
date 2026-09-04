@@ -154,15 +154,15 @@ export default function MissionDetailPage() {
               <Progress value={35} className="mt-5 gap-2">
                 <ProgressLabel className="sr-only">Progres misi</ProgressLabel>
               </Progress>
-              <a
-                href="#lesson-plan"
+              <Link
+                href="/missions/berkenalan/practice"
                 className={cn(
                   buttonVariants({ size: 'lg' }),
                   'mt-6 h-12 w-full rounded-full bg-signal-teal px-5 font-extrabold text-signal-navy hover:bg-signal-teal/90',
                 )}
               >
-                Lihat tahap aktif <ArrowRight className="size-4" />
-              </a>
+                Mulai tahap Tirukan <ArrowRight className="size-4" />
+              </Link>
             </aside>
           </div>
         </section>
@@ -329,7 +329,7 @@ export default function MissionDetailPage() {
           </Link>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <Sparkles className="size-4 text-amber-600" />
-            Tahap kamera akan tersedia pada milestone berikutnya.
+            Latihan kamera dan pratinjau landmark siap digunakan.
           </div>
         </footer>
       </div>
