@@ -3,21 +3,22 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  Flame,
   Hand,
   Headphones,
   LockKeyhole,
   Map,
   MessageCircleMore,
   Play,
-  Sparkles,
   Target,
   Trophy,
 } from 'lucide-react';
+import Link from 'next/link';
 
+import { AppHeader } from '@/components/app-header';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
+import { chapters } from '@/lib/learning-data';
 import { cn } from '@/lib/utils';
 
 const learningSteps = [
@@ -26,105 +27,10 @@ const learningSteps = [
   { label: 'Komunikasikan', icon: MessageCircleMore, state: 'next' },
 ] as const;
 
-const chapters = [
-  {
-    number: '01',
-    eyebrow: 'Mulai terhubung',
-    title: 'Kenalan & sapaan',
-    description:
-      'Belajar memperkenalkan diri dan memulai percakapan sederhana.',
-    progress: 60,
-    status: 'active',
-    missions: '3 dari 5 misi',
-  },
-  {
-    number: '02',
-    eyebrow: 'Kebutuhan sehari-hari',
-    title: 'Makan & beraktivitas',
-    description:
-      'Berlatih meminta, menjawab, dan menyampaikan kebutuhan dasar.',
-    progress: 0,
-    status: 'locked',
-    missions: '5 misi',
-  },
-  {
-    number: '03',
-    eyebrow: 'Bergerak bersama',
-    title: 'Arah & transportasi',
-    description: 'Gunakan BISINDO saat bertanya arah dan bepergian.',
-    progress: 0,
-    status: 'locked',
-    missions: '5 misi',
-  },
-] as const;
-
 export default function Home() {
   return (
     <main className="min-h-screen bg-background">
-      <header className="border-b border-signal-navy/10 bg-card/90 backdrop-blur">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-          <a
-            href="#top"
-            className="group flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
-            aria-label="BISARA, kembali ke beranda"
-          >
-            <span className="grid size-11 place-items-center rounded-2xl bg-signal-navy text-signal-teal transition-transform group-hover:-rotate-3">
-              <Hand className="size-6" strokeWidth={2.2} />
-            </span>
-            <span>
-              <span className="block text-lg font-black leading-none tracking-[-0.04em] text-signal-navy">
-                BISARA
-              </span>
-              <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground sm:block">
-                Belajar untuk berkomunikasi
-              </span>
-            </span>
-          </a>
-
-          <nav
-            className="hidden items-center gap-1 rounded-full border border-signal-navy/10 bg-white/70 p-1 md:flex"
-            aria-label="Navigasi utama"
-          >
-            <a
-              href="#top"
-              className="rounded-full bg-signal-navy px-4 py-2 text-sm font-bold text-white"
-              aria-current="page"
-            >
-              Beranda
-            </a>
-            <a
-              href="#learning-journey"
-              className="rounded-full px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Perjalanan
-            </a>
-            <a
-              href="#daily-quest"
-              className="rounded-full px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Latihan
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden items-center gap-2 rounded-full bg-signal-yellow/30 px-3 py-2 text-sm font-extrabold text-signal-navy sm:flex">
-              <Sparkles className="size-4 text-amber-600" />
-              1.240 XP
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-signal-coral/20 bg-signal-coral/10 px-3 py-2 text-sm font-extrabold text-signal-coral">
-              <Flame className="size-4" fill="currentColor" />7
-              <span className="hidden sm:inline">hari</span>
-            </div>
-            <button
-              type="button"
-              className="grid size-10 place-items-center rounded-full bg-signal-navy text-sm font-black text-white outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Buka profil pengguna"
-            >
-              BJ
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader active="home" />
 
       <div id="top" className="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-12">
         <section className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
@@ -138,7 +44,7 @@ export default function Home() {
             </h1>
           </div>
           <div className="grid grid-cols-3 divide-x divide-signal-navy/10 border-y border-signal-navy/10 py-3 lg:min-w-[390px]">
-            <Stat value="3" label="Misi selesai" />
+            <Stat value="2" label="Misi selesai" />
             <Stat value="18" label="Tanda dikuasai" />
             <Stat value="2" label="Lencana" />
           </div>
@@ -174,8 +80,8 @@ export default function Home() {
                 </div>
 
                 <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <a
-                    href="#learning-journey"
+                  <Link
+                    href="/missions/berkenalan"
                     className={cn(
                       buttonVariants({ size: 'lg' }),
                       'h-12 rounded-full bg-signal-teal px-5 font-extrabold text-signal-navy hover:bg-signal-teal/90',
@@ -183,7 +89,7 @@ export default function Home() {
                   >
                     <Play className="size-4" fill="currentColor" />
                     Lanjutkan latihan
-                  </a>
+                  </Link>
                   <span className="flex items-center gap-2 px-2 text-sm font-semibold text-white/60">
                     <Target className="size-4" /> sekitar 8 menit
                   </span>
@@ -335,7 +241,9 @@ export default function Home() {
                     )}
                   </span>
                   <span className="text-xs font-bold text-muted-foreground">
-                    {chapter.missions}
+                    {chapter.status === 'active'
+                      ? `${chapter.missions.filter((mission) => mission.status === 'completed').length} dari ${chapter.missions.length} misi`
+                      : `${chapter.missions.length} misi`}
                   </span>
                 </div>
                 <p className="text-[11px] font-black uppercase tracking-[0.15em] text-emerald-700">
@@ -357,12 +265,12 @@ export default function Home() {
                         {chapter.progress}%
                       </span>
                     </Progress>
-                    <a
-                      href="#top"
+                    <Link
+                      href="/missions"
                       className="mt-5 flex items-center gap-1 text-sm font-extrabold text-emerald-700 hover:text-signal-navy"
                     >
                       Lihat semua misi <ChevronRight className="size-4" />
-                    </a>
+                    </Link>
                   </div>
                 ) : (
                   <p className="mt-7 flex items-center gap-2 border-t border-signal-navy/10 pt-5 text-xs font-bold text-muted-foreground">
