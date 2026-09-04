@@ -34,6 +34,17 @@ camera-assisted feedback, to using it in a conversation scenario.
 - local video-frame processing with explicit privacy messaging
 - honest separation between landmark detection and BISINDO correctness scoring
 
+### Milestone 4 — Chapter test and conversation flow
+
+- five-question sign-to-text comprehension test using real WL-BISINDO samples
+- answer review shown only after the complete test
+- deterministic 0–100 score and zero-to-three-star rating
+- 50-point chapter-unlock threshold
+- repeatable attempts with the best score retained during the active session
+- three-turn branching conversation simulation
+- explicit pending state for camera-response scoring
+- dataset attribution stored beside every included media sample
+
 The current progress values are representative UI data. Authentication,
 persistence, BISINDO classification, and validated corrective feedback will be
 added in later milestones.
@@ -74,6 +85,7 @@ pnpm build
 - `/missions` — complete learning journey
 - `/missions/berkenalan` — active mission detail
 - `/missions/berkenalan/practice` — camera and hand-landmark practice
+- `/missions/berkenalan/test` — chapter test and branching conversation
 
 ## Product principles
 
@@ -96,3 +108,9 @@ Hand landmark detection uses
 [`@mediapipe/tasks-vision`](https://www.npmjs.com/package/@mediapipe/tasks-vision)
 by Google under the Apache License 2.0. Implementation guidance follows the
 [official MediaPipe Hand Landmarker documentation](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js).
+
+Selected BISINDO demonstration videos come from
+[WL-BISINDO](https://www.kaggle.com/datasets/glennleonali/wl-bisindo) by Grace
+Oktaviani Kindy, Glenn Leonali, and Henry Lucky under CC BY-NC 4.0. The included
+files and their labels are documented in
+[`public/media/wl-bisindo/README.md`](public/media/wl-bisindo/README.md).

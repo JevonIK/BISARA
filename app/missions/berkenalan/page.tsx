@@ -277,9 +277,19 @@ export default function MissionDetailPage() {
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
                     {stage.description}
                   </p>
-                  <p className="absolute bottom-6 left-6 flex items-center gap-2 text-xs font-bold text-signal-navy sm:left-7">
-                    <Clock3 className="size-3.5" /> {stage.duration}
-                  </p>
+                  <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between sm:left-7 sm:right-7">
+                    <p className="flex items-center gap-2 text-xs font-bold text-signal-navy">
+                      <Clock3 className="size-3.5" /> {stage.duration}
+                    </p>
+                    {stage.title === 'Komunikasikan' && (
+                      <Link
+                        href="/missions/berkenalan/test"
+                        className="text-xs font-black text-emerald-700 hover:text-signal-navy"
+                      >
+                        Preview tes →
+                      </Link>
+                    )}
+                  </div>
                 </li>
               );
             })}
