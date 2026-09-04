@@ -45,9 +45,20 @@ camera-assisted feedback, to using it in a conversation scenario.
 - explicit pending state for camera-response scoring
 - dataset attribution stored beside every included media sample
 
-The current progress values are representative UI data. Authentication,
-persistence, BISINDO classification, and validated corrective feedback will be
-added in later milestones.
+### Milestone 5 — Progress, badges, streaks, and review
+
+- browser-local progress store shared across the application
+- persistent XP, streak, best score, test attempts, and conversation completions
+- responsive progress dashboard with a weekly activity chart
+- Recognize, Imitate, and Communicate mastery indicators
+- unlocked and locked badge collection
+- five-item daily review quest with live XP updates
+- test and conversation results connected to the progress dashboard
+
+The initial progress values are representative UI data. Changes made through
+tests and daily review are stored in the browser. Account-level persistence,
+BISINDO classification, and validated corrective feedback will be added in
+later milestones.
 
 ## Tech stack
 
@@ -86,6 +97,8 @@ pnpm build
 - `/missions/berkenalan` — active mission detail
 - `/missions/berkenalan/practice` — camera and hand-landmark practice
 - `/missions/berkenalan/test` — chapter test and branching conversation
+- `/progress` — activity, mastery, scores, and badge dashboard
+- `/review` — daily sign-review quest
 
 ## Product principles
 

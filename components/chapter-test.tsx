@@ -30,6 +30,10 @@ import {
   resultMessage,
   type StarRating,
 } from '@/lib/scoring';
+import {
+  recordConversationCompletion,
+  recordTranslationTest,
+} from '@/lib/progress-storage';
 import { cn } from '@/lib/utils';
 
 type TestView =
@@ -83,8 +87,10 @@ export function ChapterTest() {
         (answer) => answer.correct,
       ).length;
       const score = calculateScore(correctCount, translationQuestions.length);
+      const stars = calculateStars(score);
+      const updatedProgress = recordTranslationTest(score, stars);
       setAnswers(nextAnswers);
-      setBestScore((previous) => Math.max(previous, score));
+      setBestScore(updatedProgress.bestChapterScore);
       setView('translation-result');
       return;
     }
@@ -114,6 +120,7 @@ export function ChapterTest() {
     if (!conversationPassed) return;
 
     if (conversationIndex === conversationTurns.length - 1) {
+      recordConversationCompletion();
       setView('conversation-result');
       return;
     }

@@ -1,10 +1,13 @@
+'use client';
+
 import { Flame, Hand, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+import { useProgress } from '@/hooks/use-progress';
 import { cn } from '@/lib/utils';
 
 type AppHeaderProps = {
-  active?: 'home' | 'journey' | 'practice';
+  active?: 'home' | 'journey' | 'practice' | 'progress';
 };
 
 const navigation = [
@@ -15,9 +18,12 @@ const navigation = [
     href: '/missions/berkenalan/practice',
     key: 'practice',
   },
+  { label: 'Progres', href: '/progress', key: 'progress' },
 ] as const;
 
 export function AppHeader({ active = 'home' }: AppHeaderProps) {
+  const progress = useProgress();
+
   return (
     <header className="border-b border-signal-navy/10 bg-card/90 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
@@ -40,7 +46,7 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
         </Link>
 
         <nav
-          className="hidden items-center gap-1 rounded-full border border-signal-navy/10 bg-white/70 p-1 md:flex"
+          className="hidden items-center gap-1 rounded-full border border-signal-navy/10 bg-white/70 p-1 lg:flex"
           aria-label="Navigasi utama"
         >
           {navigation.map((item) => (
@@ -63,19 +69,20 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden items-center gap-2 rounded-full bg-signal-yellow/30 px-3 py-2 text-sm font-extrabold text-signal-navy sm:flex">
             <Sparkles className="size-4 text-amber-600" />
-            1.240 XP
+            {progress.xp.toLocaleString('id-ID')} XP
           </div>
           <div className="flex items-center gap-2 rounded-full border border-signal-coral/20 bg-signal-coral/10 px-3 py-2 text-sm font-extrabold text-signal-coral">
-            <Flame className="size-4" fill="currentColor" />7
+            <Flame className="size-4" fill="currentColor" />
+            {progress.streak}
             <span className="hidden sm:inline">hari</span>
           </div>
-          <button
-            type="button"
+          <Link
+            href="/progress"
             className="grid size-10 place-items-center rounded-full bg-signal-navy text-sm font-black text-white outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Buka profil pengguna"
+            aria-label="Buka progres dan profil pengguna"
           >
             BJ
-          </button>
+          </Link>
         </div>
       </div>
     </header>

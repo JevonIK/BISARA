@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   BookOpen,
   Check,
   ChevronRight,
@@ -10,11 +9,11 @@ import {
   MessageCircleMore,
   Play,
   Target,
-  Trophy,
 } from 'lucide-react';
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
+import { DailyQuestCard } from '@/components/daily-quest-card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
@@ -148,50 +147,7 @@ export default function Home() {
             </div>
           </article>
 
-          <aside
-            id="daily-quest"
-            className="flex flex-col justify-between border-t-4 border-signal-coral bg-card p-6 sm:p-8"
-          >
-            <div>
-              <div className="mb-8 flex items-start justify-between">
-                <div className="grid size-12 place-items-center rounded-full bg-signal-coral/10 text-signal-coral">
-                  <Trophy className="size-6" />
-                </div>
-                <Badge
-                  variant="outline"
-                  className="h-7 border-signal-coral/20 px-3 text-signal-coral"
-                >
-                  +50 XP
-                </Badge>
-              </div>
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-signal-coral">
-                Daily quest
-              </p>
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
-                Ulangi 5 tanda yang perlu diperkuat
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Fokus hari ini: posisi tangan dan arah gerakan.
-              </p>
-            </div>
-            <div className="mt-10">
-              <Progress value={40} className="gap-2">
-                <ProgressLabel className="font-bold text-signal-navy">
-                  Progres hari ini
-                </ProgressLabel>
-                <span className="ml-auto text-sm font-bold text-muted-foreground">
-                  2 dari 5
-                </span>
-              </Progress>
-              <button
-                type="button"
-                className="mt-6 flex w-full items-center justify-between border-t border-signal-navy/10 pt-5 text-left text-sm font-extrabold text-signal-navy transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Mulai quest
-                <ArrowRight className="size-4" />
-              </button>
-            </div>
-          </aside>
+          <DailyQuestCard />
         </section>
 
         <section id="learning-journey" className="scroll-mt-8 py-14 lg:py-20">
