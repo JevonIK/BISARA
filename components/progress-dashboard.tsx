@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/chart';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
+import { useAccount } from '@/hooks/use-account';
 import { reviewSignIds } from '@/lib/progress-storage';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +69,7 @@ const badges = [
 
 export function ProgressDashboard() {
   const userProgress = useProgress();
+  const account = useAccount();
   const level = Math.floor(userProgress.xp / 500) + 1;
   const levelProgress = userProgress.xp % 500;
   const reviewProgress = Math.round(
@@ -78,7 +80,7 @@ export function ProgressDashboard() {
   ).length;
 
   const unlockedBadges = new Set([
-    'first-step',
+    ...(userProgress.completedMissions > 0 ? ['first-step'] : []),
     ...(userProgress.streak >= 7 ? ['streak-seven'] : []),
     ...(userProgress.chapterOneStars > 0 ? ['chapter-one'] : []),
     ...(userProgress.conversationCompletions > 0 ? ['first-conversation'] : []),
@@ -86,6 +88,16 @@ export function ProgressDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap justify-between gap-3 border bg-card p-4 text-sm">
+        <p>
+          {account.user
+            ? `${account.user.displayName} · ${account.sync === 'saved' ? 'Progres tersimpan di akun' : 'Periksa status sinkronisasi'}`
+            : 'Mode tamu · progres tersimpan di browser ini. Angka awal berasal dari data contoh prototipe.'}
+        </p>
+        <Link href="/account" className="font-bold text-emerald-800">
+          {account.user ? 'Kelola akun →' : 'Masuk untuk sinkronisasi →'}
+        </Link>
+      </div>
       <section className="grid overflow-hidden bg-signal-navy text-white lg:grid-cols-[1fr_360px]">
         <div className="p-7 sm:p-10">
           <Badge className="bg-signal-teal text-signal-navy">
@@ -251,11 +263,18 @@ export function ProgressDashboard() {
             Recognize → Imitate → Communicate
           </h2>
           <div className="mt-7 space-y-6">
-            <MasteryRow label="Recognize" value={72} color="bg-signal-teal" />
-            <MasteryRow label="Imitate" value={38} color="bg-signal-yellow" />
             <MasteryRow
-              label="Communicate"
-              value={userProgress.conversationCompletions > 0 ? 25 : 8}
+              label="Recognize (skor tes)"
+              value={userProgress.bestChapterScore}
+              color="bg-signal-teal"
+            />
+            <p className="text-sm text-muted-foreground">
+              Penilaian Imitate dan Communicate belum tersedia. Penyelesaian
+              simulasi belum membuktikan akurasi isyarat.
+            </p>
+            <MasteryRow
+              label="Simulasi perkenalan selesai"
+              value={userProgress.conversationCompletions > 0 ? 100 : 0}
               color="bg-signal-coral"
             />
           </div>

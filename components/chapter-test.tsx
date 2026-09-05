@@ -579,8 +579,7 @@ function TranslationResult({
             {correctCount} dari {translationQuestions.length} jawaban benar
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {resultMessage(stars)} Skor terbaik pada sesi ini adalah {bestScore}
-            .
+            {resultMessage(stars)} Skor terbaik tersimpan adalah {bestScore}.
           </p>
 
           <div className="mt-7 grid gap-2 sm:grid-cols-5">

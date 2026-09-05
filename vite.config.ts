@@ -26,9 +26,14 @@ export default defineConfig(async () => {
         'next/link',
       ],
     },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      port: 3000,
+      strictPort: true,
+      proxy: { '/api/v1': { target: 'http://127.0.0.1:8000' } },
+      watch: isCodexSeatbeltSandbox
+        ? { useFsEvents: false, usePolling: true }
+        : undefined,
+    },
     plugins: [
       vinext(),
       cloudflare({

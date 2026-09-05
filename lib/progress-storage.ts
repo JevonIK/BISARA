@@ -1,4 +1,10 @@
 import type { StarRating } from '@/lib/scoring';
+import {
+  PROGRESS_EVENT,
+  scopedProgressKey,
+  scopedSnapshot,
+  writeScopedSnapshot,
+} from '@/lib/account-cache';
 
 export type WeeklyActivity = {
   day: string;
@@ -21,9 +27,6 @@ export type UserProgress = {
   reviewedSigns: string[];
   weeklyActivity: WeeklyActivity[];
 };
-
-const STORAGE_KEY = 'bisara-progress-v1';
-const PROGRESS_EVENT = 'bisara-progress-change';
 
 export const reviewSignIds = ['saya', 'teman', 'terima-kasih', 'maaf', 'siapa'];
 
@@ -53,10 +56,22 @@ export const defaultProgress: UserProgress = {
 };
 
 const defaultSnapshot = JSON.stringify(defaultProgress);
+export const emptyAccountProgress: UserProgress = {
+  ...defaultProgress,
+  xp: 0,
+  streak: 0,
+  completedMissions: 0,
+  masteredSigns: 0,
+  totalPracticeMinutes: 0,
+  weeklyActivity: defaultProgress.weeklyActivity.map((entry) => ({
+    ...entry,
+    minutes: 0,
+  })),
+};
 
 export function getProgressSnapshot() {
   if (typeof window === 'undefined') return defaultSnapshot;
-  return window.localStorage.getItem(STORAGE_KEY) ?? defaultSnapshot;
+  return scopedSnapshot(defaultSnapshot, JSON.stringify(emptyAccountProgress));
 }
 
 export function getServerProgressSnapshot() {
@@ -90,7 +105,7 @@ export function subscribeToProgress(callback: () => void) {
   if (typeof window === 'undefined') return () => undefined;
 
   const handleStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY) callback();
+    if (event.key === scopedProgressKey() || event.key === null) callback();
   };
   window.addEventListener('storage', handleStorage);
   window.addEventListener(PROGRESS_EVENT, callback);
@@ -155,8 +170,7 @@ function updateProgress(updater: (progress: UserProgress) => UserProgress) {
 
   const current = parseProgressSnapshot(getProgressSnapshot());
   const updated = updater(current);
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  window.dispatchEvent(new Event(PROGRESS_EVENT));
+  writeScopedSnapshot(JSON.stringify(updated));
   return updated;
 }
 
@@ -165,7 +179,11 @@ function markActive(progress: UserProgress): UserProgress {
   if (progress.lastActiveDate === today) return progress;
 
   if (!progress.lastActiveDate) {
-    return { ...progress, lastActiveDate: today };
+    return {
+      ...progress,
+      streak: Math.max(1, progress.streak),
+      lastActiveDate: today,
+    };
   }
 
   const previousDate = parseDateKey(progress.lastActiveDate);

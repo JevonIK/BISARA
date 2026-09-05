@@ -55,10 +55,21 @@ camera-assisted feedback, to using it in a conversation scenario.
 - five-item daily review quest with live XP updates
 - test and conversation results connected to the progress dashboard
 
-The initial progress values are representative UI data. Changes made through
-tests and daily review are stored in the browser. Account-level persistence,
-BISINDO classification, and validated corrective feedback will be added in
-later milestones.
+### Milestone 6 — Accounts and server progress
+
+- FastAPI backend with PostgreSQL and versioned Alembic migrations
+- registration, login, session recovery, and logout at `/account`
+- Argon2 password hashing and revocable HttpOnly cookie sessions
+- session-bound CSRF validation and explicit origin checks
+- account-specific browser cache and automatic progress synchronization
+- stale-write protection with an explicit conflict-resolution flow
+- optional guest import into a new account
+- isolated API tests and frontend sync regression tests
+
+New accounts start at zero. Guest mode preserves the prototype's seed values.
+Account data is stored in PostgreSQL and can be restored after login in another
+browser connected to the same server. BISINDO classification and validated
+corrective feedback remain planned work.
 
 ## Tech stack
 
@@ -69,6 +80,7 @@ later milestones.
 - shadcn/ui
 - Lucide icons
 - MediaPipe Tasks Vision
+- FastAPI, SQLAlchemy, Alembic, PostgreSQL
 
 ## Local development
 
@@ -83,6 +95,18 @@ Install dependencies and start the development server:
 pnpm install
 pnpm dev
 ```
+
+To enable accounts, start Docker Desktop and run these commands from the root
+before starting the frontend:
+
+```bash
+python3 backend/scripts/setup_local.py
+docker compose up -d --build
+```
+
+Then open `http://localhost:3000/account`. See [backend/README.md](backend/README.md)
+for API setup, migrations, tests, and deployment requirements. Guest learning
+continues to work when the API is unavailable.
 
 Create a production build:
 
@@ -99,6 +123,7 @@ pnpm build
 - `/missions/berkenalan/test` — chapter test and branching conversation
 - `/progress` — activity, mastery, scores, and badge dashboard
 - `/review` — daily sign-review quest
+- `/account` — registration, login, logout, and sync management
 
 ## Product principles
 

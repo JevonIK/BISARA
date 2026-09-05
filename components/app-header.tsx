@@ -4,6 +4,7 @@ import { Flame, Hand, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 import { useProgress } from '@/hooks/use-progress';
+import { useAccount } from '@/hooks/use-account';
 import { cn } from '@/lib/utils';
 
 type AppHeaderProps = {
@@ -23,6 +24,13 @@ const navigation = [
 
 export function AppHeader({ active = 'home' }: AppHeaderProps) {
   const progress = useProgress();
+  const account = useAccount();
+  const initials = account.user?.displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <header className="border-b border-signal-navy/10 bg-card/90 backdrop-blur">
@@ -77,14 +85,37 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
             <span className="hidden sm:inline">hari</span>
           </div>
           <Link
-            href="/progress"
-            className="grid size-10 place-items-center rounded-full bg-signal-navy text-sm font-black text-white outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Buka progres dan profil pengguna"
+            href="/account"
+            className="grid h-10 min-w-10 place-items-center rounded-full bg-signal-navy px-3 text-sm font-black text-white outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={
+              account.user
+                ? `Buka akun ${account.user.displayName}`
+                : 'Masuk ke akun'
+            }
           >
-            BJ
+            {account.status === 'loading' ? '…' : initials || 'Masuk'}
           </Link>
         </div>
       </div>
+      <nav
+        className="flex justify-center gap-4 overflow-x-auto border-t px-4 py-3 text-sm font-semibold lg:hidden"
+        aria-label="Navigasi seluler"
+      >
+        {navigation.map((item) => (
+          <Link
+            key={item.key}
+            href={item.href}
+            aria-current={active === item.key ? 'page' : undefined}
+            className={
+              active === item.key
+                ? 'text-emerald-800 underline underline-offset-4'
+                : 'text-muted-foreground'
+            }
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
     </header>
   );
 }
