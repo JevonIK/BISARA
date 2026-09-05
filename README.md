@@ -82,37 +82,115 @@ corrective feedback remain planned work.
 - MediaPipe Tasks Vision
 - FastAPI, SQLAlchemy, Alembic, PostgreSQL
 
-## Local development
+## Getting started
 
-Requirements:
+### Prerequisites
 
-- Node.js 22.13 or newer
-- pnpm
+Install the following tools before running BISARA:
 
-Install dependencies and start the development server:
+| Tool | Minimum version | Install guide |
+| --- | --- | --- |
+| [Node.js](https://nodejs.org/) | 22.13 | https://nodejs.org/en/download |
+| [pnpm](https://pnpm.io/) | 9 | `npm install -g pnpm` or https://pnpm.io/installation |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | — | Required only for accounts and backend API |
+| [Python 3](https://www.python.org/) | 3.10 | Required only for backend setup script |
+
+### Quick start (frontend only)
+
+This is the fastest way to run BISARA. Guest learning, camera practice,
+tests, and the progress dashboard all work without the backend.
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/JevonIK/BISARA.git
+cd BISARA
+
+# 2. Install dependencies
 pnpm install
+
+# 3. Start the development server
 pnpm dev
 ```
 
-To enable accounts, start Docker Desktop and run these commands from the root
-before starting the frontend:
+Open **http://localhost:3000** in your browser. The app will hot-reload when
+you edit source files.
+
+### Full stack (frontend + backend API + database)
+
+To enable user accounts, server-synced progress, and the registration/login
+flow, you also need Docker Desktop running.
 
 ```bash
+# 1. Clone the repository (skip if already done)
+git clone https://github.com/JevonIK/BISARA.git
+cd BISARA
+
+# 2. Install frontend dependencies
+pnpm install
+
+# 3. Generate the backend secret key (only needed once)
 python3 backend/scripts/setup_local.py
+
+# 4. Start PostgreSQL and the FastAPI backend
 docker compose up -d --build
+
+# 5. Start the frontend development server
+pnpm dev
 ```
 
-Then open `http://localhost:3000/account`. See [backend/README.md](backend/README.md)
-for API setup, migrations, tests, and deployment requirements. Guest learning
-continues to work when the API is unavailable.
+Open **http://localhost:3000** in your browser. The account page is at
+**http://localhost:3000/account**. The API documentation is at
+**http://localhost:8000/docs**.
 
-Create a production build:
+> **Note:** Use `localhost` instead of `127.0.0.1` for the frontend because
+> cookie origins are explicit. The frontend always runs on port 3000.
+
+### Stopping and restarting
+
+```bash
+# Stop the backend containers (keeps database data)
+docker compose stop
+
+# Restart the backend later
+docker compose up -d
+
+# Remove containers and database volume entirely
+docker compose down -v
+```
+
+### Production build
 
 ```bash
 pnpm build
 ```
+
+### Running tests
+
+```bash
+# Frontend sync tests
+pnpm test:sync
+
+# Lint
+pnpm lint
+
+# Backend API tests (from backend/ with venv activated)
+cd backend
+source .venv/bin/activate
+python -m pytest tests -q
+```
+
+### Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| `pnpm dev` fails with engine error | Upgrade Node.js to 22.13 or newer |
+| Port 3000 already in use | Stop the other process using port 3000; BISARA will not choose another port |
+| Camera not working | Allow camera permission in your browser; HTTPS is not required on localhost |
+| Backend API unreachable | Make sure Docker Desktop is running and run `docker compose up -d --build` |
+| `setup_local.py` error | Ensure Python 3.10+ is installed |
+
+See [backend/README.md](backend/README.md) for detailed API setup, migrations,
+and deployment requirements.
 
 ## Routes
 
