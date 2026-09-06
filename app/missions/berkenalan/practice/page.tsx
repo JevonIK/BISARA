@@ -57,9 +57,9 @@ export default function PracticePage() {
               Latih tanda “Saya”
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Posisikan tubuh bagian atas dan tangan di dalam bingkai. Pada
-              tahap ini BISARA baru menampilkan landmark; penilaian struktur
-              tanda akan ditambahkan setelah model BISINDO tervalidasi.
+              Posisikan tubuh bagian atas dan tangan di dalam bingkai. Tiru
+              gerakan dari video contoh, lalu tekan "Mulai latihan" untuk
+              merekam dan mendapatkan skor kemiripan.
             </p>
           </div>
 
@@ -105,18 +105,15 @@ export default function PracticePage() {
               <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
                 Contoh tanda
               </p>
-              <div className="mt-5 grid aspect-[4/3] place-items-center bg-signal-teal-soft">
-                <div className="text-center">
-                  <span className="mx-auto grid size-16 place-items-center rounded-full bg-signal-teal text-signal-navy">
-                    <Hand className="size-7" />
-                  </span>
-                  <p className="mt-4 text-sm font-black text-signal-navy">
-                    Demonstrasi “Saya”
-                  </p>
-                  <p className="mt-1 px-5 text-xs leading-5 text-muted-foreground">
-                    Video Deaf-validated akan ditempatkan di area ini.
-                  </p>
-                </div>
+              <div className="mt-5 overflow-hidden bg-signal-teal-soft">
+                <video
+                  className="aspect-[4/3] w-full object-cover"
+                  src="/media/wl-bisindo/signer0_label9_sample3.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
               </div>
 
               <div className="mt-6">
@@ -145,11 +142,12 @@ export default function PracticePage() {
                 <Info className="mt-0.5 size-5 shrink-0 text-emerald-700" />
                 <div>
                   <h2 className="text-sm font-black text-signal-navy">
-                    Belum ada skor benar atau salah
+                    Penilaian kemiripan dengan contoh
                   </h2>
                   <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    Landmark menunjukkan bahwa tangan terlihat oleh sistem. Itu
-                    belum membuktikan bahwa tanda BISINDO sudah benar.
+                    Skor dihitung dari kemiripan dengan satu contoh WL-BISINDO
+                    Banten. Ambang belum dikalibrasi bersama validator Tuli.
+                    Skor ini untuk latihan, bukan sertifikasi.
                   </p>
                 </div>
               </div>
@@ -157,7 +155,7 @@ export default function PracticePage() {
           </aside>
 
           <div className="order-1 lg:order-2">
-            <CameraPractice />
+            <CameraPractice referenceVideoUrl="/media/wl-bisindo/signer0_label9_sample3.mp4" />
           </div>
         </section>
 

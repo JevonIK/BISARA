@@ -268,9 +268,14 @@ export function ProgressDashboard() {
               value={userProgress.bestChapterScore}
               color="bg-signal-teal"
             />
+            <MasteryRow
+              label="Imitate (skor gestur)"
+              value={userProgress.bestGestureScore}
+              color="bg-signal-yellow"
+            />
             <p className="text-sm text-muted-foreground">
-              Penilaian Imitate dan Communicate belum tersedia. Penyelesaian
-              simulasi belum membuktikan akurasi isyarat.
+              Skor Imitate adalah kemiripan dengan satu contoh WL-BISINDO.
+              Ambang ini masih perlu dikalibrasi bersama validator Tuli.
             </p>
             <MasteryRow
               label="Simulasi perkenalan selesai"

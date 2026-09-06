@@ -57,9 +57,11 @@ class ProgressUpdate(ApiModel):
     mastered_signs: int = Field(ge=0, le=10_000)
     total_practice_minutes: int = Field(ge=0, le=10_000_000)
     best_chapter_score: int = Field(ge=0, le=100)
+    best_gesture_score: int = Field(ge=0, le=100)
     last_chapter_score: int = Field(ge=0, le=100)
     chapter_one_stars: int = Field(ge=0, le=3)
     test_attempts: int = Field(ge=0, le=1_000_000)
+    gesture_attempts: int = Field(ge=0, le=1_000_000)
     conversation_completions: int = Field(ge=0, le=1_000_000)
     review_date: date | None = None
     reviewed_signs: list[str] = Field(max_length=100)

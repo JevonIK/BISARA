@@ -10,23 +10,42 @@ import {
   Check,
   Hand,
   LoaderCircle,
+  Play,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   SunMedium,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  scoreGesture,
+  type GestureFrame,
+  type GestureScore,
+  type HandObservation,
+} from '@/lib/gesture-scoring';
+import { recordGestureAssessment } from '@/lib/progress-storage';
+import { getReferenceFrames } from '@/lib/reference-extractor';
 import { cn } from '@/lib/utils';
 
 type CameraStatus =
   | 'idle'
   | 'requesting'
   | 'loading-model'
+  | 'loading-reference'
   | 'ready'
   | 'denied'
   | 'unavailable'
   | 'error';
+
+type PracticePhase =
+  | 'idle'
+  | 'countdown'
+  | 'recording'
+  | 'scoring'
+  | 'result';
 
 type LightingStatus = 'unknown' | 'low' | 'good' | 'bright';
 
@@ -34,6 +53,9 @@ const WASM_ROOT =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
 const HAND_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+
+const RECORDING_DURATION_MS = 3000;
+const COUNTDOWN_SECONDS = 3;
 
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -59,7 +81,11 @@ const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 17],
 ];
 
-export function CameraPractice() {
+type CameraPracticeProps = {
+  referenceVideoUrl: string;
+};
+
+export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const brightnessCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -72,11 +98,30 @@ export function CameraPractice() {
   const lastBrightnessCheckRef = useRef(0);
   const mountedRef = useRef(true);
 
+  // Scoring refs
+  const referenceFramesRef = useRef<GestureFrame[]>([]);
+  const frameBufferRef = useRef<GestureFrame[]>([]);
+  const recordingStartRef = useRef(0);
+  const practicePhaseRef = useRef<PracticePhase>('idle');
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [status, setStatus] = useState<CameraStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [handCount, setHandCount] = useState(0);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [lighting, setLighting] = useState<LightingStatus>('unknown');
+
+  // Scoring state
+  const [practicePhase, setPracticePhase] = useState<PracticePhase>('idle');
+  const [countdown, setCountdown] = useState(0);
+  const [recordingProgress, setRecordingProgress] = useState(0);
+  const [gestureScore, setGestureScore] = useState<GestureScore | null>(null);
+  const [referenceReady, setReferenceReady] = useState(false);
+
+  const updatePhase = useCallback((phase: PracticePhase) => {
+    practicePhaseRef.current = phase;
+    setPracticePhase(phase);
+  }, []);
 
   const releaseResources = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -84,6 +129,11 @@ export function CameraPractice() {
       animationFrameRef.current = null;
     }
     renderFrameRef.current = null;
+
+    if (countdownTimerRef.current !== null) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
 
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -105,7 +155,11 @@ export function CameraPractice() {
     setConfidence(null);
     setLighting('unknown');
     setErrorMessage('');
-  }, [releaseResources]);
+    updatePhase('idle');
+    setGestureScore(null);
+    setRecordingProgress(0);
+    setCountdown(0);
+  }, [releaseResources, updatePhase]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -121,6 +175,9 @@ export function CameraPractice() {
     setHandCount(0);
     setConfidence(null);
     setLighting('unknown');
+    updatePhase('idle');
+    setGestureScore(null);
+    setRecordingProgress(0);
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus('unavailable');
@@ -172,6 +229,23 @@ export function CameraPractice() {
       }
 
       landmarkerRef.current = landmarker;
+
+      // Extract reference frames from the demo video
+      setStatus('loading-reference');
+      try {
+        const refFrames = await getReferenceFrames(
+          referenceVideoUrl,
+          landmarker,
+        );
+        referenceFramesRef.current = refFrames;
+        setReferenceReady(true);
+      } catch {
+        // Reference extraction failed — landmark-only mode continues
+        setReferenceReady(false);
+      }
+
+      if (!mountedRef.current) return;
+
       setStatus('ready');
 
       const renderFrame: FrameRequestCallback = () => {
@@ -206,6 +280,59 @@ export function CameraPractice() {
           setConfidence((previous) =>
             previous === nextConfidence ? previous : nextConfidence,
           );
+
+          // Capture frame during recording
+          if (practicePhaseRef.current === 'recording') {
+            const elapsed = now - recordingStartRef.current;
+
+            if (elapsed >= RECORDING_DURATION_MS) {
+              practicePhaseRef.current = 'scoring';
+              setPracticePhase('scoring');
+              setRecordingProgress(100);
+
+              // Compute score asynchronously to allow the loading overlay to render
+              setTimeout(() => {
+                const result = scoreGesture(
+                  referenceFramesRef.current,
+                  frameBufferRef.current,
+                );
+                setGestureScore(result);
+                recordGestureAssessment(result.overall, result.passed);
+                practicePhaseRef.current = 'result';
+                setPracticePhase('result');
+              }, 50);
+            } else {
+              const hands: HandObservation[] = results.landmarks.map(
+                (landmarks, i) => ({
+                  landmarks: landmarks.map((l) => ({
+                    x: l.x,
+                    y: l.y,
+                    z: l.z,
+                  })),
+                  worldLandmarks: results.worldLandmarks[i]?.map((l) => ({
+                    x: l.x,
+                    y: l.y,
+                    z: l.z,
+                  })),
+                  handedness:
+                    results.handedness[i]?.[0]?.categoryName ?? 'Right',
+                  confidence: results.handedness[i]?.[0]?.score ?? 0,
+                }),
+              );
+              frameBufferRef.current.push({
+                timeMs: Math.round(elapsed),
+                hands,
+              });
+
+              const progress = Math.min(
+                100,
+                Math.round((elapsed / RECORDING_DURATION_MS) * 100),
+              );
+              setRecordingProgress((prev) =>
+                prev === progress ? prev : progress,
+              );
+            }
+          }
 
           if (now - lastBrightnessCheckRef.current >= 1000) {
             lastBrightnessCheckRef.current = now;
@@ -249,17 +376,57 @@ export function CameraPractice() {
         'Kamera atau model landmark gagal dimuat. Periksa koneksi dan coba lagi.',
       );
     }
-  }, [releaseResources]);
+  }, [releaseResources, referenceVideoUrl, updatePhase]);
 
-  const isBusy = status === 'requesting' || status === 'loading-model';
+  const startPractice = useCallback(() => {
+    frameBufferRef.current = [];
+    setRecordingProgress(0);
+    setGestureScore(null);
+    updatePhase('countdown');
+    setCountdown(COUNTDOWN_SECONDS);
+
+    let remaining = COUNTDOWN_SECONDS;
+    countdownTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (countdownTimerRef.current !== null) {
+          clearInterval(countdownTimerRef.current);
+          countdownTimerRef.current = null;
+        }
+        setCountdown(0);
+        recordingStartRef.current = performance.now();
+        updatePhase('recording');
+      } else {
+        setCountdown(remaining);
+      }
+    }, 1000);
+  }, [updatePhase]);
+
+  const resetPractice = useCallback(() => {
+    frameBufferRef.current = [];
+    setRecordingProgress(0);
+    updatePhase('idle');
+  }, [updatePhase]);
+
+  const isBusy =
+    status === 'requesting' ||
+    status === 'loading-model' ||
+    status === 'loading-reference';
   const isReady = status === 'ready';
   const showSetup = (
     ['idle', 'requesting', 'denied', 'unavailable', 'error'] as CameraStatus[]
   ).includes(status);
+  const canStartPractice =
+    isReady && referenceReady && practicePhase === 'idle';
+
   const calibrationChecks = [
     {
       label: 'Kamera aktif',
-      detail: isReady ? 'Siap' : 'Belum siap',
+      detail: isReady
+        ? 'Siap'
+        : status === 'loading-reference'
+          ? 'Menyiapkan referensi…'
+          : 'Belum siap',
       passed: isReady,
       icon: Camera,
     },
@@ -285,7 +452,9 @@ export function CameraPractice() {
             ref={videoRef}
             className={cn(
               'absolute inset-0 size-full -scale-x-100 object-cover transition-opacity',
-              isReady || status === 'loading-model'
+              isReady ||
+                status === 'loading-model' ||
+                status === 'loading-reference'
                 ? 'opacity-100'
                 : 'opacity-0',
             )}
@@ -352,25 +521,78 @@ export function CameraPractice() {
             </div>
           )}
 
-          {isReady && (
-            <div className="absolute inset-x-4 top-4 flex flex-wrap items-center justify-between gap-2">
-              <span
-                className={cn(
-                  'rounded-full px-3 py-2 text-xs font-extrabold backdrop-blur-sm',
-                  handCount > 0
-                    ? 'bg-signal-teal text-signal-navy'
-                    : 'bg-black/45 text-white',
-                )}
-              >
-                {handCount > 0
-                  ? `${handCount} tangan terdeteksi`
-                  : 'Posisikan tangan di dalam bingkai'}
-              </span>
-              {confidence !== null && (
-                <span className="rounded-full bg-black/45 px-3 py-2 text-xs font-bold text-white backdrop-blur-sm">
-                  Confidence {confidence}%
+          {status === 'loading-reference' && (
+            <div className="absolute inset-0 grid place-items-center bg-signal-navy/55 p-6 text-center backdrop-blur-sm">
+              <div>
+                <LoaderCircle className="mx-auto size-8 animate-spin text-signal-teal" />
+                <p className="mt-4 text-sm font-bold text-white">
+                  Menyiapkan referensi gerakan…
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isReady &&
+            practicePhase !== 'countdown' &&
+            practicePhase !== 'scoring' && (
+              <div className="absolute inset-x-4 top-4 flex flex-wrap items-center justify-between gap-2">
+                <span
+                  className={cn(
+                    'rounded-full px-3 py-2 text-xs font-extrabold backdrop-blur-sm',
+                    handCount > 0
+                      ? 'bg-signal-teal text-signal-navy'
+                      : 'bg-black/45 text-white',
+                  )}
+                >
+                  {handCount > 0
+                    ? `${handCount} tangan terdeteksi`
+                    : 'Posisikan tangan di dalam bingkai'}
                 </span>
-              )}
+                {confidence !== null && (
+                  <span className="rounded-full bg-black/45 px-3 py-2 text-xs font-bold text-white backdrop-blur-sm">
+                    Confidence {confidence}%
+                  </span>
+                )}
+              </div>
+            )}
+
+          {/* Countdown overlay */}
+          {practicePhase === 'countdown' && (
+            <div className="absolute inset-0 grid place-items-center bg-signal-navy/40 backdrop-blur-sm">
+              <div className="text-center">
+                <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-yellow text-5xl font-black text-signal-navy">
+                  {countdown}
+                </span>
+                <p className="mt-4 text-sm font-bold text-white">Bersiap…</p>
+              </div>
+            </div>
+          )}
+
+          {/* Recording indicator */}
+          {practicePhase === 'recording' && (
+            <div className="absolute inset-x-4 bottom-4 flex items-center gap-3 rounded-full bg-black/50 px-4 py-2.5 backdrop-blur-sm">
+              <span className="size-3 animate-pulse rounded-full bg-signal-coral" />
+              <div className="flex-1">
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-signal-coral transition-[width] duration-100"
+                    style={{ width: `${recordingProgress}%` }}
+                  />
+                </div>
+              </div>
+              <span className="text-xs font-bold text-white">Merekam</span>
+            </div>
+          )}
+
+          {/* Scoring overlay */}
+          {practicePhase === 'scoring' && (
+            <div className="absolute inset-0 grid place-items-center bg-signal-navy/55 p-6 text-center backdrop-blur-sm">
+              <div>
+                <LoaderCircle className="mx-auto size-8 animate-spin text-signal-teal" />
+                <p className="mt-4 text-sm font-bold text-white">
+                  Mengevaluasi gerakan…
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -390,81 +612,152 @@ export function CameraPractice() {
             )}
           </div>
 
-          {isReady && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            {canStartPractice && (
               <Button
                 type="button"
-                variant="outline"
-                onClick={startCamera}
-                className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                onClick={startPractice}
+                className="bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90"
               >
-                <RefreshCw className="size-4" /> Muat ulang
+                <Play className="size-4" /> Mulai latihan
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={stopCamera}
-                className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-              >
-                <CameraOff className="size-4" /> Matikan
-              </Button>
-            </div>
-          )}
+            )}
+            {isReady && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={startCamera}
+                  className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                >
+                  <RefreshCw className="size-4" /> Muat ulang
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={stopCamera}
+                  className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                >
+                  <CameraOff className="size-4" /> Matikan
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </section>
 
-      <aside className="border-t-4 border-signal-yellow bg-card p-6">
-        <div className="mb-7 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.13em] text-amber-700">
-              Kalibrasi
+      {/* Sidebar: score results or calibration */}
+      {practicePhase === 'result' && gestureScore ? (
+        <aside className="border-t-4 border-signal-coral bg-card p-6">
+          <div className="mb-5">
+            <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-coral">
+              Skor latihan
             </p>
-            <h2 className="mt-1 text-xl font-black tracking-[-0.03em] text-signal-navy">
-              Sebelum berlatih
-            </h2>
+            <div className="mt-4 flex items-baseline gap-3">
+              <span className="text-5xl font-black tracking-[-0.06em] text-signal-navy">
+                {gestureScore.overall}
+              </span>
+              <Badge
+                className={cn(
+                  'font-extrabold',
+                  gestureScore.passed
+                    ? 'bg-signal-teal text-signal-navy'
+                    : 'bg-muted text-muted-foreground',
+                )}
+              >
+                {gestureScore.passed ? 'Lulus ✓' : 'Belum lulus'}
+              </Badge>
+            </div>
           </div>
-          <ShieldCheck className="size-6 text-amber-600" />
-        </div>
 
-        <ul className="space-y-4">
-          {calibrationChecks.map((check) => {
-            const Icon = check.icon;
-            return (
-              <li key={check.label} className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    'grid size-9 shrink-0 place-items-center rounded-full',
-                    check.passed
-                      ? 'bg-signal-teal text-signal-navy'
-                      : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {check.passed ? (
-                    <Check className="size-4" strokeWidth={3} />
-                  ) : (
-                    <Icon className="size-4" />
-                  )}
-                </span>
-                <span>
-                  <span className="block text-sm font-extrabold text-signal-navy">
-                    {check.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {check.detail}
-                  </span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+          <div className="space-y-3">
+            <ScoreBar label="Bentuk tangan" value={gestureScore.handshape} />
+            <ScoreBar label="Gerakan" value={gestureScore.movement} />
+            <ScoreBar label="Orientasi" value={gestureScore.orientation} />
+            <ScoreBar label="Posisi" value={gestureScore.position} />
+            <ScoreBar label="Koordinasi" value={gestureScore.coordination} />
+          </div>
 
-        <div className="mt-7 border-t border-signal-navy/10 pt-5">
-          <p className="text-xs leading-5 text-muted-foreground">
-            Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat,
-            dan beri ruang di sekitar kedua tangan.
+          <div className="mt-5 border-t border-signal-navy/10 pt-4">
+            <ScoreBar
+              label="Kualitas deteksi"
+              value={gestureScore.detectionQuality}
+            />
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-muted-foreground">
+            {gestureScore.feedback}
           </p>
-        </div>
-      </aside>
+
+          <Button
+            type="button"
+            onClick={resetPractice}
+            className="mt-5 w-full bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90"
+          >
+            <RotateCcw className="size-4" /> Coba lagi
+          </Button>
+        </aside>
+      ) : (
+        <aside className="border-t-4 border-signal-yellow bg-card p-6">
+          <div className="mb-7 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.13em] text-amber-700">
+                Kalibrasi
+              </p>
+              <h2 className="mt-1 text-xl font-black tracking-[-0.03em] text-signal-navy">
+                Sebelum berlatih
+              </h2>
+            </div>
+            <ShieldCheck className="size-6 text-amber-600" />
+          </div>
+
+          <ul className="space-y-4">
+            {calibrationChecks.map((check) => {
+              const Icon = check.icon;
+              return (
+                <li key={check.label} className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      'grid size-9 shrink-0 place-items-center rounded-full',
+                      check.passed
+                        ? 'bg-signal-teal text-signal-navy'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {check.passed ? (
+                      <Check className="size-4" strokeWidth={3} />
+                    ) : (
+                      <Icon className="size-4" />
+                    )}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-extrabold text-signal-navy">
+                      {check.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {check.detail}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-7 border-t border-signal-navy/10 pt-5">
+            <p className="text-xs leading-5 text-muted-foreground">
+              {referenceReady
+                ? 'Referensi siap. Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat, dan beri ruang di sekitar kedua tangan.'
+                : 'Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat, dan beri ruang di sekitar kedua tangan.'}
+            </p>
+            {isReady && !referenceReady && (
+              <p className="mt-3 text-xs leading-5 text-signal-coral">
+                Referensi gerakan tidak dapat dimuat. Penilaian skor tidak
+                tersedia saat ini.
+              </p>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
@@ -472,6 +765,7 @@ export function CameraPractice() {
 function cameraStatusLabel(status: CameraStatus, handCount: number) {
   if (status === 'requesting') return 'Menunggu keputusan izin kamera…';
   if (status === 'loading-model') return 'Memuat model landmark tangan…';
+  if (status === 'loading-reference') return 'Menyiapkan referensi gerakan…';
   if (status === 'ready' && handCount > 0) return 'Landmark tangan aktif';
   if (status === 'ready') return 'Kamera siap — angkat tangan ke dalam bingkai';
   if (status === 'denied') return 'Akses kamera belum diberikan';
@@ -569,4 +863,28 @@ function readFrameLighting(
   if (average < 55) return 'low';
   if (average > 220) return 'bright';
   return 'good';
+}
+
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-xs font-bold">
+        <span className="text-signal-navy">{label}</span>
+        <span className="text-muted-foreground">{value}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-500',
+            value >= 75
+              ? 'bg-signal-teal'
+              : value >= 50
+                ? 'bg-signal-yellow'
+                : 'bg-signal-coral',
+          )}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
+  );
 }

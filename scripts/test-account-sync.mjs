@@ -12,7 +12,9 @@ const sources = [
   'lib/account-cache.ts',
   'lib/api-client.ts',
   'lib/account-session.ts',
+  'lib/gesture-scoring.ts',
   'tests/account-sync.test.ts',
+  'tests/gesture-scoring.test.ts',
 ];
 for (const source of sources) {
   const result = ts.transpileModule(await readFile(source, 'utf8'), {
@@ -32,7 +34,11 @@ for (const source of sources) {
 }
 const result = spawnSync(
   process.execPath,
-  ['--test', path.join(directory, 'account-sync.test.mjs')],
+  [
+    '--test',
+    path.join(directory, 'account-sync.test.mjs'),
+    path.join(directory, 'gesture-scoring.test.mjs'),
+  ],
   { stdio: 'inherit' },
 );
 process.exitCode = result.status ?? 1;

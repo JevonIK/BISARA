@@ -19,9 +19,11 @@ export type UserProgress = {
   masteredSigns: number;
   totalPracticeMinutes: number;
   bestChapterScore: number;
+  bestGestureScore: number;
   lastChapterScore: number;
   chapterOneStars: StarRating;
   testAttempts: number;
+  gestureAttempts: number;
   conversationCompletions: number;
   reviewDate: string;
   reviewedSigns: string[];
@@ -38,9 +40,11 @@ export const defaultProgress: UserProgress = {
   masteredSigns: 18,
   totalPracticeMinutes: 84,
   bestChapterScore: 0,
+  bestGestureScore: 0,
   lastChapterScore: 0,
   chapterOneStars: 0,
   testAttempts: 0,
+  gestureAttempts: 0,
   conversationCompletions: 0,
   reviewDate: '',
   reviewedSigns: [],
@@ -144,6 +148,26 @@ export function recordConversationCompletion() {
       weeklyActivity: addMinutesToToday(progress.weeklyActivity, 8),
     }),
   );
+}
+
+export function recordGestureAssessment(score: number, passed: boolean) {
+  return updateProgress((progress) => {
+    const firstPass = passed && progress.bestGestureScore < 75;
+    return markActive({
+      ...progress,
+      xp: progress.xp + (firstPass ? 30 : 5),
+      bestGestureScore: Math.max(progress.bestGestureScore, score),
+      gestureAttempts: progress.gestureAttempts + 1,
+      completedMissions: passed
+        ? Math.max(progress.completedMissions, 3)
+        : progress.completedMissions,
+      masteredSigns: passed
+        ? Math.max(progress.masteredSigns, 19)
+        : progress.masteredSigns,
+      totalPracticeMinutes: progress.totalPracticeMinutes + 3,
+      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
+    });
+  });
 }
 
 export function completeReviewSign(signId: string) {
