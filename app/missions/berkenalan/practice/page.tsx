@@ -58,7 +58,7 @@ export default function PracticePage() {
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
               Posisikan tubuh bagian atas dan tangan di dalam bingkai. Tiru
-              gerakan dari video contoh, lalu tekan "Mulai latihan" untuk
+              gerakan dari video contoh, lalu tekan “Mulai latihan” untuk
               merekam dan mendapatkan skor kemiripan.
             </p>
           </div>

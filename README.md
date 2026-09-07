@@ -71,6 +71,30 @@ Account data is stored in PostgreSQL and can be restored after login in another
 browser connected to the same server. BISINDO classification and validated
 corrective feedback remain planned work.
 
+### Camera similarity checker
+
+Camera practice now compares a recorded attempt with the “Saya” demonstration
+using hand landmarks and DTW. It matches stable left/right hand identities,
+normalizes mirrored hand geometry, and resamples both sequences on normalized
+time so sampling rate and overall speed do not determine the movement score.
+Movement compares the ordered, centered wrist path instead of noisy
+frame-to-frame derivatives. Two-hand distances remain in shared image coordinates.
+
+The pass threshold is 75, with a minimum score of 50 for handshape, movement,
+orientation, and coordination. A severe mismatch in one of these components
+caps the total below the pass threshold. At least six usable frames spanning
+400 ms and 60% hand visibility during the active gesture are required. Setup
+and rest frames at the beginning/end are trimmed; gaps inside the gesture are
+retained. “Detection quality” measures usable visibility;
+MediaPipe's left/right classification confidence is not landmark accuracy.
+Unusable reference videos disable assessment instead of grading the learner.
+
+This remains a prototype similarity checker against one sample, not a trained
+BISINDO classifier. Position uses image coordinates rather than a body anchor;
+camera framing can still affect that component. Thresholds need validation
+with Deaf language experts and recordings from multiple learners.
+`pnpm test:sync` includes regression tests for the checker as well as account sync.
+
 ## Tech stack
 
 - TypeScript

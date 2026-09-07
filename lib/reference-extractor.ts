@@ -1,6 +1,10 @@
 import type { HandLandmarker } from '@mediapipe/tasks-vision';
 
-import type { GestureFrame, HandObservation } from '@/lib/gesture-scoring';
+import {
+  hasUsableReference,
+  type GestureFrame,
+  type HandObservation,
+} from '@/lib/gesture-scoring';
 
 const referenceCache = new Map<string, GestureFrame[]>();
 
@@ -16,6 +20,11 @@ export async function getReferenceFrames(
   if (cached) return cached;
 
   const frames = await extractFramesFromVideo(videoUrl, landmarker);
+  if (!hasUsableReference(frames)) {
+    throw new Error(
+      'Referensi gerakan tidak memiliki cukup landmark tangan yang valid.',
+    );
+  }
   referenceCache.set(videoUrl, frames);
   return frames;
 }
