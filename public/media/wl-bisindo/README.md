@@ -15,13 +15,16 @@ appropriate attribution.
 
 ## Included samples
 
-| File                          | Dataset label | Gloss        | Signer |
-| ----------------------------- | ------------: | ------------ | -----: |
-| `signer0_label6_sample3.mp4`  |             6 | Maaf         |      0 |
-| `signer0_label9_sample3.mp4`  |             9 | Saya         |      0 |
-| `signer0_label10_sample3.mp4` |            10 | Terima kasih |      0 |
-| `signer1_label13_sample3.mp4` |            13 | Siapa        |      1 |
-| `signer1_label25_sample3.mp4` |            25 | Teman        |      1 |
+The app includes sample 3 for every one of the dataset's 32 labels. Files use
+the original dataset naming convention: labels 0–11 use signer 0, labels
+12–25 use signer 1, and labels 26–31 use signer 2.
+
+| Labels | Glosses                                                            |
+| -----: | ------------------------------------------------------------------ |
+|    0–7 | Air, Belajar, Cari, Hari, Ingat, Lagi, Maaf, Makan                 |
+|   8–15 | Motor, Saya, Terima kasih, Tuli, Apa, Siapa, Kapan, Di mana        |
+|  16–23 | Mengapa, Bagaimana, Merah, Kuning, Hijau, Hitam, Dengar, Berangkat |
+|  24–31 | Datang, Teman, Keluarga, Rumah, Pagi, Siang, Sore, Malam           |
 
 The regional scope is BISINDO Banten. These samples must not be presented as a
 universal representation of all regional BISINDO variations.

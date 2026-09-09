@@ -4,6 +4,23 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
+SIGN_IDS = {
+    "air", "belajar", "cari", "hari", "ingat", "lagi", "maaf", "makan",
+    "motor", "saya", "terima-kasih", "tuli", "apa", "siapa", "kapan",
+    "di-mana", "mengapa", "bagaimana", "merah", "kuning", "hijau", "hitam",
+    "dengar", "berangkat", "datang", "teman", "keluarga", "rumah", "pagi",
+    "siang", "sore", "malam",
+}
+MISSION_IDS = {
+    "saya-dan-kamu", "sapaan-waktu", "berkenalan", "minta-pengulangan",
+    "checkpoint-kenalan", "makan-dan-minum", "belajar-dan-mengingat",
+    "rencana-hari-ini", "datang-dan-berangkat", "checkpoint-aktivitas",
+    "mencari-tempat", "bertanya-arah", "waktu-perjalanan", "naik-motor",
+    "checkpoint-perjalanan", "keluarga-dan-rumah", "warna-dasar",
+    "dengar-dan-tuli", "deskripsi-sekitar", "checkpoint-komunikasi",
+}
+
+
 def to_camel(value: str) -> str:
     first, *rest = value.split("_")
     return first + "".join(word.capitalize() for word in rest)
@@ -49,11 +66,19 @@ class WeeklyActivityItem(ApiModel):
     minutes: int = Field(ge=0, le=1440)
 
 
+class SignMasteryItem(ApiModel):
+    best_score: int = Field(ge=0, le=100)
+    passed: bool
+    attempts: int = Field(ge=0, le=1_000_000)
+    last_practiced_at: str = Field(max_length=64)
+
+
 class ProgressUpdate(ApiModel):
     xp: int = Field(ge=0, le=10_000_000)
     streak: int = Field(ge=0, le=100_000)
     last_active_date: date | None = None
     completed_missions: int = Field(ge=0, le=10_000)
+    completed_mission_ids: list[str] = Field(max_length=20)
     mastered_signs: int = Field(ge=0, le=10_000)
     total_practice_minutes: int = Field(ge=0, le=10_000_000)
     best_chapter_score: int = Field(ge=0, le=100)
@@ -63,6 +88,9 @@ class ProgressUpdate(ApiModel):
     test_attempts: int = Field(ge=0, le=1_000_000)
     gesture_attempts: int = Field(ge=0, le=1_000_000)
     conversation_completions: int = Field(ge=0, le=1_000_000)
+    mission_scores: dict[str, int] = Field(max_length=20)
+    conversation_completions_by_mission: dict[str, int] = Field(max_length=20)
+    sign_mastery: dict[str, SignMasteryItem] = Field(max_length=32)
     review_date: date | None = None
     reviewed_signs: list[str] = Field(max_length=100)
     weekly_activity: list[WeeklyActivityItem] = Field(max_length=7)
@@ -70,9 +98,38 @@ class ProgressUpdate(ApiModel):
     @field_validator("reviewed_signs")
     @classmethod
     def valid_review_signs(cls, values: list[str]) -> list[str]:
-        allowed = {"saya", "teman", "terima-kasih", "maaf", "siapa"}
-        if len(set(values)) != len(values) or not set(values) <= allowed:
+        if len(set(values)) != len(values) or not set(values) <= SIGN_IDS:
             raise ValueError("Invalid or duplicate review signs")
+        return values
+
+    @field_validator("sign_mastery")
+    @classmethod
+    def valid_sign_mastery(
+        cls, values: dict[str, SignMasteryItem]
+    ) -> dict[str, SignMasteryItem]:
+        if not set(values) <= SIGN_IDS:
+            raise ValueError("Invalid sign mastery key")
+        return values
+
+    @field_validator("completed_mission_ids")
+    @classmethod
+    def valid_completed_missions(cls, values: list[str]) -> list[str]:
+        if len(set(values)) != len(values) or not set(values) <= MISSION_IDS:
+            raise ValueError("Invalid or duplicate completed missions")
+        return values
+
+    @field_validator("mission_scores")
+    @classmethod
+    def valid_mission_scores(cls, values: dict[str, int]) -> dict[str, int]:
+        if not set(values) <= MISSION_IDS or any(score < 0 or score > 100 for score in values.values()):
+            raise ValueError("Invalid mission score")
+        return values
+
+    @field_validator("conversation_completions_by_mission")
+    @classmethod
+    def valid_mission_completion_counts(cls, values: dict[str, int]) -> dict[str, int]:
+        if not set(values) <= MISSION_IDS or any(count < 0 or count > 1_000_000 for count in values.values()):
+            raise ValueError("Invalid mission completion count")
         return values
 
 

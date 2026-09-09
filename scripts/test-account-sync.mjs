@@ -8,12 +8,17 @@ import ts from 'typescript';
 const directory = await mkdtemp(path.join(tmpdir(), 'bisara-sync-test-'));
 const sources = [
   'lib/scoring.ts',
+  'lib/curriculum-data.ts',
+  'lib/learning-data.ts',
+  'lib/berkenalan-data.ts',
+  'lib/learning-progress.ts',
   'lib/progress-storage.ts',
   'lib/account-cache.ts',
   'lib/api-client.ts',
   'lib/account-session.ts',
   'lib/gesture-scoring.ts',
   'tests/account-sync.test.ts',
+  'tests/learning-progress.test.ts',
   'tests/gesture-scoring.test.ts',
 ];
 for (const source of sources) {
@@ -36,6 +41,7 @@ const result = spawnSync(
   [
     '--test',
     path.join(directory, 'account-sync.test.mjs'),
+    path.join(directory, 'learning-progress.test.mjs'),
     path.join(directory, 'gesture-scoring.test.mjs'),
   ],
   { stdio: 'inherit' },

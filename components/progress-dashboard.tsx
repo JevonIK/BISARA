@@ -26,7 +26,14 @@ import {
 import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
 import { useAccount } from '@/hooks/use-account';
-import { reviewSignIds } from '@/lib/progress-storage';
+import { allMissions } from '@/lib/learning-data';
+import { signs } from '@/lib/curriculum-data';
+import { getReviewSignIds } from '@/lib/progress-storage';
+import {
+  getCurrentMission,
+  getMissionLearningState,
+  getPrototypeMissionCount,
+} from '@/lib/learning-progress';
 import { cn } from '@/lib/utils';
 
 const chartConfig = {
@@ -54,7 +61,7 @@ const badges = [
   {
     id: 'chapter-one',
     name: 'Pemahaman Bab 1',
-    description: 'Dapatkan minimal satu bintang.',
+    description: 'Capai minimal 70 pada tes pengenalan.',
     icon: Star,
     color: 'yellow',
   },
@@ -72,17 +79,26 @@ export function ProgressDashboard() {
   const account = useAccount();
   const level = Math.floor(userProgress.xp / 500) + 1;
   const levelProgress = userProgress.xp % 500;
+  const reviewSignIds = getReviewSignIds(userProgress);
   const reviewProgress = Math.round(
     (userProgress.reviewedSigns.length / reviewSignIds.length) * 100,
   );
   const activeDays = userProgress.weeklyActivity.filter(
     (entry) => entry.minutes > 0,
   ).length;
+  const currentMission = getCurrentMission(userProgress);
+  const missionLearning = getMissionLearningState(currentMission, userProgress);
+  const completedMissions = getPrototypeMissionCount(userProgress);
+  const imitateProgress = Math.round(
+    (signs.filter((sign) => userProgress.signMastery[sign.id].passed).length /
+      signs.length) *
+      100,
+  );
 
   const unlockedBadges = new Set([
-    ...(userProgress.completedMissions > 0 ? ['first-step'] : []),
+    ...(completedMissions > 0 ? ['first-step'] : []),
     ...(userProgress.streak >= 7 ? ['streak-seven'] : []),
-    ...(userProgress.chapterOneStars > 0 ? ['chapter-one'] : []),
+    ...(userProgress.bestChapterScore >= 70 ? ['chapter-one'] : []),
     ...(userProgress.conversationCompletions > 0 ? ['first-conversation'] : []),
   ]);
 
@@ -147,7 +163,7 @@ export function ProgressDashboard() {
         />
         <StatCard
           icon={Check}
-          value={`${userProgress.completedMissions}/15`}
+          value={`${completedMissions}/${allMissions.length}`}
           label="Misi selesai"
           tone="teal"
         />
@@ -160,7 +176,7 @@ export function ProgressDashboard() {
         <StatCard
           icon={Trophy}
           value={`${userProgress.bestChapterScore}`}
-          label="Skor terbaik Bab 1"
+          label="Skor pengenalan terbaik"
           tone="navy"
         />
       </section>
@@ -260,26 +276,27 @@ export function ProgressDashboard() {
             Tingkat mastery
           </p>
           <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
-            Recognize → Imitate → Communicate
+            Kenali → Tirukan → Uji → Konteks
           </h2>
           <div className="mt-7 space-y-6">
             <MasteryRow
-              label="Recognize (skor tes)"
+              label="Uji pengenalan (skor tes)"
               value={userProgress.bestChapterScore}
               color="bg-signal-teal"
             />
             <MasteryRow
-              label="Imitate (skor gestur)"
-              value={userProgress.bestGestureScore}
+              label={`Tirukan (${signs.filter((sign) => userProgress.signMastery[sign.id].passed).length}/${signs.length} tanda lulus)`}
+              value={imitateProgress}
               color="bg-signal-yellow"
             />
             <p className="text-sm text-muted-foreground">
-              Skor Imitate adalah kemiripan dengan satu contoh WL-BISINDO.
-              Ambang ini masih perlu dikalibrasi bersama validator Tuli.
+              Progres Tirukan dihitung dari jumlah tanda yang pernah melewati
+              ambang checker. Ambangnya masih perlu dikalibrasi bersama
+              validator Tuli.
             </p>
             <MasteryRow
-              label="Simulasi perkenalan selesai"
-              value={userProgress.conversationCompletions > 0 ? 100 : 0}
+              label={`Konteks misi aktif: ${currentMission.title}`}
+              value={missionLearning.conversationComplete ? 100 : 0}
               color="bg-signal-coral"
             />
           </div>

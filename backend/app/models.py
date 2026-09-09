@@ -41,6 +41,7 @@ class UserProgress(Base):
     streak: Mapped[int] = mapped_column(Integer, default=0)
     last_active_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     completed_missions: Mapped[int] = mapped_column(Integer, default=0)
+    completed_mission_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
     mastered_signs: Mapped[int] = mapped_column(Integer, default=0)
     total_practice_minutes: Mapped[int] = mapped_column(Integer, default=0)
     best_chapter_score: Mapped[int] = mapped_column(Integer, default=0)
@@ -50,6 +51,13 @@ class UserProgress(Base):
     test_attempts: Mapped[int] = mapped_column(Integer, default=0)
     gesture_attempts: Mapped[int] = mapped_column(Integer, default=0)
     conversation_completions: Mapped[int] = mapped_column(Integer, default=0)
+    mission_scores: Mapped[dict[str, int]] = mapped_column(JSONB, default=dict)
+    conversation_completions_by_mission: Mapped[dict[str, int]] = mapped_column(
+        JSONB, default=dict
+    )
+    sign_mastery: Mapped[dict[str, dict[str, int | bool | str]]] = mapped_column(
+        JSONB, default=dict
+    )
     review_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     reviewed_signs: Mapped[list[str]] = mapped_column(JSONB, default=list)
     weekly_activity: Mapped[list[dict[str, int | str]]] = mapped_column(JSONB, default=list)

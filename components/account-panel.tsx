@@ -110,7 +110,7 @@ export function AccountPanel() {
                 {progress.xp.toLocaleString('id-ID')} XP
               </p>
               <p className="mt-2 text-sm">
-                Skor terbaik: {progress.bestChapterScore}/100
+                Skor pengenalan terbaik: {progress.bestChapterScore}/100
               </p>
               <output className="mt-4 block text-sm font-semibold">
                 {account.sync === 'saved'

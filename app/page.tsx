@@ -1,3 +1,5 @@
+'use client';
+
 import {
   BookOpen,
   Check,
@@ -5,6 +7,7 @@ import {
   Hand,
   Headphones,
   LockKeyhole,
+  Languages,
   Map,
   MessageCircleMore,
   Play,
@@ -17,16 +20,63 @@ import { DailyQuestCard } from '@/components/daily-quest-card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
-import { chapters } from '@/lib/learning-data';
+import { useProgress } from '@/hooks/use-progress';
+import { chapters, getChapterForMission } from '@/lib/learning-data';
+import {
+  getChapterProgress,
+  getCurrentMission,
+  getMissionLearningState,
+  getPrototypeMissionCount,
+} from '@/lib/learning-progress';
 import { cn } from '@/lib/utils';
 
-const learningSteps = [
-  { label: 'Kenali', icon: BookOpen, state: 'done' },
-  { label: 'Tirukan', icon: Hand, state: 'active' },
-  { label: 'Komunikasikan', icon: MessageCircleMore, state: 'next' },
-] as const;
-
 export default function Home() {
+  const progress = useProgress();
+  const currentMission = getCurrentMission(progress);
+  const currentChapter = getChapterForMission(currentMission.id);
+  const currentChapterIndex = chapters.findIndex(
+    (chapter) => chapter.id === currentChapter.id,
+  );
+  const missionState = getMissionLearningState(currentMission, progress);
+  const completedMissions = getPrototypeMissionCount(progress);
+  const badgeCount = [
+    completedMissions > 0,
+    progress.streak >= 7,
+    progress.bestChapterScore >= 70,
+    progress.conversationCompletions > 0,
+  ].filter(Boolean).length;
+  const learningSteps = [
+    { label: 'Kenali', icon: BookOpen, state: 'done' as const },
+    {
+      label: 'Tirukan',
+      icon: Hand,
+      state: missionState.practiceComplete
+        ? ('done' as const)
+        : ('active' as const),
+    },
+    {
+      label: 'Uji pengenalan',
+      icon: Languages,
+      state: missionState.recognitionComplete
+        ? ('done' as const)
+        : missionState.practiceComplete
+          ? ('active' as const)
+          : ('next' as const),
+    },
+    {
+      label: 'Pahami konteks',
+      icon: MessageCircleMore,
+      state: missionState.conversationComplete
+        ? ('done' as const)
+        : missionState.recognitionComplete
+          ? ('active' as const)
+          : ('next' as const),
+    },
+  ];
+  const activeStage = missionState.conversationComplete
+    ? 4
+    : learningSteps.findIndex((step) => step.state === 'active') + 1;
+
   return (
     <main className="min-h-screen bg-background">
       <AppHeader active="home" />
@@ -43,9 +93,12 @@ export default function Home() {
             </h1>
           </div>
           <div className="grid grid-cols-3 divide-x divide-signal-navy/10 border-y border-signal-navy/10 py-3 lg:min-w-[390px]">
-            <Stat value="2" label="Misi selesai" />
-            <Stat value="18" label="Tanda dikuasai" />
-            <Stat value="2" label="Lencana" />
+            <Stat value={String(completedMissions)} label="Misi selesai" />
+            <Stat
+              value={String(progress.masteredSigns)}
+              label="Tanda dikuasai"
+            />
+            <Stat value={String(badgeCount)} label="Lencana" />
           </div>
         </section>
 
@@ -64,33 +117,33 @@ export default function Home() {
               <div className="flex flex-col justify-between">
                 <div>
                   <Badge className="mb-5 h-7 bg-signal-teal px-3 font-extrabold text-signal-navy">
-                    Misi aktif · Bab 1
+                    Misi aktif · Bab {currentChapter.number}
                   </Badge>
                   <p className="mb-2 text-sm font-bold uppercase tracking-[0.15em] text-signal-teal">
-                    Misi 03
+                    Misi {currentMission.number}
                   </p>
                   <h2 className="max-w-2xl text-3xl font-black leading-tight tracking-[-0.04em] sm:text-4xl">
-                    Berkenalan dengan teman baru
+                    {currentMission.title}
                   </h2>
                   <p className="mt-4 max-w-xl text-base leading-7 text-white/70">
-                    Latih cara menyebutkan nama, bertanya kabar, dan merespons
-                    sapaan dalam percakapan singkat.
+                    {currentMission.description}
                   </p>
                 </div>
 
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <Link
-                    href="/missions/berkenalan"
+                    href={missionState.next.href}
                     className={cn(
                       buttonVariants({ size: 'lg' }),
                       'h-12 rounded-full bg-signal-teal px-5 font-extrabold text-signal-navy hover:bg-signal-teal/90',
                     )}
                   >
                     <Play className="size-4" fill="currentColor" />
-                    Lanjutkan latihan
+                    {missionState.next.label}
                   </Link>
                   <span className="flex items-center gap-2 px-2 text-sm font-semibold text-white/60">
-                    <Target className="size-4" /> sekitar 8 menit
+                    <Target className="size-4" /> sekitar{' '}
+                    {currentMission.duration} menit
                   </span>
                 </div>
               </div>
@@ -99,7 +152,7 @@ export default function Home() {
                 <div className="mb-5 flex items-center justify-between">
                   <p className="text-sm font-bold">Tahap pembelajaran</p>
                   <span className="text-xs font-bold text-signal-teal">
-                    2/3
+                    {activeStage}/4
                   </span>
                 </div>
                 <ol className="space-y-3">
@@ -157,7 +210,7 @@ export default function Home() {
                 <Map className="size-4" /> perjalanan belajarmu
               </p>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-signal-navy">
-                Tiga bab, satu tujuan nyata.
+                Empat bab, 32 tanda dasar.
               </h2>
             </div>
             <p className="max-w-md text-sm leading-6 text-muted-foreground sm:text-right">
@@ -166,76 +219,84 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="relative grid gap-4 lg:grid-cols-3">
+          <div className="relative grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div
               className="absolute left-[16%] right-[16%] top-14 hidden border-t-2 border-dashed border-signal-navy/10 lg:block"
               aria-hidden="true"
             />
-            {chapters.map((chapter) => (
-              <article
-                key={chapter.number}
-                className={cn(
-                  'relative bg-card p-6 sm:p-7',
-                  chapter.status === 'active'
-                    ? 'border-2 border-signal-teal'
-                    : 'border border-signal-navy/10',
-                )}
-              >
-                <div className="mb-8 flex items-center justify-between">
-                  <span
-                    className={cn(
-                      'grid size-14 place-items-center rounded-full text-lg font-black',
-                      chapter.status === 'active'
-                        ? 'bg-signal-teal text-signal-navy'
-                        : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {chapter.status === 'locked' ? (
-                      <LockKeyhole className="size-5" />
-                    ) : (
-                      chapter.number
-                    )}
-                  </span>
-                  <span className="text-xs font-bold text-muted-foreground">
-                    {chapter.status === 'active'
-                      ? `${chapter.missions.filter((mission) => mission.status === 'completed').length} dari ${chapter.missions.length} misi`
-                      : `${chapter.missions.length} misi`}
-                  </span>
-                </div>
-                <p className="text-[11px] font-black uppercase tracking-[0.15em] text-emerald-700">
-                  {chapter.eyebrow}
-                </p>
-                <h3 className="mt-2 text-xl font-black tracking-[-0.03em] text-signal-navy">
-                  {chapter.title}
-                </h3>
-                <p className="mt-3 min-h-12 text-sm leading-6 text-muted-foreground">
-                  {chapter.description}
-                </p>
-                {chapter.status === 'active' ? (
-                  <div className="mt-7">
-                    <Progress value={chapter.progress} className="gap-2">
-                      <ProgressLabel className="text-xs font-bold text-signal-navy">
-                        Bab berjalan
-                      </ProgressLabel>
-                      <span className="ml-auto text-xs font-bold text-muted-foreground">
-                        {chapter.progress}%
-                      </span>
-                    </Progress>
-                    <Link
-                      href="/missions"
-                      className="mt-5 flex items-center gap-1 text-sm font-extrabold text-emerald-700 hover:text-signal-navy"
+            {chapters.map((chapter, chapterIndex) => {
+              const chapterUnlocked = chapterIndex <= currentChapterIndex;
+              const chapterIsActive = chapter.id === currentChapter.id;
+              const chapterProgress = getChapterProgress(chapter.id, progress);
+              const completedInChapter = chapter.missions.filter((mission) =>
+                progress.completedMissionIds.includes(mission.id),
+              ).length;
+              return (
+                <article
+                  key={chapter.number}
+                  className={cn(
+                    'relative bg-card p-6 sm:p-7',
+                    chapterIsActive
+                      ? 'border-2 border-signal-teal'
+                      : 'border border-signal-navy/10',
+                  )}
+                >
+                  <div className="mb-8 flex items-center justify-between">
+                    <span
+                      className={cn(
+                        'grid size-14 place-items-center rounded-full text-lg font-black',
+                        chapterUnlocked
+                          ? 'bg-signal-teal text-signal-navy'
+                          : 'bg-muted text-muted-foreground',
+                      )}
                     >
-                      Lihat semua misi <ChevronRight className="size-4" />
-                    </Link>
+                      {!chapterUnlocked ? (
+                        <LockKeyhole className="size-5" />
+                      ) : (
+                        chapter.number
+                      )}
+                    </span>
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {chapterUnlocked
+                        ? `${completedInChapter} dari ${chapter.missions.length} misi`
+                        : `${chapter.missions.length} misi`}
+                    </span>
                   </div>
-                ) : (
-                  <p className="mt-7 flex items-center gap-2 border-t border-signal-navy/10 pt-5 text-xs font-bold text-muted-foreground">
-                    <LockKeyhole className="size-3.5" /> Selesaikan bab
-                    sebelumnya
+                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-emerald-700">
+                    {chapter.eyebrow}
                   </p>
-                )}
-              </article>
-            ))}
+                  <h3 className="mt-2 text-xl font-black tracking-[-0.03em] text-signal-navy">
+                    {chapter.title}
+                  </h3>
+                  <p className="mt-3 min-h-12 text-sm leading-6 text-muted-foreground">
+                    {chapter.description}
+                  </p>
+                  {chapterUnlocked ? (
+                    <div className="mt-7">
+                      <Progress value={chapterProgress} className="gap-2">
+                        <ProgressLabel className="text-xs font-bold text-signal-navy">
+                          Bab berjalan
+                        </ProgressLabel>
+                        <span className="ml-auto text-xs font-bold text-muted-foreground">
+                          {chapterProgress}%
+                        </span>
+                      </Progress>
+                      <Link
+                        href="/missions"
+                        className="mt-5 flex items-center gap-1 text-sm font-extrabold text-emerald-700 hover:text-signal-navy"
+                      >
+                        Lihat semua misi <ChevronRight className="size-4" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="mt-7 flex items-center gap-2 border-t border-signal-navy/10 pt-5 text-xs font-bold text-muted-foreground">
+                      <LockKeyhole className="size-3.5" /> Selesaikan bab
+                      sebelumnya
+                    </p>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </section>
 
@@ -253,16 +314,21 @@ export default function Home() {
           </div>
           <ol className="grid divide-y divide-signal-navy/10 p-7 sm:p-9">
             {[
-              ['01', 'Recognize', 'Pahami bentuk, konteks, dan arti tanda.'],
+              ['01', 'Kenali', 'Pahami bentuk, konteks, dan arti tanda.'],
               [
                 '02',
-                'Imitate',
+                'Tirukan',
                 'Tirukan dengan bantuan contoh dan umpan balik.',
               ],
               [
                 '03',
-                'Communicate',
-                'Gunakan tanpa petunjuk di dalam skenario.',
+                'Uji pengenalan',
+                'Kenali kembali tanda tanpa label atau contoh jawaban.',
+              ],
+              [
+                '04',
+                'Pahami konteks',
+                'Pilih respons yang sesuai di dalam skenario percakapan.',
               ],
             ].map(([number, title, description]) => (
               <li

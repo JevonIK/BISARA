@@ -8,6 +8,7 @@ import {
   Flag,
   Hand,
   Keyboard,
+  LockKeyhole,
   MessageCircleMore,
   Play,
   RefreshCw,
@@ -15,11 +16,13 @@ import {
   Trophy,
   Video,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
+import { useProgress } from '@/hooks/use-progress';
 import {
   conversationTurns,
   translationQuestions,
@@ -30,6 +33,10 @@ import {
   resultMessage,
   type StarRating,
 } from '@/lib/scoring';
+import {
+  getBerkenalanLearningState,
+  RECOGNITION_PASS_SCORE,
+} from '@/lib/learning-progress';
 import {
   recordConversationCompletion,
   recordTranslationTest,
@@ -51,10 +58,12 @@ type TranslationAnswer = {
 };
 
 type ChapterTestProps = {
-  initialView?: Extract<TestView, 'menu' | 'conversation'>;
+  initialView?: Extract<TestView, 'menu' | 'translation' | 'conversation'>;
 };
 
 export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
+  const userProgress = useProgress();
+  const learningState = getBerkenalanLearningState(userProgress);
   const [view, setView] = useState<TestView>(initialView);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState('');
@@ -64,6 +73,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
   const [conversationChoice, setConversationChoice] = useState('');
   const [conversationFeedback, setConversationFeedback] = useState('');
   const [conversationPassed, setConversationPassed] = useState(false);
+  const [conversationXp, setConversationXp] = useState(20);
 
   const startTranslationTest = () => {
     setQuestionIndex(0);
@@ -124,7 +134,9 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
     if (!conversationPassed) return;
 
     if (conversationIndex === conversationTurns.length - 1) {
+      const wasFirstCompletion = userProgress.conversationCompletions === 0;
       recordConversationCompletion();
+      setConversationXp(wasFirstCompletion ? 20 : 0);
       setView('conversation-result');
       return;
     }
@@ -134,6 +146,36 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
     setConversationFeedback('');
     setConversationPassed(false);
   };
+
+  if (view === 'translation' && !learningState.practiceComplete) {
+    return (
+      <PrerequisiteGate
+        title="Selesaikan latihan lima tanda dahulu"
+        description={`${learningState.masteredSignCount} dari 5 tanda sudah lulus. Tes pengenalan terbuka setelah semuanya pernah lulus checker kamera.`}
+        href={learningState.next.href}
+        action={learningState.next.label}
+      />
+    );
+  }
+
+  if (view === 'conversation' && !learningState.recognitionComplete) {
+    return (
+      <PrerequisiteGate
+        title="Tes pengenalan belum lulus"
+        description={`Dapatkan minimal ${RECOGNITION_PASS_SCORE} pada tes arti tanda sebelum masuk ke latihan konteks.`}
+        href={
+          learningState.practiceComplete
+            ? '/missions/berkenalan/test?mode=translation'
+            : learningState.next.href
+        }
+        action={
+          learningState.practiceComplete
+            ? 'Mulai tes pengenalan'
+            : learningState.next.label
+        }
+      />
+    );
+  }
 
   if (view === 'translation') {
     const question = translationQuestions[questionIndex];
@@ -250,6 +292,9 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
         bestScore={bestScore}
         onRetry={startTranslationTest}
         onMenu={() => setView('menu')}
+        onContinue={
+          score >= RECOGNITION_PASS_SCORE ? startConversation : undefined
+        }
       />
     );
   }
@@ -379,7 +424,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
               Skenario selesai
             </p>
             <p className="mt-2 text-5xl font-black tracking-[-0.06em]">
-              +100 XP
+              +{conversationXp} XP
             </p>
           </div>
         </div>
@@ -426,15 +471,23 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
         icon={Keyboard}
         color="teal"
         onStart={startTranslationTest}
+        locked={!learningState.practiceComplete}
+        lockMessage={`${learningState.masteredSignCount}/5 tanda lulus`}
       />
       <ModeCard
         eyebrow="Mode 02"
         title="Simulasi percakapan"
         description="Pahami tanda dari lawan bicara, pilih respons yang sesuai, dan lihat bagaimana percakapan bercabang."
-        meta="3 giliran · +100 XP"
+        meta="3 giliran · +20 XP pertama"
         icon={MessageCircleMore}
         color="coral"
         onStart={startConversation}
+        locked={!learningState.recognitionComplete}
+        lockMessage={
+          learningState.practiceComplete
+            ? `Butuh skor ${RECOGNITION_PASS_SCORE}`
+            : 'Selesaikan Tirukan'
+        }
       />
 
       <aside className="border-l-4 border-signal-yellow bg-card p-6 lg:col-span-2 sm:p-7">
@@ -597,6 +650,7 @@ function TranslationResult({
   bestScore,
   onRetry,
   onMenu,
+  onContinue,
 }: {
   answers: TranslationAnswer[];
   score: number;
@@ -604,6 +658,7 @@ function TranslationResult({
   bestScore: number;
   onRetry: () => void;
   onMenu: () => void;
+  onContinue?: () => void;
 }) {
   const correctCount = answers.filter((answer) => answer.correct).length;
 
@@ -648,7 +703,9 @@ function TranslationResult({
                 : 'bg-signal-coral/10 text-red-800',
             )}
           >
-            {stars > 0 ? 'Bab berikutnya terbuka' : 'Perlu latihan ulang'}
+            {score >= RECOGNITION_PASS_SCORE
+              ? 'Tes pengenalan lulus'
+              : 'Perlu latihan ulang'}
           </Badge>
           <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-signal-navy">
             {correctCount} dari {translationQuestions.length} jawaban benar
@@ -679,6 +736,16 @@ function TranslationResult({
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
+            {onContinue ? (
+              <Button
+                type="button"
+                size="lg"
+                onClick={onContinue}
+                className="h-12 rounded-full bg-signal-teal px-5 font-extrabold text-signal-navy hover:bg-signal-teal/90"
+              >
+                Terapkan dalam konteks <ArrowRight className="size-4" />
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="lg"
@@ -711,6 +778,8 @@ function ModeCard({
   icon: Icon,
   color,
   onStart,
+  locked = false,
+  lockMessage,
 }: {
   eyebrow: string;
   title: string;
@@ -719,6 +788,8 @@ function ModeCard({
   icon: typeof Flag;
   color: 'teal' | 'coral';
   onStart: () => void;
+  locked?: boolean;
+  lockMessage?: string;
 }) {
   return (
     <article
@@ -758,11 +829,60 @@ function ModeCard({
         <Button
           type="button"
           onClick={onStart}
+          disabled={locked}
           className="rounded-full bg-signal-navy px-4 font-extrabold text-white"
         >
-          <Play className="size-4" fill="currentColor" /> Mulai
+          {locked ? (
+            <>
+              <LockKeyhole className="size-4" /> {lockMessage ?? 'Terkunci'}
+            </>
+          ) : (
+            <>
+              <Play className="size-4" fill="currentColor" /> Mulai
+            </>
+          )}
         </Button>
       </div>
     </article>
+  );
+}
+
+function PrerequisiteGate({
+  title,
+  description,
+  href,
+  action,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  action: string;
+}) {
+  return (
+    <section className="grid min-h-[420px] place-items-center border border-signal-navy/10 bg-card p-7 text-center sm:p-10">
+      <div className="max-w-xl">
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-signal-yellow/30 text-amber-800">
+          <LockKeyhole className="size-7" />
+        </span>
+        <p className="mt-6 text-xs font-black uppercase tracking-[0.14em] text-amber-700">
+          Prasyarat belum selesai
+        </p>
+        <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+          {title}
+        </h2>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          {description}
+        </p>
+        <Link
+          href={href}
+          className={cn(
+            buttonVariants({ size: 'lg' }),
+            'mt-7 h-12 rounded-full bg-signal-navy px-6 font-extrabold text-white',
+          )}
+        >
+          {action} <ArrowRight className="size-4" />
+        </Link>
+      </div>
+    </section>
   );
 }

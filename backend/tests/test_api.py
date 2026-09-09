@@ -122,7 +122,14 @@ async def test_validation_duplicate_registration_and_wrong_password(client):
     response = await client.post(f"{PREFIX}/auth/login", json={"email": user["email"], "password": "incorrect-password"})
     assert response.status_code == 401
     original = (await client.get(f"{PREFIX}/progress")).json()
-    for fields in ({"xp": -1}, {"chapterOneStars": 4}, {"reviewedSigns": ["saya", "saya"]}):
+    for fields in (
+        {"xp": -1},
+        {"chapterOneStars": 4},
+        {"reviewedSigns": ["saya", "saya"]},
+        {"signMastery": {"unknown": {"bestScore": 80, "passed": True, "attempts": 1, "lastPracticedAt": ""}}},
+        {"completedMissionIds": ["unknown-mission"]},
+        {"missionScores": {"berkenalan": 101}},
+    ):
         assert (await client.put(f"{PREFIX}/progress", json=writable(original, **fields))).status_code == 422
 
 

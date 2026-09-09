@@ -1,83 +1,41 @@
 'use client';
 
-import {
-  Check,
-  ChevronRight,
-  Flame,
-  Play,
-  Sparkles,
-  Star,
-  Target,
-} from 'lucide-react';
+import { Check, ChevronRight, Flame, Play, Star, Target } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
-import { completeReviewSign, reviewSignIds } from '@/lib/progress-storage';
+import {
+  getSigns,
+  signs,
+  type SignId,
+  versionedSignVideo,
+} from '@/lib/curriculum-data';
+import { allMissions } from '@/lib/learning-data';
+import { getReviewSignIds } from '@/lib/progress-storage';
 import { cn } from '@/lib/utils';
-
-const reviewItems = [
-  {
-    id: 'saya',
-    word: 'Saya',
-    focus: 'Posisi terhadap tubuh',
-    videoSrc: '/media/wl-bisindo/signer0_label9_sample3.mp4',
-    note: 'Amati jarak tangan terhadap tubuh sebelum mengulang gerakannya.',
-  },
-  {
-    id: 'teman',
-    word: 'Teman',
-    focus: 'Koordinasi tangan',
-    videoSrc: '/media/wl-bisindo/signer1_label25_sample3.mp4',
-    note: 'Perhatikan hubungan gerak antara tangan pertama dan tangan kedua.',
-  },
-  {
-    id: 'terima-kasih',
-    word: 'Terima kasih',
-    focus: 'Arah gerakan',
-    videoSrc: '/media/wl-bisindo/signer0_label10_sample3.mp4',
-    note: 'Ikuti titik awal, arah, dan titik akhir gerakan secara utuh.',
-  },
-  {
-    id: 'maaf',
-    word: 'Maaf',
-    focus: 'Orientasi telapak',
-    videoSrc: '/media/wl-bisindo/signer0_label6_sample3.mp4',
-    note: 'Bandingkan orientasi telapak pada awal dan akhir demonstrasi.',
-  },
-  {
-    id: 'siapa',
-    word: 'Siapa',
-    focus: 'Bentuk tangan',
-    videoSrc: '/media/wl-bisindo/signer1_label13_sample3.mp4',
-    note: 'Amati bentuk jari dan pertahankan bentuknya selama gerakan.',
-  },
-] as const;
 
 export function ReviewQuest() {
   const userProgress = useProgress();
-  const [activeSignId, setActiveSignId] = useState<
-    (typeof reviewItems)[number]['id']
-  >(reviewItems[0].id);
+  const reviewSignIds = getReviewSignIds(userProgress);
+  const reviewItems = getSigns(reviewSignIds);
+  const [selectedSignId, setSelectedSignId] = useState<SignId | null>(null);
+  const activeSignId = selectedSignId ?? reviewItems[0].id;
   const activeItem =
-    reviewItems.find((item) => item.id === activeSignId) ?? reviewItems[0];
-  const completed = userProgress.reviewedSigns.length;
+    signs.find((item) => item.id === activeSignId) ?? reviewItems[0];
+  const ownerMission =
+    allMissions.find((mission) => mission.signIds.includes(activeItem.id)) ??
+    allMissions[0];
+  const completed = reviewSignIds.filter((id) =>
+    userProgress.reviewedSigns.includes(id),
+  ).length;
   const total = reviewSignIds.length;
   const percentage = Math.round((completed / total) * 100);
   const isComplete = completed === total;
   const activeIsComplete = userProgress.reviewedSigns.includes(activeItem.id);
-
-  const completeActiveReview = () => {
-    completeReviewSign(activeItem.id);
-    const nextItem = reviewItems.find(
-      (item) =>
-        item.id !== activeItem.id &&
-        !userProgress.reviewedSigns.includes(item.id),
-    );
-    if (nextItem) setActiveSignId(nextItem.id);
-  };
 
   return (
     <div className="space-y-6">
@@ -90,8 +48,8 @@ export function ReviewQuest() {
             Perkuat tanda yang paling perlu perhatian.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-white/60">
-            Tonton ulang demonstrasi, fokus pada satu parameter, kemudian tandai
-            review ketika kamu sudah siap mencoba kembali.
+            Mulai dari tanda dengan skor terendah, tonton ulang demonstrasi,
+            lalu buktikan perbaikannya melalui checker kamera.
           </p>
         </div>
         <aside className="flex flex-col justify-between border-t border-white/10 bg-white/[0.04] p-7 lg:border-l lg:border-t-0 sm:p-9">
@@ -155,7 +113,7 @@ export function ReviewQuest() {
                 <li key={item.id}>
                   <button
                     type="button"
-                    onClick={() => setActiveSignId(item.id)}
+                    onClick={() => setSelectedSignId(item.id)}
                     className={cn(
                       'flex w-full items-center gap-3 border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                       active
@@ -179,7 +137,7 @@ export function ReviewQuest() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-black text-signal-navy">
-                        {item.word}
+                        {item.label}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {item.focus}
@@ -200,7 +158,7 @@ export function ReviewQuest() {
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
                   Review tanda
                 </p>
-                <h2 className="mt-1 text-2xl font-black">{activeItem.word}</h2>
+                <h2 className="mt-1 text-2xl font-black">{activeItem.label}</h2>
               </div>
               <Badge
                 variant="outline"
@@ -211,8 +169,8 @@ export function ReviewQuest() {
             </div>
             <video
               key={activeItem.id}
-              src={activeItem.videoSrc}
-              aria-label={`Demonstrasi tanda ${activeItem.word}`}
+              src={versionedSignVideo(activeItem.videoSrc)}
+              aria-label={`Demonstrasi tanda ${activeItem.label}`}
               className="aspect-video w-full bg-black object-cover"
               autoPlay
               loop
@@ -239,12 +197,14 @@ export function ReviewQuest() {
               </p>
             </div>
 
-            <Button
-              type="button"
-              size="lg"
-              disabled={activeIsComplete}
-              onClick={completeActiveReview}
-              className="mt-8 h-12 w-full rounded-full bg-signal-navy px-5 font-extrabold text-white"
+            <Link
+              href={`/missions/practice?mission=${ownerMission.id}&sign=${activeItem.id}&source=review`}
+              aria-disabled={activeIsComplete}
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'mt-8 h-12 w-full rounded-full bg-signal-navy px-5 font-extrabold text-white',
+                activeIsComplete && 'pointer-events-none opacity-50',
+              )}
             >
               {activeIsComplete ? (
                 <>
@@ -252,17 +212,18 @@ export function ReviewQuest() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="size-4" /> Tandai selesai · +10 XP
+                  <Play className="size-4" /> Latih dengan kamera · +10 XP
                 </>
               )}
-            </Button>
+            </Link>
           </div>
         </article>
       </section>
 
       <p className="text-center text-xs leading-5 text-muted-foreground">
-        Review ini membantu mengatur prioritas latihan. Validasi benar atau
-        salah tetap menunggu model BISINDO dan persetujuan validator Tuli.
+        Urutan review memilih lima tanda dari seluruh kurikulum berdasarkan skor
+        dan waktu latihan. Ambang checker tetap perlu dikalibrasi bersama
+        validator Tuli.
       </p>
     </div>
   );

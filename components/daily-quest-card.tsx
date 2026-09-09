@@ -6,11 +6,14 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
-import { reviewSignIds } from '@/lib/progress-storage';
+import { getReviewSignIds } from '@/lib/progress-storage';
 
 export function DailyQuestCard() {
   const userProgress = useProgress();
-  const completed = userProgress.reviewedSigns.length;
+  const reviewSignIds = getReviewSignIds(userProgress);
+  const completed = reviewSignIds.filter((id) =>
+    userProgress.reviewedSigns.includes(id),
+  ).length;
   const total = reviewSignIds.length;
   const percentage = Math.round((completed / total) * 100);
   const isComplete = completed === total;

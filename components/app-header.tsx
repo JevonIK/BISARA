@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { useProgress } from '@/hooks/use-progress';
 import { useAccount } from '@/hooks/use-account';
 import { cn } from '@/lib/utils';
+import {
+  getCurrentMission,
+  getMissionLearningState,
+} from '@/lib/learning-progress';
 
 type AppHeaderProps = {
   active?: 'home' | 'journey' | 'practice' | 'progress';
@@ -14,16 +18,14 @@ type AppHeaderProps = {
 const navigation = [
   { label: 'Beranda', href: '/', key: 'home' },
   { label: 'Perjalanan', href: '/missions', key: 'journey' },
-  {
-    label: 'Latihan',
-    href: '/missions/berkenalan/practice',
-    key: 'practice',
-  },
   { label: 'Progres', href: '/progress', key: 'progress' },
 ] as const;
 
 export function AppHeader({ active = 'home' }: AppHeaderProps) {
   const progress = useProgress();
+  const currentMission = getCurrentMission(progress);
+  const practiceHref = getMissionLearningState(currentMission, progress).next
+    .href;
   const account = useAccount();
   const initials = account.user?.displayName
     .split(/\s+/)
@@ -57,7 +59,11 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
           className="hidden items-center gap-1 rounded-full border border-signal-navy/10 bg-white/70 p-1 lg:flex"
           aria-label="Navigasi utama"
         >
-          {navigation.map((item) => (
+          {[
+            ...navigation.slice(0, 2),
+            { label: 'Latihan', href: practiceHref, key: 'practice' as const },
+            ...navigation.slice(2),
+          ].map((item) => (
             <Link
               key={item.key}
               href={item.href}

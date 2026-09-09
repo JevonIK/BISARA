@@ -23,12 +23,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { useProgress } from '@/hooks/use-progress';
+import { getSigns, type SignId } from '@/lib/curriculum-data';
 import {
   scoreGesture,
   type GestureFrame,
   type GestureScore,
   type HandObservation,
 } from '@/lib/gesture-scoring';
+import { getMissionLearningState } from '@/lib/learning-progress';
 import { recordGestureAssessment } from '@/lib/progress-storage';
 import { getReferenceFrames } from '@/lib/reference-extractor';
 import { cn } from '@/lib/utils';
@@ -85,20 +88,32 @@ const HAND_CONNECTIONS: Array<[number, number]> = [
 ];
 
 type CameraPracticeProps = {
+  signId: SignId;
+  signLabel: string;
   referenceVideoUrl: string;
   referenceVideoElementId?: string;
-  nextStepHref?: string;
-  nextStepLabel?: string;
-  nextStepDescription?: string;
+  missionId?: string;
+  missionSignIds?: SignId[];
+  reviewMode?: boolean;
+};
+
+type NextAction = {
+  href: string;
+  label: string;
+  description: string;
+  practiceComplete: boolean;
 };
 
 export function CameraPractice({
+  signId,
+  signLabel,
   referenceVideoUrl,
   referenceVideoElementId,
-  nextStepHref,
-  nextStepLabel = 'Lanjut ke tahap berikutnya',
-  nextStepDescription = 'Gunakan tanda ini dalam latihan tanpa mengikuti video contoh.',
+  missionId = 'berkenalan',
+  missionSignIds = ['saya', 'siapa', 'teman', 'terima-kasih', 'maaf'],
+  reviewMode = false,
 }: CameraPracticeProps) {
+  const userProgress = useProgress();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const brightnessCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -138,6 +153,7 @@ export function CameraPractice({
   const [gestureScore, setGestureScore] = useState<GestureScore | null>(null);
   const [referenceReady, setReferenceReady] = useState(false);
   const [requiredHandCount, setRequiredHandCount] = useState(1);
+  const [nextAction, setNextAction] = useState<NextAction | null>(null);
 
   const updatePhase = useCallback((phase: PracticePhase) => {
     practicePhaseRef.current = phase;
@@ -202,6 +218,7 @@ export function CameraPractice({
     setErrorMessage('');
     updatePhase('idle');
     setGestureScore(null);
+    setNextAction(null);
     setRecordingProgress(0);
     resumeReferencePreview();
     setCountdown(0);
@@ -223,6 +240,7 @@ export function CameraPractice({
     setLighting('unknown');
     updatePhase('idle');
     setGestureScore(null);
+    setNextAction(null);
     setRecordingProgress(0);
     resumeReferencePreview();
 
@@ -439,11 +457,62 @@ export function CameraPractice({
         frameBufferRef.current,
       );
       setGestureScore(result);
-      recordGestureAssessment(result.overall, result.passed);
+      const updatedProgress = recordGestureAssessment(
+        signId,
+        result.overall,
+        result.passed,
+        {
+          recordingDurationMs: recordingDurationRef.current,
+          review: reviewMode,
+        },
+      );
+
+      if (result.passed) {
+        const learningState = getMissionLearningState(
+          missionId,
+          updatedProgress,
+        );
+        const missionSigns = getSigns(missionSignIds);
+        const nextUnmasteredSign = missionSigns.find(
+          (sign) => !updatedProgress.signMastery[sign.id].passed,
+        );
+        setNextAction(
+          reviewMode
+            ? {
+                href: '/review',
+                label: 'Kembali ke review',
+                description: `Review tanda ${signLabel} sudah tercatat untuk hari ini.`,
+                practiceComplete: false,
+              }
+            : nextUnmasteredSign
+              ? {
+                  href: `/missions/practice?mission=${missionId}&sign=${nextUnmasteredSign.id}`,
+                  label: `Latih tanda ${nextUnmasteredSign.label}`,
+                  description: `${learningState.masteredSignCount} dari ${missionSigns.length} tanda sudah lulus. Lanjutkan ke tanda berikutnya.`,
+                  practiceComplete: false,
+                }
+              : {
+                  href: `/missions/test?mission=${missionId}&mode=recognition`,
+                  label: 'Mulai tes pengenalan',
+                  description:
+                    'Semua tanda misi sudah lulus latihan kamera. Sekarang cek apakah kamu dapat mengenalinya tanpa label.',
+                  practiceComplete: true,
+                },
+        );
+      } else {
+        setNextAction(null);
+      }
       practicePhaseRef.current = 'result';
       setPracticePhase('result');
     }, 50);
-  }, [getReferenceVideo]);
+  }, [
+    getReferenceVideo,
+    missionId,
+    missionSignIds,
+    reviewMode,
+    signId,
+    signLabel,
+  ]);
 
   const beginRecording = useCallback(() => {
     if (practicePhaseRef.current !== 'countdown') return;
@@ -472,6 +541,7 @@ export function CameraPractice({
     frameBufferRef.current = [];
     setRecordingProgress(0);
     setGestureScore(null);
+    setNextAction(null);
 
     const timing = getReferenceTiming(referenceFramesRef.current);
     recordingDurationRef.current = timing.durationMs;
@@ -510,6 +580,7 @@ export function CameraPractice({
   const resetPractice = useCallback(() => {
     frameBufferRef.current = [];
     setRecordingProgress(0);
+    setNextAction(null);
     updatePhase('idle');
     resumeReferencePreview();
   }, [resumeReferencePreview, updatePhase]);
@@ -531,6 +602,7 @@ export function CameraPractice({
     setCountdown(0);
     setRecordingProgress(0);
     setGestureScore(null);
+    setNextAction(null);
     updatePhase('idle');
     resumeReferencePreview();
   }, [resumeReferencePreview, updatePhase]);
@@ -573,6 +645,35 @@ export function CameraPractice({
       icon: Hand,
     },
   ];
+
+  const accessState = getMissionLearningState(missionId, userProgress);
+  if (!reviewMode && !accessState.unlocked) {
+    return (
+      <section className="grid min-h-[430px] place-items-center border border-signal-navy/10 bg-card p-8 text-center">
+        <div className="max-w-lg">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-signal-yellow/30 text-amber-800">
+            <Hand className="size-7" />
+          </span>
+          <h2 className="mt-6 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+            Misi ini belum terbuka
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            Selesaikan misi sebelumnya agar latihan mengikuti urutan dan bekal
+            kosakata yang dirancang.
+          </p>
+          <Link
+            href="/missions"
+            className={cn(
+              buttonVariants({ size: 'lg' }),
+              'mt-7 rounded-full bg-signal-navy px-6 font-extrabold text-white',
+            )}
+          >
+            Kembali ke perjalanan <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
@@ -855,28 +956,30 @@ export function CameraPractice({
             {gestureScore.feedback}
           </p>
 
-          {gestureScore.passed && nextStepHref ? (
+          {gestureScore.passed && nextAction ? (
             <div className="mt-5 border border-signal-teal bg-signal-teal-soft p-4">
               <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-800">
-                <Check className="size-4" strokeWidth={3} /> Tahap Tirukan
-                selesai
+                <Check className="size-4" strokeWidth={3} />{' '}
+                {nextAction.practiceComplete
+                  ? 'Tahap Tirukan selesai'
+                  : `Tanda ${signLabel} lulus`}
               </p>
               <p className="mt-2 text-sm leading-6 text-signal-navy/75">
-                {nextStepDescription}
+                {nextAction.description}
               </p>
             </div>
           ) : null}
 
           <div className="mt-5 grid gap-2">
-            {gestureScore.passed && nextStepHref ? (
+            {gestureScore.passed && nextAction ? (
               <Link
-                href={nextStepHref}
+                href={nextAction.href}
                 className={cn(
                   buttonVariants(),
                   'h-10 w-full bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90',
                 )}
               >
-                {nextStepLabel} <ArrowRight className="size-4" />
+                {nextAction.label} <ArrowRight className="size-4" />
               </Link>
             ) : null}
 
