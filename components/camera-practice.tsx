@@ -459,12 +459,7 @@ export function CameraPractice({
   }, [completeRecording, getReferenceVideo, updatePhase]);
 
   const startPractice = useCallback(() => {
-    if (
-      practicePhaseRef.current !== 'idle' ||
-      !referenceReady ||
-      handCount < requiredHandCount
-    )
-      return;
+    if (practicePhaseRef.current !== 'idle' || !referenceReady) return;
 
     frameBufferRef.current = [];
     setRecordingProgress(0);
@@ -502,14 +497,7 @@ export function CameraPractice({
       }
       setCountdown(Math.ceil(remainingMs / 1000));
     }, 100);
-  }, [
-    beginRecording,
-    getReferenceVideo,
-    handCount,
-    referenceReady,
-    requiredHandCount,
-    updatePhase,
-  ]);
+  }, [beginRecording, getReferenceVideo, referenceReady, updatePhase]);
 
   const resetPractice = useCallback(() => {
     frameBufferRef.current = [];
@@ -548,10 +536,7 @@ export function CameraPractice({
     ['idle', 'requesting', 'denied', 'unavailable', 'error'] as CameraStatus[]
   ).includes(status);
   const canStartPractice =
-    isReady &&
-    referenceReady &&
-    practicePhase === 'idle' &&
-    handCount >= requiredHandCount;
+    isReady && referenceReady && practicePhase === 'idle';
 
   const calibrationChecks = [
     {
@@ -702,6 +687,9 @@ export function CameraPractice({
                 </span>
                 <p className="mt-4 text-sm font-bold text-white">
                   Bersiap — contoh diputar perlahan setelah hitungan
+                </p>
+                <p className="mt-2 text-xs text-white/70">
+                  Pastikan tangan masuk bingkai saat “Mulai!”
                 </p>
               </output>
             </div>

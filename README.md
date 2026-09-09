@@ -87,9 +87,10 @@ The practice flow pauses the demonstration on its first detected hand frame
 during a monotonic three-second countdown. Recording and the demonstration then
 start together, with the guide played at 0.75× speed. The capture window follows
 the detected reference duration, allows extra reaction and final-hold time, and
-runs for at least four seconds. The start button stays disabled until the number
-of hands used by the reference is visible. Timer cleanup prevents an abandoned
-or restarted attempt from saving a late score.
+runs for at least four seconds. Hand visibility remains a live readiness hint;
+learners can start the countdown before raising their hands, while visibility
+during the recorded gesture still affects detection quality. Timer cleanup
+prevents an abandoned or restarted attempt from saving a late score.
 
 Pose-dominant signs such as “Saya” are evaluated from a sustained stable hold,
 so the incidental path used to bring a hand into or out of the camera frame does
