@@ -23,10 +23,9 @@ for (const source of sources) {
       module: ts.ModuleKind.ES2022,
     },
   });
-  const code = result.outputText.replace(
-    /(['"])@\/lib\/([^'"]+)\1/g,
-    "'./$2.mjs'",
-  );
+  const code = result.outputText
+    .replace(/(['"])@\/lib\/([^'"]+)\1/g, "'./$2.mjs'")
+    .replace(/(['"])\.\.\/lib\/([^'"]+)\.ts\1/g, "'./$2.mjs'");
   await writeFile(
     path.join(directory, path.basename(source).replace(/\.ts$/, '.mjs')),
     code,

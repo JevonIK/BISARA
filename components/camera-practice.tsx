@@ -5,6 +5,7 @@ import type {
   HandLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 import {
+  ArrowRight,
   Camera,
   CameraOff,
   Check,
@@ -17,10 +18,11 @@ import {
   SunMedium,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   scoreGesture,
   type GestureFrame,
@@ -85,11 +87,17 @@ const HAND_CONNECTIONS: Array<[number, number]> = [
 type CameraPracticeProps = {
   referenceVideoUrl: string;
   referenceVideoElementId?: string;
+  nextStepHref?: string;
+  nextStepLabel?: string;
+  nextStepDescription?: string;
 };
 
 export function CameraPractice({
   referenceVideoUrl,
   referenceVideoElementId,
+  nextStepHref,
+  nextStepLabel = 'Lanjut ke tahap berikutnya',
+  nextStepDescription = 'Gunakan tanda ini dalam latihan tanpa mengikuti video contoh.',
 }: CameraPracticeProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -847,13 +855,45 @@ export function CameraPractice({
             {gestureScore.feedback}
           </p>
 
-          <Button
-            type="button"
-            onClick={resetPractice}
-            className="mt-5 w-full bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90"
-          >
-            <RotateCcw className="size-4" /> Coba lagi
-          </Button>
+          {gestureScore.passed && nextStepHref ? (
+            <div className="mt-5 border border-signal-teal bg-signal-teal-soft p-4">
+              <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-800">
+                <Check className="size-4" strokeWidth={3} /> Tahap Tirukan
+                selesai
+              </p>
+              <p className="mt-2 text-sm leading-6 text-signal-navy/75">
+                {nextStepDescription}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-5 grid gap-2">
+            {gestureScore.passed && nextStepHref ? (
+              <Link
+                href={nextStepHref}
+                className={cn(
+                  buttonVariants(),
+                  'h-10 w-full bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90',
+                )}
+              >
+                {nextStepLabel} <ArrowRight className="size-4" />
+              </Link>
+            ) : null}
+
+            <Button
+              type="button"
+              variant={gestureScore.passed ? 'outline' : 'default'}
+              onClick={resetPractice}
+              className={cn(
+                'h-10 w-full font-extrabold',
+                gestureScore.passed
+                  ? 'border-signal-navy/15 text-signal-navy'
+                  : 'bg-signal-teal text-signal-navy hover:bg-signal-teal/90',
+              )}
+            >
+              <RotateCcw className="size-4" /> Coba lagi
+            </Button>
+          </div>
         </aside>
       ) : (
         <aside className="border-t-4 border-signal-yellow bg-card p-6">

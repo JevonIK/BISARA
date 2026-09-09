@@ -163,6 +163,9 @@ export default function PracticePage() {
             <CameraPractice
               referenceVideoUrl={REFERENCE_VIDEO_URL}
               referenceVideoElementId={REFERENCE_VIDEO_ID}
+              nextStepHref="/missions/berkenalan/test?mode=conversation"
+              nextStepLabel="Lanjut ke Komunikasikan"
+              nextStepDescription="Sekarang gunakan tanda yang sudah kamu kuasai dalam percakapan tanpa mengikuti video contoh."
             />
           </div>
         </section>

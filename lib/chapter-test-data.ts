@@ -17,35 +17,37 @@ export type ConversationTurn = {
 };
 
 const mediaRoot = '/media/wl-bisindo';
+const videoSrc = (fileName: string) =>
+  `${mediaRoot}/${fileName}?v=20260909-h264`;
 
 export const translationQuestions: TranslationQuestion[] = [
   {
     id: 'translate-01',
-    videoSrc: `${mediaRoot}/signer0_label9_sample3.mp4`,
+    videoSrc: videoSrc('signer0_label9_sample3.mp4'),
     answer: 'Saya',
     options: ['Saya', 'Teman', 'Maaf'],
   },
   {
     id: 'translate-02',
-    videoSrc: `${mediaRoot}/signer1_label25_sample3.mp4`,
+    videoSrc: videoSrc('signer1_label25_sample3.mp4'),
     answer: 'Teman',
     options: ['Terima kasih', 'Teman', 'Siapa'],
   },
   {
     id: 'translate-03',
-    videoSrc: `${mediaRoot}/signer0_label10_sample3.mp4`,
+    videoSrc: videoSrc('signer0_label10_sample3.mp4'),
     answer: 'Terima kasih',
     options: ['Maaf', 'Terima kasih', 'Saya'],
   },
   {
     id: 'translate-04',
-    videoSrc: `${mediaRoot}/signer0_label6_sample3.mp4`,
+    videoSrc: videoSrc('signer0_label6_sample3.mp4'),
     answer: 'Maaf',
     options: ['Teman', 'Maaf', 'Siapa'],
   },
   {
     id: 'translate-05',
-    videoSrc: `${mediaRoot}/signer1_label13_sample3.mp4`,
+    videoSrc: videoSrc('signer1_label13_sample3.mp4'),
     answer: 'Siapa',
     options: ['Siapa', 'Saya', 'Terima kasih'],
   },
@@ -55,7 +57,7 @@ export const conversationTurns: ConversationTurn[] = [
   {
     id: 'conversation-01',
     speaker: 'Teman baru',
-    videoSrc: `${mediaRoot}/signer1_label13_sample3.mp4`,
+    videoSrc: videoSrc('signer1_label13_sample3.mp4'),
     prompt: 'Teman baru membuka percakapan. Pilih respons yang paling sesuai.',
     options: ['Saya', 'Maaf', 'Terima kasih'],
     correctAnswer: 'Saya',
@@ -67,7 +69,7 @@ export const conversationTurns: ConversationTurn[] = [
   {
     id: 'conversation-02',
     speaker: 'Teman baru',
-    videoSrc: `${mediaRoot}/signer1_label25_sample3.mp4`,
+    videoSrc: videoSrc('signer1_label25_sample3.mp4'),
     prompt:
       'Percakapan berlanjut. Pilih balasan yang menjaga interaksi tetap ramah.',
     options: ['Terima kasih', 'Siapa', 'Maaf'],
@@ -79,7 +81,7 @@ export const conversationTurns: ConversationTurn[] = [
   {
     id: 'conversation-03',
     speaker: 'Teman baru',
-    videoSrc: `${mediaRoot}/signer0_label6_sample3.mp4`,
+    videoSrc: videoSrc('signer0_label6_sample3.mp4'),
     prompt:
       'Teman baru meminta maaf. Pilih tindakan yang membantu memperjelas pesan.',
     options: ['Lagi', 'Saya', 'Teman'],

@@ -11,7 +11,15 @@ export const metadata: Metadata = {
     'Uji pemahaman tanda BISINDO dan kemampuan memilih respons dalam simulasi percakapan bercabang.',
 };
 
-export default function ChapterTestPage() {
+type ChapterTestPageProps = {
+  searchParams: Promise<{ mode?: string }>;
+};
+
+export default async function ChapterTestPage({
+  searchParams,
+}: ChapterTestPageProps) {
+  const { mode } = await searchParams;
+
   return (
     <main className="min-h-screen bg-background">
       <AppHeader active="practice" />
@@ -53,7 +61,9 @@ export default function ChapterTestPage() {
           </aside>
         </header>
 
-        <ChapterTest />
+        <ChapterTest
+          initialView={mode === 'conversation' ? 'conversation' : 'menu'}
+        />
 
         <aside className="mt-7 flex gap-3 border border-signal-yellow bg-signal-yellow/15 p-5 text-xs leading-5 text-amber-950">
           <CircleAlert className="mt-0.5 size-4 shrink-0" />

@@ -15,7 +15,7 @@ import {
   Trophy,
   Video,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,8 +50,12 @@ type TranslationAnswer = {
   correct: boolean;
 };
 
-export function ChapterTest() {
-  const [view, setView] = useState<TestView>('menu');
+type ChapterTestProps = {
+  initialView?: Extract<TestView, 'menu' | 'conversation'>;
+};
+
+export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
+  const [view, setView] = useState<TestView>(initialView);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState('');
   const [answers, setAnswers] = useState<TranslationAnswer[]>([]);
@@ -495,9 +499,30 @@ function TestTopBar({
 }
 
 function TestVideo({ src, label }: { src: string; label: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playbackState, setPlaybackState] = useState<
+    'loading' | 'playing' | 'paused' | 'error'
+  >('loading');
+
+  const startPlayback = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    const playRequest = video.play();
+    if (playRequest) {
+      void playRequest.catch(() => setPlaybackState('paused'));
+    }
+  }, []);
+
+  useEffect(() => {
+    startPlayback();
+  }, [src, startPlayback]);
+
   return (
     <div className="relative overflow-hidden bg-black">
       <video
+        ref={videoRef}
         src={src}
         aria-label={label}
         className="aspect-video w-full object-cover"
@@ -505,9 +530,59 @@ function TestVideo({ src, label }: { src: string; label: string }) {
         loop
         muted
         playsInline
+        preload="auto"
         controls
         controlsList="nodownload noplaybackrate"
+        onCanPlay={() => {
+          if (videoRef.current?.paused) startPlayback();
+        }}
+        onPlaying={() => setPlaybackState('playing')}
+        onPause={() => setPlaybackState('paused')}
+        onWaiting={() => setPlaybackState('loading')}
+        onError={() => setPlaybackState('error')}
       />
+
+      {playbackState === 'loading' ? (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/35 text-white">
+          <span className="flex items-center gap-2 rounded-full bg-black/65 px-4 py-2 text-xs font-extrabold">
+            <RefreshCw className="size-4 animate-spin" /> Menyiapkan video…
+          </span>
+        </div>
+      ) : null}
+
+      {playbackState === 'paused' ? (
+        <button
+          type="button"
+          onClick={startPlayback}
+          className="absolute inset-0 grid place-items-center bg-black/35 text-white outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-signal-teal"
+          aria-label={`Putar ${label.toLowerCase()}`}
+        >
+          <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-extrabold text-signal-navy shadow-lg">
+            <Play className="size-4" fill="currentColor" /> Putar video
+          </span>
+        </button>
+      ) : null}
+
+      {playbackState === 'error' ? (
+        <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-white">
+          <div>
+            <CircleAlert className="mx-auto size-6 text-signal-coral" />
+            <p className="mt-2 text-sm font-extrabold">Video gagal dimuat</p>
+            <button
+              type="button"
+              onClick={() => {
+                videoRef.current?.load();
+                setPlaybackState('loading');
+                startPlayback();
+              }}
+              className="mt-3 text-xs font-bold text-signal-teal underline underline-offset-4"
+            >
+              Muat ulang video
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1.5 text-[10px] font-bold text-white/80 backdrop-blur-sm">
         WL-BISINDO · Banten
       </span>
