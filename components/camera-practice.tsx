@@ -15,6 +15,7 @@ import {
   RotateCcw,
   ShieldCheck,
   SunMedium,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -40,12 +41,7 @@ type CameraStatus =
   | 'unavailable'
   | 'error';
 
-type PracticePhase =
-  | 'idle'
-  | 'countdown'
-  | 'recording'
-  | 'scoring'
-  | 'result';
+type PracticePhase = 'idle' | 'countdown' | 'recording' | 'scoring' | 'result';
 
 type LightingStatus = 'unknown' | 'low' | 'good' | 'bright';
 
@@ -54,8 +50,13 @@ const WASM_ROOT =
 const HAND_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
-const RECORDING_DURATION_MS = 3000;
 const COUNTDOWN_SECONDS = 3;
+const PRACTICE_PLAYBACK_RATE = 0.75;
+const FALLBACK_RECORDING_DURATION_MS = 5000;
+const REACTION_AND_FINAL_HOLD_MS = 1600;
+const MIN_RECORDING_DURATION_MS = 4000;
+const MAX_RECORDING_DURATION_MS = 10000;
+const REFERENCE_SAMPLE_INTERVAL_MS = 66;
 
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -83,9 +84,13 @@ const HAND_CONNECTIONS: Array<[number, number]> = [
 
 type CameraPracticeProps = {
   referenceVideoUrl: string;
+  referenceVideoElementId?: string;
 };
 
-export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
+export function CameraPractice({
+  referenceVideoUrl,
+  referenceVideoElementId,
+}: CameraPracticeProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const brightnessCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -102,8 +107,12 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
   const referenceFramesRef = useRef<GestureFrame[]>([]);
   const frameBufferRef = useRef<GestureFrame[]>([]);
   const recordingStartRef = useRef(0);
+  const recordingDurationRef = useRef(FALLBACK_RECORDING_DURATION_MS);
+  const referenceStartRef = useRef(0);
   const practicePhaseRef = useRef<PracticePhase>('idle');
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scoringTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [status, setStatus] = useState<CameraStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -115,13 +124,33 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
   const [practicePhase, setPracticePhase] = useState<PracticePhase>('idle');
   const [countdown, setCountdown] = useState(0);
   const [recordingProgress, setRecordingProgress] = useState(0);
+  const [recordingDuration, setRecordingDuration] = useState(
+    FALLBACK_RECORDING_DURATION_MS,
+  );
   const [gestureScore, setGestureScore] = useState<GestureScore | null>(null);
   const [referenceReady, setReferenceReady] = useState(false);
+  const [requiredHandCount, setRequiredHandCount] = useState(1);
 
   const updatePhase = useCallback((phase: PracticePhase) => {
     practicePhaseRef.current = phase;
     setPracticePhase(phase);
   }, []);
+
+  const getReferenceVideo = useCallback(() => {
+    if (!referenceVideoElementId) return null;
+    return document.getElementById(
+      referenceVideoElementId,
+    ) as HTMLVideoElement | null;
+  }, [referenceVideoElementId]);
+
+  const resumeReferencePreview = useCallback(() => {
+    const referenceVideo = getReferenceVideo();
+    if (!referenceVideo) return;
+    referenceVideo.loop = true;
+    referenceVideo.playbackRate = 1;
+    if (referenceVideo.ended) referenceVideo.currentTime = 0;
+    void referenceVideo.play().catch(() => undefined);
+  }, [getReferenceVideo]);
 
   const releaseResources = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -133,6 +162,14 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
     if (countdownTimerRef.current !== null) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
+    }
+    if (recordingTimerRef.current !== null) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (scoringTimerRef.current !== null) {
+      clearTimeout(scoringTimerRef.current);
+      scoringTimerRef.current = null;
     }
 
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -158,8 +195,9 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
     updatePhase('idle');
     setGestureScore(null);
     setRecordingProgress(0);
+    resumeReferencePreview();
     setCountdown(0);
-  }, [releaseResources, updatePhase]);
+  }, [releaseResources, resumeReferencePreview, updatePhase]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -178,6 +216,7 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
     updatePhase('idle');
     setGestureScore(null);
     setRecordingProgress(0);
+    resumeReferencePreview();
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus('unavailable');
@@ -238,6 +277,11 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
           landmarker,
         );
         referenceFramesRef.current = refFrames;
+        const timing = getReferenceTiming(refFrames);
+        recordingDurationRef.current = timing.durationMs;
+        referenceStartRef.current = timing.startMs;
+        setRecordingDuration(timing.durationMs);
+        setRequiredHandCount(getRequiredHandCount(refFrames));
         setReferenceReady(true);
       } catch {
         // Reference extraction failed — landmark-only mode continues
@@ -281,27 +325,10 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
             previous === nextConfidence ? previous : nextConfidence,
           );
 
-          // Capture frame during recording
+          // Capture frames only while the timed recording window is open.
           if (practicePhaseRef.current === 'recording') {
             const elapsed = now - recordingStartRef.current;
-
-            if (elapsed >= RECORDING_DURATION_MS) {
-              practicePhaseRef.current = 'scoring';
-              setPracticePhase('scoring');
-              setRecordingProgress(100);
-
-              // Compute score asynchronously to allow the loading overlay to render
-              setTimeout(() => {
-                const result = scoreGesture(
-                  referenceFramesRef.current,
-                  frameBufferRef.current,
-                );
-                setGestureScore(result);
-                recordGestureAssessment(result.overall, result.passed);
-                practicePhaseRef.current = 'result';
-                setPracticePhase('result');
-              }, 50);
-            } else {
+            if (elapsed < recordingDurationRef.current) {
               const hands: HandObservation[] = results.landmarks.map(
                 (landmarks, i) => ({
                   landmarks: landmarks.map((l) => ({
@@ -326,7 +353,7 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
 
               const progress = Math.min(
                 100,
-                Math.round((elapsed / RECORDING_DURATION_MS) * 100),
+                Math.round((elapsed / recordingDurationRef.current) * 100),
               );
               setRecordingProgress((prev) =>
                 prev === progress ? prev : progress,
@@ -376,37 +403,141 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
         'Kamera atau model landmark gagal dimuat. Periksa koneksi dan coba lagi.',
       );
     }
-  }, [releaseResources, referenceVideoUrl, updatePhase]);
+  }, [
+    releaseResources,
+    referenceVideoUrl,
+    resumeReferencePreview,
+    updatePhase,
+  ]);
+
+  const completeRecording = useCallback(() => {
+    if (practicePhaseRef.current !== 'recording') return;
+
+    practicePhaseRef.current = 'scoring';
+    setPracticePhase('scoring');
+    setRecordingProgress(100);
+    if (recordingTimerRef.current !== null) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    getReferenceVideo()?.pause();
+
+    // Yield once so the scoring overlay is visible before doing synchronous work.
+    scoringTimerRef.current = setTimeout(() => {
+      scoringTimerRef.current = null;
+      if (!mountedRef.current || practicePhaseRef.current !== 'scoring') return;
+      const result = scoreGesture(
+        referenceFramesRef.current,
+        frameBufferRef.current,
+      );
+      setGestureScore(result);
+      recordGestureAssessment(result.overall, result.passed);
+      practicePhaseRef.current = 'result';
+      setPracticePhase('result');
+    }, 50);
+  }, [getReferenceVideo]);
+
+  const beginRecording = useCallback(() => {
+    if (practicePhaseRef.current !== 'countdown') return;
+    countdownTimerRef.current = null;
+    setCountdown(0);
+
+    const referenceVideo = getReferenceVideo();
+    if (referenceVideo) {
+      referenceVideo.loop = false;
+      referenceVideo.playbackRate = PRACTICE_PLAYBACK_RATE;
+      referenceVideo.currentTime = referenceStartRef.current / 1000;
+      void referenceVideo.play().catch(() => undefined);
+    }
+
+    recordingStartRef.current = performance.now();
+    updatePhase('recording');
+    recordingTimerRef.current = setTimeout(
+      completeRecording,
+      recordingDurationRef.current,
+    );
+  }, [completeRecording, getReferenceVideo, updatePhase]);
 
   const startPractice = useCallback(() => {
+    if (
+      practicePhaseRef.current !== 'idle' ||
+      !referenceReady ||
+      handCount < requiredHandCount
+    )
+      return;
+
     frameBufferRef.current = [];
     setRecordingProgress(0);
     setGestureScore(null);
+
+    const timing = getReferenceTiming(referenceFramesRef.current);
+    recordingDurationRef.current = timing.durationMs;
+    referenceStartRef.current = timing.startMs;
+    setRecordingDuration(timing.durationMs);
+
+    const referenceVideo = getReferenceVideo();
+    if (referenceVideo) {
+      referenceVideo.pause();
+      referenceVideo.loop = false;
+      referenceVideo.playbackRate = PRACTICE_PLAYBACK_RATE;
+      referenceVideo.currentTime = timing.startMs / 1000;
+    }
+
     updatePhase('countdown');
     setCountdown(COUNTDOWN_SECONDS);
 
-    let remaining = COUNTDOWN_SECONDS;
+    // Derive the visible number from a monotonic deadline so delayed timers do
+    // not stretch a three-second countdown into four or five seconds.
+    const deadline = performance.now() + COUNTDOWN_SECONDS * 1000;
     countdownTimerRef.current = setInterval(() => {
-      remaining -= 1;
-      if (remaining <= 0) {
+      if (practicePhaseRef.current !== 'countdown') return;
+      const remainingMs = deadline - performance.now();
+      if (remainingMs <= 0) {
         if (countdownTimerRef.current !== null) {
           clearInterval(countdownTimerRef.current);
           countdownTimerRef.current = null;
         }
-        setCountdown(0);
-        recordingStartRef.current = performance.now();
-        updatePhase('recording');
-      } else {
-        setCountdown(remaining);
+        beginRecording();
+        return;
       }
-    }, 1000);
-  }, [updatePhase]);
+      setCountdown(Math.ceil(remainingMs / 1000));
+    }, 100);
+  }, [
+    beginRecording,
+    getReferenceVideo,
+    handCount,
+    referenceReady,
+    requiredHandCount,
+    updatePhase,
+  ]);
 
   const resetPractice = useCallback(() => {
     frameBufferRef.current = [];
     setRecordingProgress(0);
     updatePhase('idle');
-  }, [updatePhase]);
+    resumeReferencePreview();
+  }, [resumeReferencePreview, updatePhase]);
+
+  const cancelPractice = useCallback(() => {
+    if (countdownTimerRef.current !== null) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (recordingTimerRef.current !== null) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (scoringTimerRef.current !== null) {
+      clearTimeout(scoringTimerRef.current);
+      scoringTimerRef.current = null;
+    }
+    frameBufferRef.current = [];
+    setCountdown(0);
+    setRecordingProgress(0);
+    setGestureScore(null);
+    updatePhase('idle');
+    resumeReferencePreview();
+  }, [resumeReferencePreview, updatePhase]);
 
   const isBusy =
     status === 'requesting' ||
@@ -417,7 +548,10 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
     ['idle', 'requesting', 'denied', 'unavailable', 'error'] as CameraStatus[]
   ).includes(status);
   const canStartPractice =
-    isReady && referenceReady && practicePhase === 'idle';
+    isReady &&
+    referenceReady &&
+    practicePhase === 'idle' &&
+    handCount >= requiredHandCount;
 
   const calibrationChecks = [
     {
@@ -438,8 +572,11 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
     },
     {
       label: 'Tangan terlihat',
-      detail: handCount > 0 ? `${handCount} terdeteksi` : 'Belum terdeteksi',
-      passed: handCount > 0,
+      detail:
+        handCount >= requiredHandCount
+          ? `${handCount} terdeteksi`
+          : `${handCount}/${requiredHandCount} terdeteksi`,
+      passed: handCount >= requiredHandCount,
       icon: Hand,
     },
   ];
@@ -559,29 +696,49 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
           {/* Countdown overlay */}
           {practicePhase === 'countdown' && (
             <div className="absolute inset-0 grid place-items-center bg-signal-navy/40 backdrop-blur-sm">
-              <div className="text-center">
+              <output className="text-center" aria-live="polite">
                 <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-yellow text-5xl font-black text-signal-navy">
                   {countdown}
                 </span>
-                <p className="mt-4 text-sm font-bold text-white">Bersiap…</p>
-              </div>
+                <p className="mt-4 text-sm font-bold text-white">
+                  Bersiap — contoh diputar perlahan setelah hitungan
+                </p>
+              </output>
             </div>
           )}
 
           {/* Recording indicator */}
           {practicePhase === 'recording' && (
-            <div className="absolute inset-x-4 bottom-4 flex items-center gap-3 rounded-full bg-black/50 px-4 py-2.5 backdrop-blur-sm">
-              <span className="size-3 animate-pulse rounded-full bg-signal-coral" />
-              <div className="flex-1">
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className="h-full rounded-full bg-signal-coral transition-[width] duration-100"
-                    style={{ width: `${recordingProgress}%` }}
-                  />
+            <>
+              {recordingProgress < 15 && (
+                <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                  <span className="rounded-full bg-signal-teal px-6 py-3 text-2xl font-black text-signal-navy shadow-lg">
+                    Mulai!
+                  </span>
                 </div>
+              )}
+              <div className="absolute inset-x-4 bottom-4 flex items-center gap-3 rounded-full bg-black/50 px-4 py-2.5 backdrop-blur-sm">
+                <span className="size-3 animate-pulse rounded-full bg-signal-coral" />
+                <div className="flex-1">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                    <div
+                      className="h-full rounded-full bg-signal-coral transition-[width] duration-100"
+                      style={{ width: `${recordingProgress}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="shrink-0 text-xs font-bold text-white">
+                  Ikuti contoh, lalu tahan ·{' '}
+                  {Math.max(
+                    0,
+                    Math.ceil(
+                      (recordingDuration * (100 - recordingProgress)) / 100000,
+                    ),
+                  )}{' '}
+                  dtk
+                </span>
               </div>
-              <span className="text-xs font-bold text-white">Merekam</span>
-            </div>
+            </>
           )}
 
           {/* Scoring overlay */}
@@ -613,15 +770,28 @@ export function CameraPractice({ referenceVideoUrl }: CameraPracticeProps) {
           </div>
 
           <div className="flex gap-2">
-            {canStartPractice && (
+            {isReady && practicePhase === 'idle' && (
               <Button
                 type="button"
                 onClick={startPractice}
+                disabled={!canStartPractice}
                 className="bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90"
               >
                 <Play className="size-4" /> Mulai latihan
               </Button>
             )}
+            {isReady &&
+              (practicePhase === 'countdown' ||
+                practicePhase === 'recording') && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={cancelPractice}
+                  className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                >
+                  <X className="size-4" /> Batalkan
+                </Button>
+              )}
             {isReady && (
               <>
                 <Button
@@ -863,6 +1033,54 @@ function readFrameLighting(
   if (average < 55) return 'low';
   if (average > 220) return 'bright';
   return 'good';
+}
+
+function getReferenceTiming(frames: GestureFrame[]) {
+  const visibleFrames = frames.filter((frame) => frame.hands.length > 0);
+  if (visibleFrames.length < 2) {
+    return { startMs: 0, durationMs: FALLBACK_RECORDING_DURATION_MS };
+  }
+
+  const startMs = visibleFrames[0].timeMs;
+  const visibleDuration =
+    visibleFrames[visibleFrames.length - 1].timeMs -
+    startMs +
+    REFERENCE_SAMPLE_INTERVAL_MS;
+  return {
+    startMs,
+    durationMs: Math.round(
+      Math.min(
+        MAX_RECORDING_DURATION_MS,
+        Math.max(
+          MIN_RECORDING_DURATION_MS,
+          visibleDuration / PRACTICE_PLAYBACK_RATE + REACTION_AND_FINAL_HOLD_MS,
+        ),
+      ),
+    ),
+  };
+}
+
+function getRequiredHandCount(frames: GestureFrame[]) {
+  const frequency = new Map<number, number>();
+  for (const frame of frames) {
+    if (!frame.hands.length) continue;
+    frequency.set(
+      frame.hands.length,
+      (frequency.get(frame.hands.length) ?? 0) + 1,
+    );
+  }
+  let expected = 1;
+  let mostFrames = 0;
+  for (const [count, occurrences] of frequency) {
+    if (
+      occurrences > mostFrames ||
+      (occurrences === mostFrames && count > expected)
+    ) {
+      expected = count;
+      mostFrames = occurrences;
+    }
+  }
+  return expected;
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {

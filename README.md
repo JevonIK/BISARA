@@ -78,7 +78,24 @@ using hand landmarks and DTW. It matches stable left/right hand identities,
 normalizes mirrored hand geometry, and resamples both sequences on normalized
 time so sampling rate and overall speed do not determine the movement score.
 Movement compares the ordered, centered wrist path instead of noisy
-frame-to-frame derivatives. Two-hand distances remain in shared image coordinates.
+frame-to-frame derivatives. Handshape and orientation use the visible 2D hand
+skeleton so MediaPipe depth errors caused by camera angle or torso occlusion do
+not dominate the result. A sustained matching pose is enough to exclude relaxed
+preparation frames. Two-hand distances remain in shared image coordinates.
+
+The practice flow pauses the demonstration on its first detected hand frame
+during a monotonic three-second countdown. Recording and the demonstration then
+start together, with the guide played at 0.75× speed. The capture window follows
+the detected reference duration, allows extra reaction and final-hold time, and
+runs for at least four seconds. The start button stays disabled until the number
+of hands used by the reference is visible. Timer cleanup prevents an abandoned
+or restarted attempt from saving a late score.
+
+Pose-dominant signs such as “Saya” are evaluated from a sustained stable hold,
+so the incidental path used to bring a hand into or out of the camera frame does
+not become the sign's required movement. Continuously moving instead of holding
+the target pose is still penalized. Dynamic signs continue to use ordered-path
+matching.
 
 The pass threshold is 75, with a minimum score of 50 for handshape, movement,
 orientation, and coordination. A severe mismatch in one of these components
@@ -112,12 +129,12 @@ with Deaf language experts and recordings from multiple learners.
 
 Install the following tools before running BISARA:
 
-| Tool | Minimum version | Install guide |
-| --- | --- | --- |
-| [Node.js](https://nodejs.org/) | 22.13 | https://nodejs.org/en/download |
-| [pnpm](https://pnpm.io/) | 9 | `npm install -g pnpm` or https://pnpm.io/installation |
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | — | Required only for accounts and backend API |
-| [Python 3](https://www.python.org/) | 3.10 | Required only for backend setup script |
+| Tool                                                              | Minimum version | Install guide                                         |
+| ----------------------------------------------------------------- | --------------- | ----------------------------------------------------- |
+| [Node.js](https://nodejs.org/)                                    | 22.13           | https://nodejs.org/en/download                        |
+| [pnpm](https://pnpm.io/)                                          | 9               | `npm install -g pnpm` or https://pnpm.io/installation |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | —               | Required only for accounts and backend API            |
+| [Python 3](https://www.python.org/)                               | 3.10            | Required only for backend setup script                |
 
 ### Quick start (frontend only)
 
@@ -205,13 +222,13 @@ python -m pytest tests -q
 
 ### Troubleshooting
 
-| Problem | Solution |
-| --- | --- |
-| `pnpm dev` fails with engine error | Upgrade Node.js to 22.13 or newer |
-| Port 3000 already in use | Stop the other process using port 3000; BISARA will not choose another port |
-| Camera not working | Allow camera permission in your browser; HTTPS is not required on localhost |
-| Backend API unreachable | Make sure Docker Desktop is running and run `docker compose up -d --build` |
-| `setup_local.py` error | Ensure Python 3.10+ is installed |
+| Problem                            | Solution                                                                    |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| `pnpm dev` fails with engine error | Upgrade Node.js to 22.13 or newer                                           |
+| Port 3000 already in use           | Stop the other process using port 3000; BISARA will not choose another port |
+| Camera not working                 | Allow camera permission in your browser; HTTPS is not required on localhost |
+| Backend API unreachable            | Make sure Docker Desktop is running and run `docker compose up -d --build`  |
+| `setup_local.py` error             | Ensure Python 3.10+ is installed                                            |
 
 See [backend/README.md](backend/README.md) for detailed API setup, migrations,
 and deployment requirements.

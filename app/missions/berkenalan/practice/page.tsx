@@ -28,6 +28,9 @@ const missionStages = [
   { label: 'Komunikasikan', icon: MessageCircleMore, state: 'locked' },
 ] as const;
 
+const REFERENCE_VIDEO_ID = 'saya-reference-video';
+const REFERENCE_VIDEO_URL = '/media/wl-bisindo/signer0_label9_sample3.mp4';
+
 export default function PracticePage() {
   return (
     <main className="min-h-screen bg-background">
@@ -107,8 +110,10 @@ export default function PracticePage() {
               </p>
               <div className="mt-5 overflow-hidden bg-signal-teal-soft">
                 <video
+                  id={REFERENCE_VIDEO_ID}
                   className="aspect-[4/3] w-full object-cover"
-                  src="/media/wl-bisindo/signer0_label9_sample3.mp4"
+                  src={REFERENCE_VIDEO_URL}
+                  aria-label="Video contoh tanda Saya"
                   autoPlay
                   loop
                   muted
@@ -155,7 +160,10 @@ export default function PracticePage() {
           </aside>
 
           <div className="order-1 lg:order-2">
-            <CameraPractice referenceVideoUrl="/media/wl-bisindo/signer0_label9_sample3.mp4" />
+            <CameraPractice
+              referenceVideoUrl={REFERENCE_VIDEO_URL}
+              referenceVideoElementId={REFERENCE_VIDEO_ID}
+            />
           </div>
         </section>
 

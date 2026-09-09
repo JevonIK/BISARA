@@ -6,7 +6,7 @@ import {
   hasUsableReference,
   type GestureFrame,
   type Point3,
-} from '@/lib/gesture-scoring';
+} from '../lib/gesture-scoring.ts';
 
 function frame(time: number, movementX = 0, deformation = 0): GestureFrame {
   const landmarks: Point3[] = Array.from({ length: 21 }, (_, index) => ({
@@ -147,6 +147,14 @@ void test('wrong palm orientation cannot be compensated by other components', ()
     ...item,
     hands: item.hands.map((hand) => ({
       ...hand,
+      landmarks: hand.landmarks.map((point) => {
+        const wrist = hand.landmarks[0];
+        return {
+          ...point,
+          x: wrist.x - (point.x - wrist.x),
+          y: wrist.y - (point.y - wrist.y),
+        };
+      }),
       worldLandmarks: hand.worldLandmarks?.map((point) => ({
         ...point,
         y: -point.y,
@@ -162,6 +170,28 @@ void test('wrong palm orientation cannot be compensated by other components', ()
 void test('stationary hands cannot pass a moving reference', () => {
   const attempt = sampledSequence(45).map((item) => frame(item.timeMs));
   assert.equal(scoreGesture(sampledSequence(45), attempt).passed, false);
+});
+
+void test('a longer final hold does not hurt a pose-dominant sign', () => {
+  const reference = Array.from({ length: 24 }, (_, index) =>
+    frame(index * 80, index < 5 ? index * 0.02 : 0.08),
+  );
+  const attempt = Array.from({ length: 50 }, (_, index) =>
+    frame(index * 80, index < 12 ? (index / 11) * 0.08 : 0.08),
+  );
+  const result = scoreGesture(reference, attempt);
+  assert.ok(result.movement >= 95);
+  assert.equal(result.passed, true);
+});
+
+void test('continuous motion does not satisfy a held sign', () => {
+  const reference = Array.from({ length: 24 }, (_, index) =>
+    frame(index * 80, index < 5 ? index * 0.02 : 0.08),
+  );
+  const attempt = Array.from({ length: 50 }, (_, index) =>
+    frame(index * 80, index % 2 ? 0.18 : 0),
+  );
+  assert.ok(scoreGesture(reference, attempt).movement < 50);
 });
 
 void test('low visibility cannot pass even with six perfect frames', () => {
@@ -302,6 +332,53 @@ void test('small landmark jitter does not swamp the movement signal', () => {
   const result = scoreGesture(sequence(), attempt);
   assert.ok(result.movement >= 90);
   assert.equal(result.passed, true);
+});
+
+void test('camera depth estimation does not distort an identical visible hand pose', () => {
+  const attempt = sequence().map((item, frameIndex) => ({
+    ...item,
+    hands: item.hands.map((hand) => ({
+      ...hand,
+      worldLandmarks: hand.worldLandmarks?.map((point, pointIndex) => ({
+        x: point.x * (1.4 + frameIndex * 0.01),
+        y: point.y * 0.7,
+        z: point.z + Math.sin(pointIndex) * 0.18,
+      })),
+    })),
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.equal(result.handshape, 100);
+  assert.equal(result.orientation, 100);
+  assert.equal(result.passed, true);
+});
+
+void test('a sustained matching pose is not rejected by preparation frames', () => {
+  const attempt = sequence().map((item, index) =>
+    index < 16 ? frame(item.timeMs, index * 0.004, 0.2) : item,
+  );
+  const result = scoreGesture(sequence(), attempt);
+  assert.ok(result.handshape >= 90);
+  assert.equal(result.passed, true);
+});
+
+void test('wrong visible hand direction still fails orientation', () => {
+  const attempt = sequence().map((item) => ({
+    ...item,
+    hands: item.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => ({
+          ...point,
+          x: wrist.x - (point.y - wrist.y),
+          y: wrist.y + (point.x - wrist.x),
+        })),
+      };
+    }),
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.ok(result.orientation < 50);
+  assert.equal(result.passed, false);
 });
 
 void test('invalid landmarks and timestamps produce a finite non-passing score', () => {

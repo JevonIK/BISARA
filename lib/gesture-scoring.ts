@@ -18,7 +18,7 @@ export type GestureScore = {
   feedback: string;
 };
 
-type Vector3 = [number, number, number];
+type Vector2 = [number, number];
 type PreparedHand = {
   handedness: 'left' | 'right';
   shape: number[];
@@ -43,6 +43,7 @@ const SEQUENCE_SAMPLES = 32;
 const MIN_VISIBLE_FRAMES = 6;
 const MIN_COVERAGE = 0.6;
 const MIN_VISIBLE_DURATION_MS = 400;
+const POSE_DOMINANT_CENTRAL_EXTENT = 0.2;
 
 export function scoreGesture(
   referenceFrames: GestureFrame[],
@@ -109,29 +110,34 @@ function scorePrepared(
   attempt: PreparedFrame[],
   detectionQuality: number,
 ): GestureScore {
+  const poseDominant = isPoseDominantGesture(reference);
+  const comparePosition = (a: PreparedFrame, b: PreparedFrame) =>
+    compareHands(a, b, (hand) => hand.position);
   const components: Components = {
     handshape: errorToScore(
-      dtwError(reference, attempt, (a, b) =>
+      robustPoseError(reference, attempt, (a, b) =>
         compareHands(a, b, (hand) => hand.shape),
       ),
       0.7,
     ),
     position: errorToScore(
-      dtwError(reference, attempt, (a, b) =>
-        compareHands(a, b, (hand) => hand.position),
-      ),
+      poseDominant
+        ? robustPoseError(reference, attempt, comparePosition)
+        : dtwError(reference, attempt, comparePosition),
       0.3,
     ),
     orientation: errorToScore(
-      dtwError(reference, attempt, compareOrientation),
+      robustPoseError(reference, attempt, compareOrientation),
       0.42,
     ),
     movement: errorToScore(
-      dtwError(
-        movementSequence(reference),
-        movementSequence(attempt),
-        compareMovement,
-      ),
+      poseDominant
+        ? poseHoldError(reference, attempt)
+        : dtwError(
+            movementSequence(reference),
+            movementSequence(attempt),
+            compareMovement,
+          ),
       0.3,
     ),
     coordination: errorToScore(
@@ -250,8 +256,8 @@ function resampleSequence(frames: PreparedFrame[]): PreparedFrame[] {
             handedness: hand.handedness,
             shape: mix(hand.shape, next.shape),
             position: mix(hand.position, next.position),
-            orientation: normalize3(
-              mix(hand.orientation, next.orientation) as Vector3,
+            orientation: normalizeVector(
+              mix(hand.orientation, next.orientation),
             ),
             wrist: mix(hand.wrist, next.wrist) as [number, number],
             physicalWrist: mix(hand.physicalWrist, next.physicalWrist) as [
@@ -278,49 +284,45 @@ function prepareHand(hand: HandObservation): PreparedHand | null {
   )
     return null;
   const mirror = handedness === 'left';
-  // Reflect geometry BEFORE deriving the palm basis. Reflecting only the wrist
-  // reverses the palm normal and leaves mirrored fingers incorrectly penalized.
-  const source = (
-    hand.worldLandmarks && validPoints(hand.worldLandmarks)
-      ? hand.worldLandmarks
-      : hand.landmarks
-  ).map((point) => ({ ...point, x: mirror ? -point.x : point.x }));
+  // MediaPipe's inferred world depth changes considerably with camera angle and
+  // partial occlusion against the torso. The visible 2D skeleton is the stable
+  // evidence this camera checker can actually compare across different users.
+  const source = hand.landmarks.map((point) => ({
+    ...point,
+    x: mirror ? 1 - point.x : point.x,
+  }));
   const wrist = source[0];
   const indexMcp = source[5];
   const middleMcp = source[9];
   const pinkyMcp = source[17];
   if (
-    distance3(indexMcp, pinkyMcp) < 0.0001 ||
-    distance3(wrist, middleMcp) < 0.0001
+    distance2(indexMcp, pinkyMcp) < 0.0001 ||
+    distance2(wrist, middleMcp) < 0.0001
   )
     return null;
-  const side = normalize3(subtract3(indexMcp, pinkyMcp));
-  const forward = normalize3(subtract3(middleMcp, wrist));
-  const normal = normalize3(cross(side, forward));
+  const side = normalize2([indexMcp.x - pinkyMcp.x, indexMcp.y - pinkyMcp.y]);
+  const forward = normalize2([middleMcp.x - wrist.x, middleMcp.y - wrist.y]);
   const scale = Math.max(
     0.0001,
-    (distance3(indexMcp, pinkyMcp) + distance3(wrist, middleMcp)) / 2,
+    (distance2(indexMcp, pinkyMcp) + distance2(wrist, middleMcp)) / 2,
   );
   const shape = source.flatMap((landmark) => {
-    const relative = subtract3(landmark, wrist);
-    return [
-      dot(relative, side) / scale,
-      dot(relative, forward) / scale,
-      dot(relative, normal) / scale,
-    ];
+    const relative: Vector2 = [landmark.x - wrist.x, landmark.y - wrist.y];
+    return [dot2(relative, side) / scale, dot2(relative, forward) / scale];
   });
-  const screenWrist = hand.landmarks[0];
-  const screenMiddle = hand.landmarks[9];
+  const screenWrist = source[0];
+  const screenMiddle = source[9];
+  const physicalScreenWrist = hand.landmarks[0];
   const screenScale = Math.max(0.001, distance2(screenWrist, screenMiddle));
 
   return {
     handedness,
     shape,
-    position: [mirror ? 1 - screenWrist.x : screenWrist.x, screenWrist.y],
-    orientation: normal,
-    wrist: [mirror ? 1 - screenWrist.x : screenWrist.x, screenWrist.y],
+    position: [screenWrist.x, screenWrist.y],
+    orientation: [...side, ...forward],
+    wrist: [screenWrist.x, screenWrist.y],
     // Inter-hand distances must stay in one shared, unmirrored coordinate space.
-    physicalWrist: [screenWrist.x, screenWrist.y],
+    physicalWrist: [physicalScreenWrist.x, physicalScreenWrist.y],
     screenScale,
   };
 }
@@ -346,6 +348,29 @@ function compareHands(
 
 function compareOrientation(a: PreparedFrame, b: PreparedFrame) {
   return compareHands(a, b, (hand) => hand.orientation);
+}
+
+function robustPoseError(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+  distance: (left: PreparedFrame, right: PreparedFrame) => number,
+) {
+  const sequenceError = dtwError(reference, attempt, distance);
+  // A learner can start with a relaxed hand and then hold the correct sign.
+  // Require a sustained matching portion instead of grading preparation frames
+  // as if they were part of the sign's handshape or orientation.
+  const nearestErrors = attempt
+    .map((frame) =>
+      Math.min(
+        ...reference.map((referenceFrame) => distance(referenceFrame, frame)),
+      ),
+    )
+    .sort((a, b) => a - b);
+  const sustainedFrames = Math.max(4, Math.ceil(nearestErrors.length * 0.25));
+  return Math.min(
+    sequenceError,
+    average(nearestErrors.slice(0, sustainedFrames)),
+  );
 }
 
 function compareCoordination(a: PreparedFrame, b: PreparedFrame) {
@@ -390,6 +415,60 @@ function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
       }),
     };
   });
+}
+
+function isPoseDominantGesture(sequence: PreparedFrame[]) {
+  const start = Math.floor(sequence.length * 0.25);
+  const end = Math.ceil(sequence.length * 0.75);
+  return (
+    motionExtent(sequence.slice(start, end)) < POSE_DOMINANT_CENTRAL_EXTENT
+  );
+}
+
+function poseHoldError(reference: PreparedFrame[], attempt: PreparedFrame[]) {
+  const referenceExtent = sustainedMotionExtent(reference);
+  const attemptExtent = sustainedMotionExtent(attempt);
+  // Entry and exit motion around a held sign belongs to the recording setup.
+  // Require one stable held portion instead of matching those boundary paths.
+  return Math.max(
+    0,
+    attemptExtent - Math.max(POSE_DOMINANT_CENTRAL_EXTENT, referenceExtent * 2),
+  );
+}
+
+function sustainedMotionExtent(sequence: PreparedFrame[]) {
+  const windowSize = Math.max(4, Math.ceil(sequence.length * 0.25));
+  let smallest = Number.POSITIVE_INFINITY;
+  for (let start = 0; start <= sequence.length - windowSize; start += 1) {
+    smallest = Math.min(
+      smallest,
+      motionExtent(sequence.slice(start, start + windowSize)),
+    );
+  }
+  return Number.isFinite(smallest) ? smallest : 4;
+}
+
+function motionExtent(sequence: PreparedFrame[]) {
+  const identities = ['left', 'right'] as const;
+  const extents = identities.flatMap((identity) => {
+    const hands = sequence.flatMap((frame) => {
+      const hand = frame.hands.find(
+        (candidate) => candidate.handedness === identity,
+      );
+      return hand ? [hand] : [];
+    });
+    if (hands.length < Math.max(2, sequence.length * 0.75)) return [];
+    const scale = median(hands.map((hand) => hand.screenScale));
+    const xs = hands.map((hand) => hand.wrist[0]);
+    const ys = hands.map((hand) => hand.wrist[1]);
+    return [
+      Math.hypot(
+        Math.max(...xs) - Math.min(...xs),
+        Math.max(...ys) - Math.min(...ys),
+      ) / scale,
+    ];
+  });
+  return extents.length ? average(extents) : 4;
 }
 
 function compareMovement(a: MovementFrame, b: MovementFrame) {
@@ -499,25 +578,16 @@ function median(values: number[]) {
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
-function subtract3(a: Point3, b: Point3): Vector3 {
-  return [a.x - b.x, a.y - b.y, a.z - b.z];
-}
-function dot(a: Vector3, b: Vector3) {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-function cross(a: Vector3, b: Vector3): Vector3 {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
-  ];
-}
-function normalize3(point: Vector3): Vector3 {
+function normalizeVector(point: number[]) {
   const magnitude = Math.hypot(...point) || 1;
-  return point.map((value) => value / magnitude) as Vector3;
+  return point.map((value) => value / magnitude);
 }
-function distance3(a: Point3, b: Point3) {
-  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+function normalize2(point: Vector2): Vector2 {
+  const magnitude = Math.hypot(...point) || 1;
+  return [point[0] / magnitude, point[1] / magnitude];
+}
+function dot2(a: Vector2, b: Vector2) {
+  return a[0] * b[0] + a[1] * b[1];
 }
 function distance2(a: Point3, b: Point3) {
   return Math.hypot(a.x - b.x, a.y - b.y);
