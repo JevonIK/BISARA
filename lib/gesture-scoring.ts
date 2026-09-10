@@ -42,8 +42,13 @@ const MIN_COMPONENT_SCORE = 50;
 const SEQUENCE_SAMPLES = 32;
 const MIN_VISIBLE_FRAMES = 6;
 const MIN_COVERAGE = 0.6;
+const MIN_TWO_HAND_COVERAGE = 0.35;
 const MIN_VISIBLE_DURATION_MS = 400;
 const POSE_DOMINANT_CENTRAL_EXTENT = 0.2;
+const TWO_HAND_REFERENCE_RATIO = 0.6;
+const MIN_ATTEMPT_WINDOW_RATIO = 0.55;
+const MAX_ATTEMPT_BOUNDARY_TRIM_RATIO = 0.3;
+const MAX_BOUNDARY_CANDIDATES = 20;
 
 export function scoreGesture(
   referenceFrames: GestureFrame[],
@@ -51,8 +56,20 @@ export function scoreGesture(
 ): GestureScore {
   const rawReference = prepareSequence(referenceFrames);
   const rawAttempt = prepareSequence(attemptFrames);
-  const visibleAttemptFrames = rawAttempt.filter(
-    (frame) => frame.hands.length > 0,
+  const requiredHandCount = getRequiredHandCountFromPrepared(rawReference);
+  const primaryHandedness = getPrimaryHandedness(rawReference);
+  const reference = selectRequiredHands(
+    rawReference,
+    requiredHandCount,
+    primaryHandedness,
+  ).filter((frame) => frame.hands.length === requiredHandCount);
+  const directAttempt = selectRequiredHands(
+    rawAttempt,
+    requiredHandCount,
+    primaryHandedness,
+  );
+  const visibleAttemptFrames = directAttempt.filter(
+    (frame) => frame.hands.length === requiredHandCount,
   );
   const coverage = rawAttempt.length
     ? visibleAttemptFrames.length / rawAttempt.length
@@ -73,44 +90,106 @@ export function scoreGesture(
   }
   if (
     visibleAttemptFrames.length < MIN_VISIBLE_FRAMES ||
-    !hasEnoughDuration(rawAttempt) ||
-    coverage < MIN_COVERAGE
+    !hasEnoughDuration(visibleAttemptFrames) ||
+    coverage < (requiredHandCount === 2 ? MIN_TWO_HAND_COVERAGE : MIN_COVERAGE)
   ) {
     return emptyScore(
       detectionQuality,
-      'Tangan belum terlihat cukup lama. Pastikan seluruh gerakan masuk ke dalam bingkai.',
+      requiredHandCount === 2
+        ? 'Kedua tangan belum terlihat cukup lama. Pastikan keduanya masuk ke dalam bingkai selama gerakan.'
+        : 'Tangan belum terlihat cukup lama. Pastikan seluruh gerakan masuk ke dalam bingkai.',
     );
   }
   // Visibility gaps have already reduced quality above. An undetected frame has
   // no hand geometry to compare; treating it as a shape/orientation error makes
   // even the demo fail when one extraction briefly loses tracking.
-  const reference = resampleSequence(
-    rawReference.filter((frame) => frame.hands.length > 0),
+  const sampledReference = resampleSequence(reference);
+  const direct = scoreAttemptWindows(
+    sampledReference,
+    visibleAttemptFrames,
+    detectionQuality,
   );
-  const attempt = resampleSequence(visibleAttemptFrames);
-  const direct = scorePrepared(reference, attempt, detectionQuality);
   // A change of dominant hand swaps the roles of BOTH hands together. Choose
   // one assignment for the entire gesture, never a different swap per frame.
-  const swapped = scorePrepared(
-    reference,
-    attempt.map((frame) => ({
-      ...frame,
-      hands: frame.hands.map((hand) => ({
-        ...hand,
-        handedness: hand.handedness === 'left' ? 'right' : 'left',
-      })),
-    })),
+  if (requiredHandCount === 1) return direct;
+  const swapped = scoreAttemptWindows(
+    sampledReference,
+    selectRequiredHands(
+      swapHandedness(rawAttempt),
+      requiredHandCount,
+      primaryHandedness,
+    ).filter((frame) => frame.hands.length === requiredHandCount),
     detectionQuality,
   );
   return swapped.overall > direct.overall ? swapped : direct;
+}
+
+function scoreAttemptWindows(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+  detectionQuality: number,
+) {
+  return getAttemptWindows(attempt)
+    .map((window) =>
+      scorePrepared(
+        reference,
+        resampleSequence(window),
+        detectionQuality,
+        window,
+      ),
+    )
+    .reduce((best, result) => (result.overall > best.overall ? result : best));
+}
+
+function getAttemptWindows(sequence: PreparedFrame[]) {
+  const minimumFrames = Math.max(
+    MIN_VISIBLE_FRAMES,
+    Math.ceil(sequence.length * MIN_ATTEMPT_WINDOW_RATIO),
+  );
+  const windows: PreparedFrame[][] = [];
+  const maximumTrim = Math.floor(
+    sequence.length * MAX_ATTEMPT_BOUNDARY_TRIM_RATIO,
+  );
+  const step = Math.max(
+    1,
+    Math.ceil((maximumTrim + 1) / MAX_BOUNDARY_CANDIDATES),
+  );
+  const trimCandidates = Array.from(
+    { length: Math.floor(maximumTrim / step) + 1 },
+    (_, index) => index * step,
+  );
+  if (trimCandidates.at(-1) !== maximumTrim) trimCandidates.push(maximumTrim);
+
+  for (const startTrim of trimCandidates) {
+    for (const endTrim of trimCandidates) {
+      const start = startTrim;
+      const end = sequence.length - endTrim;
+      const candidate = sequence.slice(start, end);
+      if (
+        candidate.length >= minimumFrames &&
+        hasEnoughDuration(candidate) &&
+        !windows.some(
+          (window) =>
+            window[0] === candidate[0] &&
+            window[window.length - 1] === candidate[candidate.length - 1],
+        )
+      ) {
+        windows.push(candidate);
+      }
+    }
+  }
+  return windows.length ? windows : [sequence];
 }
 
 function scorePrepared(
   reference: PreparedFrame[],
   attempt: PreparedFrame[],
   detectionQuality: number,
+  rawAttempt = attempt,
 ): GestureScore {
   const poseDominant = isPoseDominantGesture(reference);
+  const referenceMovement = movementSequence(reference);
+  const attemptMovement = movementSequence(attempt);
   const comparePosition = (a: PreparedFrame, b: PreparedFrame) =>
     compareHands(a, b, (hand) => hand.position);
   const components: Components = {
@@ -132,17 +211,16 @@ function scorePrepared(
     ),
     movement: errorToScore(
       poseDominant
-        ? poseHoldError(reference, attempt)
-        : dtwError(
-            movementSequence(reference),
-            movementSequence(attempt),
-            compareMovement,
+        ? poseHoldError(reference, rawAttempt)
+        : Math.max(
+            dtwError(referenceMovement, attemptMovement, compareMovement),
+            movementDirectionError(referenceMovement, attemptMovement),
           ),
-      0.3,
+      0.35,
     ),
     coordination: errorToScore(
-      dtwError(reference, attempt, compareCoordination),
-      0.5,
+      coordinationSequenceError(reference, attempt),
+      0.24,
     ),
   };
 
@@ -152,9 +230,9 @@ function scorePrepared(
     components.orientation * 0.2 +
     components.position * 0.1 +
     components.coordination * 0.1;
-  const weightedScore = roundScore(
-    weighted * (0.72 + 0.28 * (detectionQuality / 100)),
-  );
+  // Coverage is already enforced before scoring. Multiplying by it again would
+  // punish detector occlusion twice, especially when two hands overlap.
+  const weightedScore = roundScore(weighted);
   const weakest = weakestComponent(components);
   const weakestCore = weakestComponent({ ...components, position: 100 });
   // A severe mismatch must not be hidden by perfect unrelated components.
@@ -219,12 +297,71 @@ function hasEnoughDuration(frames: PreparedFrame[]): boolean {
 
 export function hasUsableReference(frames: GestureFrame[]): boolean {
   const prepared = prepareSequence(frames);
-  const visible = prepared.filter((frame) => frame.hands.length > 0).length;
+  const requiredHandCount = getRequiredHandCountFromPrepared(prepared);
+  const visibleFrames = selectRequiredHands(
+    prepared,
+    requiredHandCount,
+    getPrimaryHandedness(prepared),
+  ).filter((frame) => frame.hands.length === requiredHandCount);
   return (
-    visible >= MIN_VISIBLE_FRAMES &&
-    hasEnoughDuration(prepared) &&
-    visible / prepared.length >= MIN_COVERAGE
+    visibleFrames.length >= MIN_VISIBLE_FRAMES &&
+    hasEnoughDuration(visibleFrames) &&
+    visibleFrames.length / prepared.length >= MIN_COVERAGE
   );
+}
+
+export function getRequiredHandCount(frames: GestureFrame[]) {
+  return getRequiredHandCountFromPrepared(prepareSequence(frames));
+}
+
+function getRequiredHandCountFromPrepared(frames: PreparedFrame[]) {
+  const visibleFrames = frames.filter((frame) => frame.hands.length > 0);
+  if (!visibleFrames.length) return 1;
+  const twoHandFrames = visibleFrames.filter(
+    (frame) => frame.hands.length >= 2,
+  ).length;
+  return twoHandFrames / visibleFrames.length >= TWO_HAND_REFERENCE_RATIO
+    ? 2
+    : 1;
+}
+
+function getPrimaryHandedness(frames: PreparedFrame[]) {
+  const counts = { left: 0, right: 0 };
+  const singleHandFrames = frames.filter((frame) => frame.hands.length === 1);
+  for (const frame of singleHandFrames.length ? singleHandFrames : frames) {
+    for (const hand of frame.hands) counts[hand.handedness] += 1;
+  }
+  return counts.left > counts.right ? ('left' as const) : ('right' as const);
+}
+
+function selectRequiredHands(
+  frames: PreparedFrame[],
+  requiredHandCount: number,
+  primaryHandedness: PreparedHand['handedness'],
+) {
+  return frames.map((frame) => {
+    if (requiredHandCount === 2) {
+      return {
+        ...frame,
+        hands: frame.hands.length >= 2 ? frame.hands.slice(0, 2) : [],
+      };
+    }
+    const primary =
+      frame.hands.find((hand) => hand.handedness === primaryHandedness) ??
+      (frame.hands.length === 1 ? frame.hands[0] : undefined);
+    return { ...frame, hands: primary ? [primary] : [] };
+  });
+}
+
+function swapHandedness(frames: PreparedFrame[]): PreparedFrame[] {
+  return frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      handedness:
+        hand.handedness === 'left' ? ('right' as const) : ('left' as const),
+    })),
+  }));
 }
 
 function resampleSequence(frames: PreparedFrame[]): PreparedFrame[] {
@@ -373,16 +510,45 @@ function robustPoseError(
   );
 }
 
-function compareCoordination(a: PreparedFrame, b: PreparedFrame) {
-  if (a.hands.length !== b.hands.length) return 1;
-  if (a.hands.length < 2) return 0;
-  const distanceA =
-    distanceArrays(a.hands[0].physicalWrist, a.hands[1].physicalWrist) /
-    average([a.hands[0].screenScale, a.hands[1].screenScale]);
-  const distanceB =
-    distanceArrays(b.hands[0].physicalWrist, b.hands[1].physicalWrist) /
-    average([b.hands[0].screenScale, b.hands[1].screenScale]);
-  return Math.abs(distanceA - distanceB);
+function coordinationSequenceError(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+) {
+  if (reference.every((frame) => frame.hands.length < 2)) return 0;
+  const distanceProfile = (sequence: PreparedFrame[]) =>
+    sequence.flatMap((frame) => {
+      if (frame.hands.length < 2) return [];
+      return [
+        distanceArrays(
+          frame.hands[0].physicalWrist,
+          frame.hands[1].physicalWrist,
+        ) / average([frame.hands[0].screenScale, frame.hands[1].screenScale]),
+      ];
+    });
+  const referenceDistances = distanceProfile(reference);
+  const attemptDistances = distanceProfile(attempt);
+  if (!referenceDistances.length || !attemptDistances.length) return 4;
+  // A tracking gap can leave a sparse subset of otherwise valid distances.
+  // Grade each observed attempt distance against the nearest reference state;
+  // the two wrist trajectories still enforce that the full motion occurred.
+  const nearestStateError = average(
+    attemptDistances.map((distance) =>
+      Math.min(
+        ...referenceDistances.map((reference) =>
+          Math.abs(reference - distance),
+        ),
+      ),
+    ),
+  );
+  const referenceDelta = linearTrend(referenceDistances);
+  const attemptDelta = linearTrend(attemptDistances);
+  const oppositeSpacingDirection =
+    Math.abs(referenceDelta) >= 0.2 &&
+    Math.abs(attemptDelta) >= 0.2 &&
+    Math.sign(referenceDelta) !== Math.sign(attemptDelta);
+  return oppositeSpacingDirection
+    ? Math.max(0.4, nearestStateError)
+    : nearestStateError;
 }
 
 function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
@@ -484,6 +650,51 @@ function compareMovement(a: MovementFrame, b: MovementFrame) {
   return average(errors) + Math.abs(a.hands.length - b.hands.length);
 }
 
+function movementDirectionError(
+  reference: MovementFrame[],
+  attempt: MovementFrame[],
+) {
+  const errors = ['left', 'right'].flatMap((handedness) => {
+    const referencePath = reference.flatMap((frame) => {
+      const hand = frame.hands.find(
+        (candidate) => candidate.handedness === handedness,
+      );
+      return hand ? [hand.trajectory] : [];
+    });
+    const attemptPath = attempt.flatMap((frame) => {
+      const hand = frame.hands.find(
+        (candidate) => candidate.handedness === handedness,
+      );
+      return hand ? [hand.trajectory] : [];
+    });
+    if (referencePath.length < 2 || attemptPath.length < 2) return [];
+
+    const referenceDelta = [
+      referencePath.at(-1)![0] - referencePath[0][0],
+      referencePath.at(-1)![1] - referencePath[0][1],
+    ];
+    const attemptDelta = [
+      attemptPath.at(-1)![0] - attemptPath[0][0],
+      attemptPath.at(-1)![1] - attemptPath[0][1],
+    ];
+    const referenceMagnitude = Math.hypot(...referenceDelta);
+    const attemptMagnitude = Math.hypot(...attemptDelta);
+    // Closed or nearly stationary paths have no meaningful start-to-end
+    // direction. Their shape is already covered by DTW above.
+    if (referenceMagnitude < POSE_DOMINANT_CENTRAL_EXTENT) return [];
+    if (attemptMagnitude < 0.05) return [4];
+    const cosine = clamp(
+      (referenceDelta[0] * attemptDelta[0] +
+        referenceDelta[1] * attemptDelta[1]) /
+        (referenceMagnitude * attemptMagnitude),
+      -1,
+      1,
+    );
+    return [Math.max(0, (1 - cosine) * 0.25)];
+  });
+  return errors.length ? average(errors) : 0;
+}
+
 function dtwError<T>(a: T[], b: T[], distance: (left: T, right: T) => number) {
   if (!a.length || !b.length) return 4;
   const costs = Array.from({ length: a.length + 1 }, () =>
@@ -567,6 +778,18 @@ function average(values: number[]) {
   return values.length
     ? values.reduce((sum, value) => sum + value, 0) / values.length
     : 0;
+}
+function linearTrend(values: number[]) {
+  if (values.length < 2) return 0;
+  const center = (values.length - 1) / 2;
+  let covariance = 0;
+  let variance = 0;
+  for (const [index, value] of values.entries()) {
+    const offset = index - center;
+    covariance += offset * value;
+    variance += offset * offset;
+  }
+  return variance ? (covariance / variance) * (values.length - 1) : 0;
 }
 function median(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);

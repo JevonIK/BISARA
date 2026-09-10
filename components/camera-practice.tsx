@@ -26,6 +26,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { useProgress } from '@/hooks/use-progress';
 import { getSigns, type SignId } from '@/lib/curriculum-data';
 import {
+  getRequiredHandCount,
   scoreGesture,
   type GestureFrame,
   type GestureScore,
@@ -1194,29 +1195,6 @@ function getReferenceTiming(frames: GestureFrame[]) {
       ),
     ),
   };
-}
-
-function getRequiredHandCount(frames: GestureFrame[]) {
-  const frequency = new Map<number, number>();
-  for (const frame of frames) {
-    if (!frame.hands.length) continue;
-    frequency.set(
-      frame.hands.length,
-      (frequency.get(frame.hands.length) ?? 0) + 1,
-    );
-  }
-  let expected = 1;
-  let mostFrames = 0;
-  for (const [count, occurrences] of frequency) {
-    if (
-      occurrences > mostFrames ||
-      (occurrences === mostFrames && count > expected)
-    ) {
-      expected = count;
-      mostFrames = occurrences;
-    }
-  }
-  return expected;
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {

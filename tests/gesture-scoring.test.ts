@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
-  scoreGesture,
+  getRequiredHandCount,
   hasUsableReference,
+  scoreGesture,
   type GestureFrame,
   type Point3,
 } from '../lib/gesture-scoring.ts';
@@ -53,7 +54,7 @@ void test('finger deformation lowers handshape and total score', () => {
 void test('reversed trajectory lowers movement score', () => {
   const result = scoreGesture(sequence(), sequence(0, -1));
   assert.ok(result.movement < 80);
-  assert.equal(result.passed, false);
+  assert.equal(result.passed, false, JSON.stringify(result));
 });
 
 function mirror(frames: GestureFrame[]): GestureFrame[] {
@@ -75,6 +76,14 @@ function sampledSequence(samples: number, duration = 3000): GestureFrame[] {
   return Array.from({ length: samples }, (_, index) =>
     frame((index / (samples - 1)) * duration, (index / (samples - 1)) * 0.3),
   );
+}
+
+function twoHandSequence(): GestureFrame[] {
+  const left = mirror(sequence(0.04));
+  return sequence().map((item, index) => ({
+    ...item,
+    hands: [item.hands[0], left[index].hands[0]],
+  }));
 }
 
 void test('mirrored dominant hand preserves shape, orientation and movement', () => {
@@ -191,7 +200,8 @@ void test('continuous motion does not satisfy a held sign', () => {
   const attempt = Array.from({ length: 50 }, (_, index) =>
     frame(index * 80, index % 2 ? 0.18 : 0),
   );
-  assert.ok(scoreGesture(reference, attempt).movement < 50);
+  const result = scoreGesture(reference, attempt);
+  assert.ok(result.movement < 50, JSON.stringify(result));
 });
 
 void test('low visibility cannot pass even with six perfect frames', () => {
@@ -244,16 +254,60 @@ void test('two-hand spacing is measured in shared image coordinates', () => {
       })),
     })),
   }));
-  assert.ok(scoreGesture(reference, wider).coordination < 50);
-  assert.equal(scoreGesture(reference, wider).passed, false);
+  const widerResult = scoreGesture(reference, wider);
+  assert.ok(widerResult.coordination < 50, JSON.stringify(widerResult));
+  assert.equal(widerResult.passed, false);
 });
 
 void test('missing second hand cannot pass a two-hand gesture', () => {
-  const reference = sequence().map((item, index) => ({
-    ...item,
-    hands: [item.hands[0], mirror(sequence())[index].hands[0]],
-  }));
+  const reference = twoHandSequence();
   assert.equal(scoreGesture(reference, sequence()).passed, false);
+});
+
+void test('two-hand checker tolerates brief landmark occlusion', () => {
+  const reference = twoHandSequence().map((item, index) => ({
+    ...item,
+    hands: index % 8 === 0 ? item.hands.slice(0, 1) : item.hands,
+  }));
+  const attempt = twoHandSequence().map((item, index) => ({
+    ...item,
+    hands: index % 2 === 0 ? item.hands : item.hands.slice(0, 1),
+  }));
+
+  assert.equal(getRequiredHandCount(reference), 2);
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.coordination >= 85, JSON.stringify(result));
+});
+
+void test('one-hand checker ignores occasional extra-hand detections', () => {
+  const extraHand = mirror(sequence(0.16));
+  const noisyReference = sequence().map((item, index) => ({
+    ...item,
+    hands:
+      index % 6 === 0 ? [item.hands[0], extraHand[index].hands[0]] : item.hands,
+  }));
+
+  assert.equal(getRequiredHandCount(noisyReference), 1);
+  assert.equal(scoreGesture(noisyReference, sequence()).overall, 100);
+});
+
+void test('reaction time and final hold can surround a complete gesture', () => {
+  const core = sampledSequence(30).map((item) => ({
+    ...item,
+    timeMs: item.timeMs + 800,
+  }));
+  const attempt = [
+    ...Array.from({ length: 8 }, (_, index) => frame(index * 100, -0.18, 0.12)),
+    ...core,
+    ...Array.from({ length: 8 }, (_, index) =>
+      frame(3900 + index * 100, 0.48, 0.12),
+    ),
+  ];
+  const result = scoreGesture(sampledSequence(30), attempt);
+
+  assert.ok(result.movement >= 90);
+  assert.equal(result.passed, true);
 });
 
 void test('reference readiness requires usable, chronological landmarks', () => {
