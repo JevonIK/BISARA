@@ -221,10 +221,16 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'apa',
             prompt:
-              'Kamu ingin tahu cara melakukan sesuatu. Pilih tanda pertanyaan yang tepat.',
+              'Lawan bicara menanyakan bagian apa yang belum kamu pahami. Kamu ingin menanyakan bagaimana cara melakukan gerakannya. Tanda apa yang kamu gunakan?',
             options: ['bagaimana', 'lagi', 'maaf'],
+            optionDescriptions: {
+              bagaimana: 'Tanyakan cara atau langkah gerakannya',
+              lagi: 'Minta lawan bicara mengulang kembali',
+              maaf: 'Sampaikan permohonan maaf',
+            },
             answer: 'bagaimana',
-            successMessage: 'Kamu memilih bentuk pertanyaan yang sesuai.',
+            successMessage:
+              'Tepat! Kamu menggunakan isyarat "Bagaimana" untuk menanyakan cara melakukan gerakan tersebut.',
           },
         ],
       }),
