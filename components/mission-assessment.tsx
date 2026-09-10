@@ -348,7 +348,7 @@ export function MissionAssessment({
                 Situasi {contextIndex + 1}
               </Badge>
               <h2 className="mt-4 text-2xl font-black text-signal-navy">
-                Bagaimana kamu merespons?
+                {challenge.questionTitle ?? 'Bagaimana kamu merespons?'}
               </h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {challenge.prompt}
@@ -361,14 +361,22 @@ export function MissionAssessment({
                     onClick={() => choose(id)}
                     disabled={contextChoice !== null}
                     className={cn(
-                      'min-h-16 border p-4 text-left text-sm font-extrabold disabled:cursor-default',
+                      'min-h-16 border p-4 text-left disabled:cursor-default transition-colors',
                       contextChoice === id &&
                         (contextCorrect
                           ? 'border-signal-teal bg-signal-teal-soft'
                           : 'border-signal-coral bg-signal-coral/10'),
+                      contextChoice === null && 'hover:border-signal-teal/60',
                     )}
                   >
-                    {getSign(id).label}
+                    <span className="block text-sm font-extrabold text-signal-navy">
+                      {getSign(id).label}
+                    </span>
+                    {challenge.optionDescriptions?.[id] ? (
+                      <span className="mt-1 block text-xs font-semibold text-muted-foreground">
+                        {challenge.optionDescriptions[id]}
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>

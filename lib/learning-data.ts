@@ -9,8 +9,10 @@ export type MissionStatus = 'completed' | 'current' | 'locked';
 export type ContextChallenge = {
   id: string;
   cueSignId: SignId;
+  questionTitle?: string;
   prompt: string;
   options: SignId[];
+  optionDescriptions?: Partial<Record<SignId, string>>;
   answer: SignId;
   successMessage: string;
 };
@@ -205,10 +207,16 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'maaf',
             prompt:
-              'Kamu belum menangkap pesan. Setelah meminta maaf, tanda mana yang meminta pengulangan?',
+              'Lawan bicara menyadari isyaratnya terlalu cepat dan meminta maaf. Tanda apa yang kamu gunakan untuk memintanya mengulang sekali lagi?',
             options: ['lagi', 'bagaimana', 'maaf'],
+            optionDescriptions: {
+              lagi: 'Minta lawan bicara mengulang isyarat',
+              bagaimana: 'Tanyakan cara melakukannya',
+              maaf: 'Sampaikan permintaan maaf kembali',
+            },
             answer: 'lagi',
-            successMessage: 'Kamu meminta pengulangan dengan jelas.',
+            successMessage:
+              'Tepat! Kamu merespons dengan isyarat "Lagi" untuk meminta lawan bicara mengulang dengan sopan.',
           },
           {
             cueSignId: 'apa',
