@@ -30,7 +30,7 @@ type PreparedHand = {
 };
 type PreparedFrame = { timeMs: number; hands: PreparedHand[] };
 type MovementFrame = {
-  hands: Array<{ handedness: string; trajectory: number[] }>;
+  hands: Array<{ handedness: string; trajectory: number[]; extent: number }>;
 };
 type Components = Pick<
   GestureScore,
@@ -207,7 +207,7 @@ function scorePrepared(
     ),
     orientation: errorToScore(
       robustPoseError(reference, attempt, compareOrientation),
-      0.42,
+      0.62,
     ),
     movement: errorToScore(
       poseDominant
@@ -215,6 +215,7 @@ function scorePrepared(
         : Math.max(
             dtwError(referenceMovement, attemptMovement, compareMovement),
             movementDirectionError(referenceMovement, attemptMovement),
+            movementExtentError(referenceMovement, attemptMovement),
           ),
       0.35,
     ),
@@ -454,7 +455,7 @@ function prepareHand(hand: HandObservation): PreparedHand | null {
 
   return {
     handedness,
-    shape,
+    shape: handshapeFeatures(shape),
     position: [screenWrist.x, screenWrist.y],
     orientation: [...side, ...forward],
     wrist: [screenWrist.x, screenWrist.y],
@@ -462,6 +463,48 @@ function prepareHand(hand: HandObservation): PreparedHand | null {
     physicalWrist: [physicalScreenWrist.x, physicalScreenWrist.y],
     screenScale,
   };
+}
+
+function handshapeFeatures(localCoordinates: number[]) {
+  const points = Array.from({ length: 21 }, (_, index) =>
+    localCoordinates.slice(index * 2, index * 2 + 2),
+  ) as Vector2[];
+  const fingers = [
+    [0, 1, 2, 3, 4],
+    [0, 5, 6, 7, 8],
+    [0, 9, 10, 11, 12],
+    [0, 13, 14, 15, 16],
+    [0, 17, 18, 19, 20],
+  ] as const;
+  return fingers.flatMap((finger) => {
+    const jointAngles = [1, 2, 3].map((index) => {
+      const incoming: Vector2 = [
+        points[finger[index]][0] - points[finger[index - 1]][0],
+        points[finger[index]][1] - points[finger[index - 1]][1],
+      ];
+      const outgoing: Vector2 = [
+        points[finger[index + 1]][0] - points[finger[index]][0],
+        points[finger[index + 1]][1] - points[finger[index]][1],
+      ];
+      return dot2(normalize2(incoming), normalize2(outgoing));
+    });
+    const boneLength = finger
+      .slice(1)
+      .reduce<number>((total, pointIndex, index) => {
+        const previous = points[finger[index]];
+        const point = points[pointIndex];
+        return (
+          total + Math.hypot(point[0] - previous[0], point[1] - previous[1])
+        );
+      }, 0);
+    const base = points[finger[1]];
+    const tip = points[finger[4]];
+    const extension = boneLength
+      ? Math.hypot(tip[0] - base[0], tip[1] - base[1]) / boneLength
+      : 0;
+    const tipDirection = normalize2([tip[0], tip[1]]);
+    return [...jointAngles, extension, ...tipDirection];
+  });
 }
 
 function compareHands(
@@ -552,17 +595,37 @@ function coordinationSequenceError(
 }
 
 function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
-  const anchors = new Map<string, { x: number; y: number; scale: number }>();
+  const anchors = new Map<
+    string,
+    {
+      x: number;
+      y: number;
+      handScale: number;
+      pathScale: number;
+      extent: number;
+    }
+  >();
   for (const identity of ['left', 'right']) {
     const hands = sequence.flatMap((frame) =>
       frame.hands.filter((hand) => hand.handedness === identity),
     );
-    if (hands.length)
+    if (hands.length) {
+      const handScale = median(hands.map((hand) => hand.screenScale));
+      const xs = hands.map((hand) => hand.wrist[0]);
+      const ys = hands.map((hand) => hand.wrist[1]);
+      const extent =
+        Math.hypot(
+          Math.max(...xs) - Math.min(...xs),
+          Math.max(...ys) - Math.min(...ys),
+        ) / handScale;
       anchors.set(identity, {
-        x: median(hands.map((hand) => hand.wrist[0])),
-        y: median(hands.map((hand) => hand.wrist[1])),
-        scale: median(hands.map((hand) => hand.screenScale)),
+        x: median(xs),
+        y: median(ys),
+        handScale,
+        pathScale: Math.max(POSE_DOMINANT_CENTRAL_EXTENT, extent),
+        extent,
       });
+    }
   }
   // Compare the ordered wrist path, not its frame-to-frame derivative. A
   // derivative amplifies landmark jitter and onset detection differences; DTW
@@ -574,9 +637,10 @@ function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
         return {
           handedness: hand.handedness,
           trajectory: [
-            (hand.wrist[0] - anchor.x) / anchor.scale,
-            (hand.wrist[1] - anchor.y) / anchor.scale,
+            (hand.wrist[0] - anchor.x) / (anchor.handScale * anchor.pathScale),
+            (hand.wrist[1] - anchor.y) / (anchor.handScale * anchor.pathScale),
           ],
+          extent: anchor.extent,
         };
       }),
     };
@@ -650,10 +714,93 @@ function compareMovement(a: MovementFrame, b: MovementFrame) {
   return average(errors) + Math.abs(a.hands.length - b.hands.length);
 }
 
+function movementExtentError(
+  reference: MovementFrame[],
+  attempt: MovementFrame[],
+) {
+  const compareExtents = (referenceExtent: number, attemptExtent: number) => {
+    if (referenceExtent >= POSE_DOMINANT_CENTRAL_EXTENT) {
+      if (attemptExtent < 0.05) return 4;
+      return (
+        Math.abs(Math.log((attemptExtent + 0.1) / (referenceExtent + 0.1))) *
+        0.12
+      );
+    }
+    return Math.max(
+      0,
+      attemptExtent -
+        Math.max(POSE_DOMINANT_CENTRAL_EXTENT, referenceExtent * 2),
+    );
+  };
+  if (
+    reference.every((frame) => frame.hands.length <= 1) &&
+    attempt.every((frame) => frame.hands.length <= 1)
+  ) {
+    const referenceHand = reference.find((frame) => frame.hands.length)
+      ?.hands[0];
+    const attemptHand = attempt.find((frame) => frame.hands.length)?.hands[0];
+    return referenceHand && attemptHand
+      ? compareExtents(referenceHand.extent, attemptHand.extent)
+      : 4;
+  }
+  const errors = ['left', 'right'].flatMap((handedness) => {
+    const referenceHand = reference
+      .flatMap((frame) => frame.hands)
+      .find((hand) => hand.handedness === handedness);
+    const attemptHand = attempt
+      .flatMap((frame) => frame.hands)
+      .find((hand) => hand.handedness === handedness);
+    if (!referenceHand || !attemptHand) return [];
+    return [compareExtents(referenceHand.extent, attemptHand.extent)];
+  });
+  return errors.length ? average(errors) : 4;
+}
+
 function movementDirectionError(
   reference: MovementFrame[],
   attempt: MovementFrame[],
 ) {
+  const directionError = (
+    referencePath: number[][],
+    attemptPath: number[][],
+  ) => {
+    if (referencePath.length < 2 || attemptPath.length < 2) return null;
+    const referenceDelta = [
+      referencePath.at(-1)![0] - referencePath[0][0],
+      referencePath.at(-1)![1] - referencePath[0][1],
+    ];
+    const attemptDelta = [
+      attemptPath.at(-1)![0] - attemptPath[0][0],
+      attemptPath.at(-1)![1] - attemptPath[0][1],
+    ];
+    const referenceMagnitude = Math.hypot(...referenceDelta);
+    const attemptMagnitude = Math.hypot(...attemptDelta);
+    if (referenceMagnitude < POSE_DOMINANT_CENTRAL_EXTENT) return null;
+    if (attemptMagnitude < 0.05) return 4;
+    const cosine = clamp(
+      (referenceDelta[0] * attemptDelta[0] +
+        referenceDelta[1] * attemptDelta[1]) /
+        (referenceMagnitude * attemptMagnitude),
+      -1,
+      1,
+    );
+    return Math.max(0, (1 - cosine) * 0.25);
+  };
+  if (
+    reference.every((frame) => frame.hands.length <= 1) &&
+    attempt.every((frame) => frame.hands.length <= 1)
+  ) {
+    return (
+      directionError(
+        reference.flatMap((frame) =>
+          frame.hands[0] ? [frame.hands[0].trajectory] : [],
+        ),
+        attempt.flatMap((frame) =>
+          frame.hands[0] ? [frame.hands[0].trajectory] : [],
+        ),
+      ) ?? 0
+    );
+  }
   const errors = ['left', 'right'].flatMap((handedness) => {
     const referencePath = reference.flatMap((frame) => {
       const hand = frame.hands.find(
@@ -667,30 +814,8 @@ function movementDirectionError(
       );
       return hand ? [hand.trajectory] : [];
     });
-    if (referencePath.length < 2 || attemptPath.length < 2) return [];
-
-    const referenceDelta = [
-      referencePath.at(-1)![0] - referencePath[0][0],
-      referencePath.at(-1)![1] - referencePath[0][1],
-    ];
-    const attemptDelta = [
-      attemptPath.at(-1)![0] - attemptPath[0][0],
-      attemptPath.at(-1)![1] - attemptPath[0][1],
-    ];
-    const referenceMagnitude = Math.hypot(...referenceDelta);
-    const attemptMagnitude = Math.hypot(...attemptDelta);
-    // Closed or nearly stationary paths have no meaningful start-to-end
-    // direction. Their shape is already covered by DTW above.
-    if (referenceMagnitude < POSE_DOMINANT_CENTRAL_EXTENT) return [];
-    if (attemptMagnitude < 0.05) return [4];
-    const cosine = clamp(
-      (referenceDelta[0] * attemptDelta[0] +
-        referenceDelta[1] * attemptDelta[1]) /
-        (referenceMagnitude * attemptMagnitude),
-      -1,
-      1,
-    );
-    return [Math.max(0, (1 - cosine) * 0.25)];
+    const error = directionError(referencePath, attemptPath);
+    return error === null ? [] : [error];
   });
   return errors.length ? average(errors) : 0;
 }

@@ -19,8 +19,8 @@ const signRows = [
     'belajar',
     'Belajar',
     1,
-    'Koordinasi tangan',
-    'Perhatikan hubungan kedua tangan dan ulangi ritme gerak secara utuh.',
+    'Posisi terhadap wajah',
+    'Jaga bentuk jari dan lintasan tangan tetap terbaca di area wajah.',
   ],
   [
     'cari',
@@ -194,8 +194,8 @@ const signRows = [
     'keluarga',
     'Keluarga',
     26,
-    'Koordinasi tangan',
-    'Pertahankan bentuk dan jarak kedua tangan selama gerakan.',
+    'Lintasan gerak',
+    'Pertahankan bentuk jari sambil mengikuti lintasan di depan tubuh.',
   ],
   [
     'rumah',
@@ -229,8 +229,8 @@ const signRows = [
     'malam',
     'Malam',
     31,
-    'Koordinasi tangan',
-    'Jaga hubungan kedua tangan dan selesaikan pada titik yang sama.',
+    'Posisi terhadap wajah',
+    'Jaga tinggi dan arah tangan saat bergerak di depan wajah.',
   ],
 ] as const;
 

@@ -406,6 +406,65 @@ void test('camera depth estimation does not distort an identical visible hand po
   assert.equal(result.passed, true);
 });
 
+void test('different hand proportions preserve the same joint configuration', () => {
+  const fingerScale = [1, 0.86, 1.12, 0.94, 1.08, 0.88];
+  const attempt = sequence().map((item) => ({
+    ...item,
+    hands: item.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point, index) => {
+          const finger = index === 0 ? 0 : Math.ceil(index / 4);
+          return {
+            ...point,
+            x: wrist.x + (point.x - wrist.x) * 1.12 * fingerScale[finger],
+            y: wrist.y + (point.y - wrist.y) * 0.9 * fingerScale[finger],
+          };
+        }),
+      };
+    }),
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.ok(result.handshape >= 85, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('a correct path can use a different natural movement amplitude', () => {
+  const reference = sampledSequence(45);
+  const attempt = Array.from({ length: 45 }, (_, index) =>
+    frame((index / 44) * 3000, (index / 44) * 0.16),
+  );
+  const result = scoreGesture(reference, attempt);
+  assert.ok(result.movement >= 80, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('a moderate camera angle does not reject the same hand pose', () => {
+  const radians = (22 * Math.PI) / 180;
+  const attempt = sequence().map((item) => ({
+    ...item,
+    hands: item.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => {
+          const x = point.x - wrist.x;
+          const y = point.y - wrist.y;
+          return {
+            ...point,
+            x: wrist.x + x * Math.cos(radians) - y * Math.sin(radians),
+            y: wrist.y + x * Math.sin(radians) + y * Math.cos(radians),
+          };
+        }),
+      };
+    }),
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.ok(result.orientation >= 65, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
 void test('a sustained matching pose is not rejected by preparation frames', () => {
   const attempt = sequence().map((item, index) =>
     index < 16 ? frame(item.timeMs, index * 0.004, 0.2) : item,
