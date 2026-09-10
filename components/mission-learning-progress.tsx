@@ -21,29 +21,31 @@ const stageDefinitions = [
   {
     number: '01',
     title: 'Kenali',
-    description: 'Amati demonstrasi dan pahami kapan setiap tanda digunakan.',
-    duration: '2 menit',
+    description: 'Amati bentuk tangan, arah telapak, dan lintasan demonstrasi.',
+    duration: '2–4 menit',
     icon: BookOpen,
   },
   {
     number: '02',
     title: 'Tirukan',
-    description: 'Luluskan checker kamera untuk kelima tanda, satu per satu.',
-    duration: '5–8 menit',
+    description:
+      'Tirukan satu tanda per latihan dan gunakan skor sebagai umpan balik.',
+    duration: '4–10 menit',
     icon: Hand,
   },
   {
     number: '03',
     title: 'Uji pengenalan',
-    description: 'Kenali lima tanda tanpa label dan capai minimal 70 poin.',
+    description:
+      'Ambil kembali arti tanda dari ingatan dan capai minimal 70 poin.',
     duration: '2 menit',
     icon: Languages,
   },
   {
     number: '04',
-    title: 'Pahami konteks',
+    title: 'Terapkan',
     description:
-      'Pilih respons yang sesuai dalam simulasi percakapan bercabang.',
+      'Pilih respons satu tanda pada situasi terpandu dan pelajari koreksi.',
     duration: '2 menit',
     icon: MessageCircleMore,
   },
@@ -63,7 +65,9 @@ export function MissionHeroProgress({
       ? 4
       : state.practiceComplete
         ? 3
-        : 2;
+        : state.practiceStarted
+          ? 2
+          : 1;
 
   return (
     <aside className="border border-white/10 bg-white/[0.06] p-6 backdrop-blur-sm">
@@ -111,7 +115,7 @@ export function MissionStageList({
   const mission = getMission(missionId);
   const learning = getMissionLearningState(mission, progress);
   const completed = [
-    true,
+    learning.practiceStarted,
     learning.practiceComplete,
     learning.recognitionComplete,
     learning.conversationComplete,
@@ -174,7 +178,9 @@ export function MissionStageList({
                 : index === 1
                   ? `Luluskan checker kamera untuk ${mission.signIds.length} tanda, satu per satu.`
                   : index === 2
-                    ? `Kenali tanda misi tanpa label dan capai minimal 70 poin.`
+                    ? mission.type === 'checkpoint'
+                      ? 'Kenali sampel tanda dari bab tanpa label dan capai minimal 70 poin.'
+                      : 'Kenali tanda misi tanpa label dan capai minimal 70 poin.'
                     : stage.description}
             </p>
             <p className="absolute bottom-6 left-6 right-6 flex items-center gap-2 text-xs font-bold text-signal-navy sm:left-7 sm:right-7">

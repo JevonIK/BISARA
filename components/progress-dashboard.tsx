@@ -67,8 +67,8 @@ const badges = [
   },
   {
     id: 'first-conversation',
-    name: 'Percakapan Pertama',
-    description: 'Selesaikan simulasi bercabang.',
+    name: 'Penerapan Pertama',
+    description: 'Selesaikan latihan penerapan terpandu.',
     icon: MessageCircleMore,
     color: 'navy',
   },

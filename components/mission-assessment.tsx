@@ -21,11 +21,14 @@ import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
 import {
   getSign,
-  signs,
   versionedSignVideo,
   type SignId,
 } from '@/lib/curriculum-data';
-import { allMissions, getMission, type Mission } from '@/lib/learning-data';
+import {
+  allMissions,
+  buildRecognitionQuestions,
+  getMission,
+} from '@/lib/learning-data';
 import {
   getMissionLearningState,
   RECOGNITION_PASS_SCORE,
@@ -61,7 +64,11 @@ export function MissionAssessment({
       : initialMode === 'recognition' || initialMode === 'translation'
         ? 'recognition'
         : 'menu';
-  const questions = useMemo(() => buildQuestions(mission), [mission]);
+  const [recognitionAttempt, setRecognitionAttempt] = useState(0);
+  const questions = useMemo(
+    () => buildRecognitionQuestions(mission, recognitionAttempt),
+    [mission, recognitionAttempt],
+  );
   const [view, setView] = useState<View>(initialView);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<SignId | null>(null);
@@ -69,8 +76,10 @@ export function MissionAssessment({
   const [contextIndex, setContextIndex] = useState(0);
   const [contextChoice, setContextChoice] = useState<SignId | null>(null);
   const [contextCorrect, setContextCorrect] = useState(false);
+  const [contextMistakes, setContextMistakes] = useState(0);
 
   const startRecognition = () => {
+    setRecognitionAttempt((value) => value + 1);
     setIndex(0);
     setSelected(null);
     setAnswers([]);
@@ -80,6 +89,7 @@ export function MissionAssessment({
     setContextIndex(0);
     setContextChoice(null);
     setContextCorrect(false);
+    setContextMistakes(0);
     setView('context');
   };
 
@@ -216,6 +226,7 @@ export function MissionAssessment({
     const correct = answers.filter((answer) => answer.correct).length;
     const score = calculateScore(correct, questions.length);
     const passed = score >= RECOGNITION_PASS_SCORE;
+    const missedAnswers = answers.filter((answer) => !answer.correct);
     return (
       <section className="grid overflow-hidden border border-signal-navy/10 bg-card lg:grid-cols-[330px_1fr]">
         <div className="grid place-items-center bg-signal-navy p-8 text-center text-white">
@@ -240,9 +251,35 @@ export function MissionAssessment({
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {passed
-              ? 'Pengenalan tanda sudah stabil. Lanjutkan ke penggunaan dalam konteks.'
+              ? 'Skor pengenalan misi melewati ambang latihan. Lanjutkan ke penerapan dalam situasi.'
               : `Skor minimal adalah ${RECOGNITION_PASS_SCORE}. Tonton ulang tanda yang keliru lalu coba lagi.`}
           </p>
+          {missedAnswers.length ? (
+            <div className="mt-6 border border-signal-navy/10 bg-muted/35 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-signal-navy">
+                Tanda yang perlu diperkuat
+              </p>
+              <ul className="mt-3 grid gap-2">
+                {missedAnswers.map((answer) => (
+                  <li
+                    key={answer.signId}
+                    className="flex flex-wrap items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="text-muted-foreground">
+                      Jawabanmu {getSign(answer.selected).label}; tanda yang
+                      benar {getSign(answer.signId).label}.
+                    </span>
+                    <Link
+                      href={`/missions/practice?mission=${mission.id}&sign=${answer.signId}`}
+                      className="font-extrabold text-emerald-700 hover:underline"
+                    >
+                      Latih ulang
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="mt-7 flex flex-wrap gap-3">
             {passed ? (
               <Button
@@ -250,7 +287,7 @@ export function MissionAssessment({
                 onClick={startContext}
                 className="rounded-full bg-signal-teal font-extrabold text-signal-navy"
               >
-                Lanjut ke konteks <ArrowRight className="size-4" />
+                Lanjut ke penerapan <ArrowRight className="size-4" />
               </Button>
             ) : null}
             <Button
@@ -269,8 +306,12 @@ export function MissionAssessment({
   if (view === 'context') {
     const challenge = mission.contextChallenges[contextIndex];
     const choose = (id: SignId) => {
+      if (contextChoice) return;
       setContextChoice(id);
       setContextCorrect(id === challenge.answer);
+      if (id !== challenge.answer) {
+        setContextMistakes((value) => value + 1);
+      }
     };
     const next = () => {
       if (!contextCorrect) return;
@@ -286,7 +327,7 @@ export function MissionAssessment({
     return (
       <section className="border border-signal-navy/10 bg-card">
         <TopBar
-          label="Pahami konteks"
+          label="Latihan penerapan"
           current={contextIndex + 1}
           total={mission.contextChallenges.length}
           onBack={() => setView('menu')}
@@ -294,7 +335,7 @@ export function MissionAssessment({
         <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
           <div className="bg-signal-navy p-5 sm:p-8">
             <p className="mb-4 text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
-              Petunjuk dari lawan bicara
+              Tanda dari lawan bicara
             </p>
             <AssessmentVideo
               src={getSign(challenge.cueSignId).videoSrc}
@@ -318,8 +359,9 @@ export function MissionAssessment({
                     key={id}
                     type="button"
                     onClick={() => choose(id)}
+                    disabled={contextChoice !== null}
                     className={cn(
-                      'min-h-16 border p-4 text-left text-sm font-extrabold',
+                      'min-h-16 border p-4 text-left text-sm font-extrabold disabled:cursor-default',
                       contextChoice === id &&
                         (contextCorrect
                           ? 'border-signal-teal bg-signal-teal-soft'
@@ -331,16 +373,32 @@ export function MissionAssessment({
                 ))}
               </div>
               {contextChoice ? (
-                <p
+                <div
                   className={cn(
-                    'mt-4 text-sm font-bold',
+                    'mt-4 border p-4 text-sm font-bold',
                     contextCorrect ? 'text-emerald-700' : 'text-signal-coral',
+                    contextCorrect
+                      ? 'border-signal-teal bg-signal-teal-soft'
+                      : 'border-signal-coral/40 bg-signal-coral/10',
                   )}
                 >
-                  {contextCorrect
-                    ? challenge.successMessage
-                    : 'Respons itu belum sesuai. Perhatikan situasinya lalu pilih lagi.'}
-                </p>
+                  <p>
+                    {contextCorrect
+                      ? challenge.successMessage
+                      : `Respons itu belum menjawab tujuan situasi. Tanda yang dilatih di sini adalah ${getSign(challenge.answer).label}.`}
+                  </p>
+                  {!contextCorrect ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setContextChoice(null)}
+                      className="mt-3 rounded-full border-signal-coral/40 bg-white font-extrabold text-signal-navy"
+                    >
+                      <RefreshCw className="size-3.5" /> Pelajari lalu coba lagi
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
             <Button
@@ -380,10 +438,12 @@ export function MissionAssessment({
             Misi selesai
           </p>
           <h2 className="mt-3 text-4xl font-black text-signal-navy">
-            {mission.title} dikuasai
+            Target latihan “{mission.title}” selesai
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Progres, skor pengenalan, dan latihan konteks sudah disimpan.
+            {contextMistakes > 0
+              ? `${contextMistakes} jawaban diperbaiki melalui umpan balik. Progres dan skor latihan sudah disimpan.`
+              : 'Semua situasi dijawab tepat pada percobaan pertama. Progres dan skor latihan sudah disimpan.'}
           </p>
           <Link
             href={nextMission?.href ?? '/review'}
@@ -417,43 +477,13 @@ export function MissionAssessment({
         icon={Flag}
         eyebrow="Tahap 4"
         title={mission.contextTitle}
-        description="Pilih respons yang sesuai untuk menyelesaikan situasi bercabang."
+        description="Terapkan kosakata pada situasi terpandu. Jawaban yang keliru dikunci sementara agar koreksinya dibaca sebelum mencoba lagi."
         meta={`${mission.contextChallenges.length} situasi`}
         onStart={startContext}
         locked={!learning.recognitionComplete}
       />
     </section>
   );
-}
-
-function buildQuestions(mission: Mission) {
-  const ids =
-    mission.type === 'checkpoint' && mission.signIds.length > 7
-      ? mission.signIds
-          .filter(
-            (_, index) => index % Math.ceil(mission.signIds.length / 6) === 0,
-          )
-          .slice(0, 6)
-      : mission.signIds;
-  return ids.map((signId, index) => {
-    const pool = [
-      ...new Set([...mission.signIds, ...signs.map((sign) => sign.id)]),
-    ].filter((id) => id !== signId);
-    const options = [
-      signId,
-      pool[(index * 3) % pool.length],
-      pool[(index * 3 + 5) % pool.length],
-    ] as SignId[];
-    return {
-      signId,
-      options:
-        index % 3 === 0
-          ? options
-          : index % 3 === 1
-            ? [options[1], options[0], options[2]]
-            : [options[2], options[1], options[0]],
-    };
-  });
 }
 
 function AssessmentVideo({ src, label }: { src: string; label: string }) {

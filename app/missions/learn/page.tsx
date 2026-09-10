@@ -135,12 +135,13 @@ export default async function MissionLearningPage({
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {mission.type === 'checkpoint'
                 ? 'Checkpoint menguji pengenalan dan pemilihan respons. Tanda yang lemah dapat diulang dari halaman review.'
-                : 'Checker membandingkan landmark tanganmu dengan satu demonstrasi referensi. Hasil dipakai sebagai umpan balik latihan.'}
+                : 'Checker membandingkan landmark tanganmu dengan satu demonstrasi referensi. Skor menunjukkan kemiripan gerak tangan pada kamera, bukan penilaian bahasa oleh manusia.'}
             </p>
             <div className="mt-6 flex gap-3 border-t border-signal-navy/10 pt-5 text-xs leading-5 text-muted-foreground">
               <Info className="mt-0.5 size-4 shrink-0 text-emerald-700" />
-              Video referensi berasal dari WL-BISINDO variasi Banten. Ambang
-              perlu divalidasi bersama komunitas Tuli sebelum penggunaan formal.
+              Video referensi berasal dari WL-BISINDO variasi Banten. Kosakata,
+              skenario, dan ambang checker perlu divalidasi bersama pengajar dan
+              komunitas Tuli sebelum penggunaan formal.
             </div>
           </aside>
         </section>
@@ -156,7 +157,8 @@ export default async function MissionLearningPage({
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Putar ulang video, perhatikan bentuk jari, arah telapak, posisi
-                terhadap tubuh, dan titik akhir gerakan.
+                terhadap tubuh, dan titik akhir gerakan. Tahap ini baru dianggap
+                berjalan setelah kamu mulai mencoba checker.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -207,11 +209,11 @@ export default async function MissionLearningPage({
                 Alur misi
               </p>
               <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
-                Bantuan berkurang pada setiap tahap.
+                Bantuan berkurang, lalu kesalahan diberi koreksi.
               </h2>
             </div>
             <p className="text-sm font-bold text-muted-foreground">
-              Kenali → Tirukan → Uji → Konteks
+              Kenali → Tirukan → Uji → Terapkan
             </p>
           </div>
           <MissionStageList missionId={mission.id} />

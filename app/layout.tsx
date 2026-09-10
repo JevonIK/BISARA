@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: '%s · BISARA',
   },
   description:
-    'Platform belajar BISINDO berbasis misi, latihan kamera, dan simulasi percakapan sehari-hari.',
+    'Platform belajar BISINDO berbasis misi, latihan kamera, dan penerapan kosakata pada situasi sehari-hari.',
 };
 
 export default function RootLayout({

@@ -46,13 +46,21 @@ export default function Home() {
     progress.conversationCompletions > 0,
   ].filter(Boolean).length;
   const learningSteps = [
-    { label: 'Kenali', icon: BookOpen, state: 'done' as const },
+    {
+      label: 'Kenali',
+      icon: BookOpen,
+      state: missionState.practiceStarted
+        ? ('done' as const)
+        : ('active' as const),
+    },
     {
       label: 'Tirukan',
       icon: Hand,
       state: missionState.practiceComplete
         ? ('done' as const)
-        : ('active' as const),
+        : missionState.practiceStarted
+          ? ('active' as const)
+          : ('next' as const),
     },
     {
       label: 'Uji pengenalan',
@@ -64,7 +72,7 @@ export default function Home() {
           : ('next' as const),
     },
     {
-      label: 'Pahami konteks',
+      label: 'Terapkan',
       icon: MessageCircleMore,
       state: missionState.conversationComplete
         ? ('done' as const)
@@ -96,7 +104,7 @@ export default function Home() {
             <Stat value={String(completedMissions)} label="Misi selesai" />
             <Stat
               value={String(progress.masteredSigns)}
-              label="Tanda dikuasai"
+              label="Tanda lulus latihan"
             />
             <Stat value={String(badgeCount)} label="Lencana" />
           </div>
@@ -314,7 +322,7 @@ export default function Home() {
           </div>
           <ol className="grid divide-y divide-signal-navy/10 p-7 sm:p-9">
             {[
-              ['01', 'Kenali', 'Pahami bentuk, konteks, dan arti tanda.'],
+              ['01', 'Kenali', 'Amati bentuk, arah, dan arti setiap tanda.'],
               [
                 '02',
                 'Tirukan',
@@ -327,8 +335,8 @@ export default function Home() {
               ],
               [
                 '04',
-                'Pahami konteks',
-                'Pilih respons yang sesuai di dalam skenario percakapan.',
+                'Terapkan',
+                'Pilih respons satu tanda pada situasi terpandu.',
               ],
             ].map(([number, title, description]) => (
               <li

@@ -30,28 +30,31 @@ export function getMissionLearningState(
   const masteredSignIds = missionSigns
     .filter((sign) => progress.signMastery[sign.id]?.passed)
     .map((sign) => sign.id);
+  const practiceStarted =
+    mission.type === 'checkpoint' ||
+    missionSigns.some((sign) => progress.signMastery[sign.id]?.attempts > 0);
   const practiceComplete =
     mission.type === 'checkpoint' ||
     masteredSignIds.length === missionSigns.length;
-  const recognitionScore =
-    progress.missionScores[mission.id] ??
-    (mission.id === 'berkenalan' ? progress.bestChapterScore : 0);
+  const recognitionScore = progress.missionScores[mission.id] ?? 0;
   const recognitionComplete =
     practiceComplete && recognitionScore >= RECOGNITION_PASS_SCORE;
   const conversationComplete =
     recognitionComplete &&
     (progress.completedMissionIds.includes(mission.id) ||
-      (mission.id === 'berkenalan' && progress.conversationCompletions > 0));
+      (progress.conversationCompletionsByMission[mission.id] ?? 0) > 0);
   const nextSign = missionSigns.find(
     (sign) => !progress.signMastery[sign.id]?.passed,
   );
   const basePractice =
     mission.type === 'checkpoint'
-      ? 35
-      : 20 +
-        Math.round(
-          (masteredSignIds.length / Math.max(1, missionSigns.length)) * 45,
-        );
+      ? 60
+      : practiceStarted
+        ? 15 +
+          Math.round(
+            (masteredSignIds.length / Math.max(1, missionSigns.length)) * 45,
+          )
+        : 0;
   const progressPercent = conversationComplete
     ? 100
     : recognitionComplete
@@ -87,6 +90,7 @@ export function getMissionLearningState(
     missionSigns,
     masteredSignIds,
     masteredSignCount: masteredSignIds.length,
+    practiceStarted,
     practiceComplete,
     recognitionScore,
     recognitionComplete,

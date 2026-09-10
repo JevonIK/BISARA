@@ -941,7 +941,7 @@ export function CameraPractice({
             <ScoreBar label="Bentuk tangan" value={gestureScore.handshape} />
             <ScoreBar label="Gerakan" value={gestureScore.movement} />
             <ScoreBar label="Orientasi" value={gestureScore.orientation} />
-            <ScoreBar label="Posisi" value={gestureScore.position} />
+            <ScoreBar label="Dalam bingkai" value={gestureScore.position} />
             <ScoreBar label="Koordinasi" value={gestureScore.coordination} />
           </div>
 
@@ -954,6 +954,11 @@ export function CameraPractice({
 
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
             {gestureScore.feedback}
+          </p>
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            “Dalam bingkai” membandingkan letak tangan pada gambar kamera.
+            Checker belum melacak wajah, bahu, ekspresi, atau tata bahasa
+            BISINDO.
           </p>
 
           {gestureScore.passed && nextAction ? (

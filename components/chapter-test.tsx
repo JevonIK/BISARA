@@ -476,8 +476,8 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
       />
       <ModeCard
         eyebrow="Mode 02"
-        title="Simulasi percakapan"
-        description="Pahami tanda dari lawan bicara, pilih respons yang sesuai, dan lihat bagaimana percakapan bercabang."
+        title="Latihan penerapan"
+        description="Pahami tanda dari lawan bicara, lalu pilih respons satu tanda yang sesuai dengan situasi."
         meta="3 giliran · +20 XP pertama"
         icon={MessageCircleMore}
         color="coral"

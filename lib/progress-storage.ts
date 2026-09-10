@@ -79,15 +79,18 @@ export const defaultProgress: UserProgress = {
   completedMissionIds: ['saya-dan-kamu', 'sapaan-waktu'],
   masteredSigns: 7,
   totalPracticeMinutes: 84,
-  bestChapterScore: 0,
+  bestChapterScore: 85,
   bestGestureScore: 82,
-  lastChapterScore: 0,
-  chapterOneStars: 0,
-  testAttempts: 0,
+  lastChapterScore: 85,
+  chapterOneStars: 2,
+  testAttempts: 2,
   gestureAttempts: 7,
-  conversationCompletions: 0,
-  missionScores: {},
-  conversationCompletionsByMission: {},
+  conversationCompletions: 2,
+  missionScores: { 'saya-dan-kamu': 85, 'sapaan-waktu': 85 },
+  conversationCompletionsByMission: {
+    'saya-dan-kamu': 1,
+    'sapaan-waktu': 1,
+  },
   signMastery: demoSignMastery(),
   reviewDate: '',
   reviewedSigns: [],
@@ -111,8 +114,15 @@ export const emptyAccountProgress: UserProgress = {
   completedMissionIds: [],
   masteredSigns: 0,
   totalPracticeMinutes: 0,
+  bestChapterScore: 0,
   bestGestureScore: 0,
+  lastChapterScore: 0,
+  chapterOneStars: 0,
+  testAttempts: 0,
   gestureAttempts: 0,
+  conversationCompletions: 0,
+  missionScores: {},
+  conversationCompletionsByMission: {},
   signMastery: emptySignMastery(),
   weeklyActivity: defaultProgress.weeklyActivity.map((entry) => ({
     ...entry,
@@ -192,7 +202,7 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
       : allMissions.slice(0, legacyCompleted).map((mission) => mission.id);
     const missionScores = cleanScoreMap(stored.missionScores);
     if (
-      !('berkenalan' in missionScores) &&
+      stored.missionScores === undefined &&
       (stored.bestChapterScore ?? 0) > 0
     ) {
       missionScores.berkenalan = clampScore(stored.bestChapterScore);
@@ -201,19 +211,42 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
       stored.conversationCompletionsByMission,
     );
     if (
-      !('berkenalan' in conversationCompletionsByMission) &&
+      stored.conversationCompletionsByMission === undefined &&
       (stored.conversationCompletions ?? 0) > 0
     ) {
       conversationCompletionsByMission.berkenalan = Math.floor(
         stored.conversationCompletions ?? 0,
       );
     }
+    for (const missionId of completedMissionIds) {
+      missionScores[missionId] = Math.max(missionScores[missionId] ?? 0, 70);
+      conversationCompletionsByMission[missionId] = Math.max(
+        conversationCompletionsByMission[missionId] ?? 0,
+        1,
+      );
+    }
+    const recordedConversationCompletions = Object.values(
+      conversationCompletionsByMission,
+    ).reduce((total, count) => total + count, 0);
+    const recordedBestRecognition = Math.max(
+      0,
+      ...Object.values(missionScores),
+    );
 
     const progress: UserProgress = {
       ...defaultProgress,
       ...stored,
       completedMissions: completedMissionIds.length,
       completedMissionIds: [...new Set(completedMissionIds)],
+      bestChapterScore: Math.max(
+        stored.bestChapterScore ?? defaultProgress.bestChapterScore,
+        recordedBestRecognition,
+      ),
+      conversationCompletions: Math.max(
+        stored.conversationCompletions ??
+          defaultProgress.conversationCompletions,
+        recordedConversationCompletions,
+      ),
       signMastery,
       missionScores,
       conversationCompletionsByMission,

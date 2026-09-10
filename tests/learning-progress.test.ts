@@ -3,12 +3,19 @@ import { test } from 'node:test';
 
 import { berkenalanSignIds } from '@/lib/berkenalan-data';
 import { signIds } from '@/lib/curriculum-data';
-import { allMissions, chapters } from '@/lib/learning-data';
+import {
+  allMissions,
+  buildRecognitionQuestions,
+  chapters,
+  getMission,
+} from '@/lib/learning-data';
 import {
   getBerkenalanLearningState,
+  getMissionLearningState,
   isMissionUnlocked,
 } from '@/lib/learning-progress';
 import {
+  defaultProgress,
   emptyAccountProgress,
   parseProgressSnapshot,
 } from '@/lib/progress-storage';
@@ -21,6 +28,8 @@ void test('mission stages unlock only after their real prerequisite', () => {
   };
   const initial = getBerkenalanLearningState(unlockedProgress);
   assert.equal(initial.masteredSignCount, 0);
+  assert.equal(initial.practiceStarted, false);
+  assert.equal(initial.progressPercent, 0);
   assert.equal(initial.next.href.endsWith('sign=saya'), true);
 
   const allSignsPassed = {
@@ -42,17 +51,28 @@ void test('mission stages unlock only after their real prerequisite', () => {
   assert.equal(recognitionNext.recognitionComplete, false);
   assert.equal(recognitionNext.next.href.includes('mode=recognition'), true);
 
+  const unrelatedScore = getBerkenalanLearningState({
+    ...allSignsPassed,
+    bestChapterScore: 100,
+    missionScores: { 'saya-dan-kamu': 100 },
+  });
+  assert.equal(
+    unrelatedScore.recognitionComplete,
+    false,
+    'a score from another mission must not unlock this recognition stage',
+  );
+
   const contextNext = getBerkenalanLearningState({
     ...allSignsPassed,
-    bestChapterScore: 80,
+    missionScores: { berkenalan: 80 },
   });
   assert.equal(contextNext.recognitionComplete, true);
   assert.equal(contextNext.next.href.includes('mode=context'), true);
 
   const completed = getBerkenalanLearningState({
     ...allSignsPassed,
-    bestChapterScore: 80,
-    conversationCompletions: 1,
+    missionScores: { berkenalan: 80 },
+    conversationCompletionsByMission: { berkenalan: 1 },
   });
   assert.equal(completed.conversationComplete, true);
   assert.equal(completed.progressPercent, 100);
@@ -71,6 +91,76 @@ void test('curriculum covers all 32 dataset labels once and exposes four complet
   );
 });
 
+void test('every context activity has one valid target and differs from recognition', () => {
+  for (const mission of allMissions) {
+    for (const challenge of mission.contextChallenges) {
+      assert.equal(
+        new Set(challenge.options).size,
+        challenge.options.length,
+        `${challenge.id} must not repeat an option`,
+      );
+      assert.equal(
+        challenge.options.length,
+        3,
+        `${challenge.id} needs 3 options`,
+      );
+      assert.equal(
+        challenge.options.includes(challenge.answer),
+        true,
+        `${challenge.id} must include its answer`,
+      );
+      assert.equal(
+        mission.signIds.includes(challenge.answer),
+        true,
+        `${challenge.id} must assess a sign taught in the mission`,
+      );
+      assert.notEqual(
+        challenge.cueSignId,
+        challenge.answer,
+        `${challenge.id} must apply a cue instead of repeating recognition`,
+      );
+    }
+  }
+});
+
+void test('recognition questions use unique options and rotate balanced checkpoints', () => {
+  for (const [missionIndex, mission] of allMissions.entries()) {
+    const first = buildRecognitionQuestions(mission, 0);
+    const retry = buildRecognitionQuestions(mission, 1);
+    const introducedSignIds = new Set(
+      allMissions
+        .slice(0, missionIndex + 1)
+        .flatMap((introducedMission) => introducedMission.signIds),
+    );
+    const expectedCount =
+      mission.type === 'checkpoint'
+        ? mission.id === 'checkpoint-komunikasi'
+          ? 8
+          : Math.min(6, mission.signIds.length)
+        : mission.signIds.length;
+    assert.equal(first.length, expectedCount);
+    for (const question of first) {
+      assert.equal(question.options.length, 3);
+      assert.equal(new Set(question.options).size, 3);
+      assert.equal(question.options.includes(question.signId), true);
+      assert.equal(
+        question.options.every((option) => introducedSignIds.has(option)),
+        true,
+        `${mission.id} must not use unseen vocabulary as a distractor`,
+      );
+    }
+    if (mission.signIds.length > 2) {
+      assert.notDeepEqual(first, retry, `${mission.id} should change on retry`);
+    }
+  }
+
+  const finalCheckpoint = buildRecognitionQuestions(
+    getMission('checkpoint-komunikasi'),
+    0,
+  );
+  assert.equal(finalCheckpoint.length, 8);
+});
+
 void test('missions unlock in curriculum order', () => {
   assert.equal(isMissionUnlocked('saya-dan-kamu', emptyAccountProgress), true);
   assert.equal(isMissionUnlocked('sapaan-waktu', emptyAccountProgress), false);
@@ -82,6 +172,16 @@ void test('missions unlock in curriculum order', () => {
     }),
     true,
   );
+});
+
+void test('demo completion data agrees with every completed mission stage', () => {
+  for (const missionId of defaultProgress.completedMissionIds) {
+    const state = getMissionLearningState(missionId, defaultProgress);
+    assert.equal(state.practiceComplete, true);
+    assert.equal(state.recognitionComplete, true);
+    assert.equal(state.conversationComplete, true);
+    assert.equal(state.progressPercent, 100);
+  }
 });
 
 void test('legacy gesture result migrates as Saya only', () => {

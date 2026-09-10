@@ -31,6 +31,11 @@ export type Mission = {
   contextChallenges: ContextChallenge[];
 };
 
+export type RecognitionQuestion = {
+  signId: SignId;
+  options: SignId[];
+};
+
 export type Chapter = {
   id: string;
   number: string;
@@ -90,9 +95,9 @@ export const chapters: Chapter[] = [
     id: 'chapter-1',
     number: '01',
     eyebrow: 'Mulai terhubung',
-    title: 'Kenalan & sapaan',
+    title: 'Perkenalan & waktu',
     description:
-      'Belajar memperkenalkan diri dan memulai percakapan sederhana.',
+      'Bangun kosakata dasar untuk memperkenalkan diri, bertanya, dan menyebut waktu.',
     status: 'active',
     progress: 0,
     missions: [
@@ -116,9 +121,9 @@ export const chapters: Chapter[] = [
             successMessage: 'Kamu merespons dengan memperkenalkan diri.',
           },
           {
-            cueSignId: 'apa',
+            cueSignId: 'saya',
             prompt:
-              'Kamu belum memahami hal yang dibicarakan. Pilih tanda untuk menanyakan halnya.',
+              'Lawan bicara menunjuk dirinya, tetapi topiknya belum jelas. Pilih tanda untuk menanyakan halnya.',
             options: ['apa', 'saya', 'siapa'],
             answer: 'apa',
             successMessage: 'Pertanyaanmu sesuai dengan konteks.',
@@ -128,8 +133,9 @@ export const chapters: Chapter[] = [
       mission({
         id: 'sapaan-waktu',
         number: '02',
-        title: 'Sapaan berdasarkan waktu',
-        description: 'Gunakan tanda waktu saat membuka percakapan.',
+        title: 'Waktu dalam sehari',
+        description:
+          'Bedakan tanda pagi, siang, sore, dan malam dalam situasi harian.',
         duration: 9,
         xp: 45,
         type: 'lesson',
@@ -137,17 +143,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Memilih waktu yang tepat',
         contextChallenges: [
           {
-            cueSignId: 'pagi',
+            cueSignId: 'apa',
             prompt:
-              'Matahari baru terbit dan kamu bertemu teman. Pilih tanda waktunya.',
+              'Lawan bicara menanyakan waktu ketika matahari baru terbit. Pilih jawaban satu tanda.',
             options: ['pagi', 'sore', 'malam'],
             answer: 'pagi',
-            successMessage: 'Sapaanmu sesuai dengan waktu.',
+            successMessage: 'Pagi adalah jawaban yang sesuai untuk awal hari.',
           },
           {
-            cueSignId: 'malam',
+            cueSignId: 'apa',
             prompt:
-              'Pertemuan berlangsung setelah matahari terbenam. Pilih tanda waktunya.',
+              'Lawan bicara menanyakan waktu setelah matahari terbenam. Pilih jawaban satu tanda.',
             options: ['siang', 'malam', 'pagi'],
             answer: 'malam',
             successMessage: 'Kamu memilih konteks waktu dengan tepat.',
@@ -205,7 +211,7 @@ export const chapters: Chapter[] = [
             successMessage: 'Kamu meminta pengulangan dengan jelas.',
           },
           {
-            cueSignId: 'bagaimana',
+            cueSignId: 'apa',
             prompt:
               'Kamu ingin tahu cara melakukan sesuatu. Pilih tanda pertanyaan yang tepat.',
             options: ['bagaimana', 'lagi', 'maaf'],
@@ -217,8 +223,8 @@ export const chapters: Chapter[] = [
       checkpoint(
         'checkpoint-kenalan',
         '05',
-        'Checkpoint kenalan & sapaan',
-        'Gabungkan seluruh materi bab tanpa contoh visual.',
+        'Checkpoint perkenalan & waktu',
+        'Ambil kembali kosakata bab dari ingatan dan terapkan pada situasi singkat.',
         [
           'saya',
           'siapa',
@@ -233,7 +239,7 @@ export const chapters: Chapter[] = [
           'lagi',
           'bagaimana',
         ],
-        'Simulasi perkenalan utuh',
+        'Penerapan perkenalan singkat',
         [
           {
             cueSignId: 'siapa',
@@ -281,16 +287,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Memesan kebutuhan dasar',
         contextChallenges: [
           {
-            cueSignId: 'makan',
+            cueSignId: 'apa',
             prompt:
-              'Kamu ingin menyampaikan kebutuhan setelah melihat menu. Pilih tanda yang sesuai.',
+              'Petugas kafe menanyakan kebutuhanmu. Kamu sedang lapar; pilih jawaban satu tanda.',
             options: ['makan', 'air', 'belajar'],
             answer: 'makan',
             successMessage: 'Kebutuhanmu tersampaikan.',
           },
           {
-            cueSignId: 'air',
-            prompt: 'Kamu haus. Pilih tanda kebutuhan yang tepat.',
+            cueSignId: 'apa',
+            prompt:
+              'Petugas kafe menanyakan kebutuhanmu. Kamu sedang haus; pilih jawaban satu tanda.',
             options: ['air', 'makan', 'hari'],
             answer: 'air',
             successMessage: 'Kamu memilih kebutuhan minum dengan tepat.',
@@ -309,17 +316,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Membicarakan kegiatan',
         contextChallenges: [
           {
-            cueSignId: 'belajar',
+            cueSignId: 'apa',
             prompt:
-              'Teman menanyakan kegiatanmu hari ini. Pilih kegiatan yang sesuai.',
+              'Teman menanyakan kegiatanmu. Kamu sedang mempelajari materi; pilih jawaban intinya.',
             options: ['belajar', 'ingat', 'hari'],
             answer: 'belajar',
             successMessage: 'Kegiatanmu tersampaikan.',
           },
           {
-            cueSignId: 'ingat',
+            cueSignId: 'apa',
             prompt:
-              'Kamu ingin memastikan teman tidak melupakan rencana. Pilih tanda kuncinya.',
+              'Kamu ingin mengingatkan teman agar rencana tidak terlupakan. Pilih tanda intinya.',
             options: ['ingat', 'hari', 'belajar'],
             answer: 'ingat',
             successMessage: 'Pesan pengingatmu jelas.',
@@ -338,17 +345,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Menyusun rencana',
         contextChallenges: [
           {
-            cueSignId: 'kapan',
+            cueSignId: 'hari',
             prompt:
-              'Kamu ingin mengetahui waktu kegiatan. Pilih kata tanya yang tepat.',
+              'Teman baru menyebut ada kegiatan pada suatu hari, tetapi waktunya belum jelas. Pilih kata tanya.',
             options: ['kapan', 'apa', 'hari'],
             answer: 'kapan',
             successMessage: 'Kamu menanyakan waktu secara tepat.',
           },
           {
-            cueSignId: 'apa',
+            cueSignId: 'kapan',
             prompt:
-              'Kamu ingin mengetahui jenis kegiatannya. Pilih tanda pertanyaan.',
+              'Teman menyebut waktu, tetapi belum menyebut jenis kegiatannya. Pilih kata tanya.',
             options: ['apa', 'kapan', 'hari'],
             answer: 'apa',
             successMessage:
@@ -360,7 +367,7 @@ export const chapters: Chapter[] = [
         id: 'datang-dan-berangkat',
         number: '04',
         title: 'Datang dan berangkat',
-        description: 'Jelaskan arah perpindahan dalam percakapan singkat.',
+        description: 'Bedakan arah gerak pada tanda Datang dan Berangkat.',
         duration: 7,
         xp: 50,
         type: 'lesson',
@@ -368,16 +375,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Memberi kabar perjalanan',
         contextChallenges: [
           {
-            cueSignId: 'datang',
+            cueSignId: 'kapan',
             prompt:
-              'Kamu bergerak menuju lokasi teman. Pilih tanda yang menyatakan tiba.',
+              'Teman menanyakan kapan kamu bergerak menuju lokasinya. Pilih arah gerak yang sesuai.',
             options: ['datang', 'berangkat', 'hari'],
             answer: 'datang',
             successMessage: 'Arah perpindahanmu jelas.',
           },
           {
-            cueSignId: 'berangkat',
-            prompt: 'Kamu hendak meninggalkan lokasi. Pilih tanda yang sesuai.',
+            cueSignId: 'kapan',
+            prompt:
+              'Teman menanyakan kapan kamu meninggalkan lokasi asal. Pilih arah gerak yang sesuai.',
             options: ['berangkat', 'datang', 'makan'],
             answer: 'berangkat',
             successMessage: 'Kamu menyatakan keberangkatan dengan tepat.',
@@ -388,7 +396,7 @@ export const chapters: Chapter[] = [
         'checkpoint-aktivitas',
         '05',
         'Checkpoint kebutuhan & aktivitas',
-        'Selesaikan skenario kebutuhan dan rencana tanpa petunjuk.',
+        'Ambil kembali sampel kosakata bab dan terapkan pada kebutuhan serta rencana.',
         [
           'makan',
           'air',
@@ -433,7 +441,7 @@ export const chapters: Chapter[] = [
     number: '03',
     eyebrow: 'Bergerak bersama',
     title: 'Arah & transportasi',
-    description: 'Gunakan BISINDO saat mencari tempat dan bepergian.',
+    description: 'Latih kosakata BISINDO untuk mencari tempat dan bepergian.',
     status: 'locked',
     progress: 0,
     missions: [
@@ -449,17 +457,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Mencari tujuan',
         contextChallenges: [
           {
-            cueSignId: 'di-mana',
+            cueSignId: 'rumah',
             prompt:
-              'Kamu belum mengetahui lokasi tujuan. Pilih tindakan yang sesuai.',
+              'Kamu perlu menemukan alamat rumah yang ditunjukkan lawan bicara. Pilih tindakan intinya.',
             options: ['cari', 'rumah', 'di-mana'],
             answer: 'cari',
             successMessage: 'Kamu mulai mencari tujuan.',
           },
           {
-            cueSignId: 'rumah',
+            cueSignId: 'di-mana',
             prompt:
-              'Tujuan yang dimaksud adalah tempat tinggal. Pilih tandanya.',
+              'Lawan bicara menanyakan lokasi tujuanmu. Tujuanmu adalah tempat tinggal; pilih jawaban.',
             options: ['rumah', 'cari', 'di-mana'],
             answer: 'rumah',
             successMessage: 'Tujuanmu sudah jelas.',
@@ -478,17 +486,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Meminta petunjuk',
         contextChallenges: [
           {
-            cueSignId: 'di-mana',
+            cueSignId: 'rumah',
             prompt:
-              'Kamu tahu tujuan tetapi belum tahu cara mencapainya. Pilih kata tanya.',
+              'Tujuannya rumah, tetapi kamu belum tahu cara mencapainya. Pilih kata tanya.',
             options: ['bagaimana', 'mengapa', 'di-mana'],
             answer: 'bagaimana',
             successMessage: 'Kamu meminta cara menuju lokasi.',
           },
           {
-            cueSignId: 'mengapa',
+            cueSignId: 'berangkat',
             prompt:
-              'Rute berubah dan kamu ingin mengetahui alasannya. Pilih kata tanya.',
+              'Teman mengubah rute setelah berangkat dan kamu ingin tahu alasannya. Pilih kata tanya.',
             options: ['mengapa', 'bagaimana', 'di-mana'],
             answer: 'mengapa',
             successMessage: 'Kamu menanyakan alasan dengan tepat.',
@@ -535,16 +543,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Memilih moda perjalanan',
         contextChallenges: [
           {
-            cueSignId: 'rumah',
+            cueSignId: 'bagaimana',
             prompt:
-              'Kamu akan pergi ke rumah menggunakan kendaraan roda dua. Pilih modanya.',
+              'Teman menanyakan cara kamu pergi ke rumah. Kamu memakai kendaraan roda dua; pilih jawaban.',
             options: ['motor', 'teman', 'rumah'],
             answer: 'motor',
             successMessage: 'Moda perjalananmu jelas.',
           },
           {
-            cueSignId: 'teman',
-            prompt: 'Seseorang akan menemanimu. Pilih hubungan orang tersebut.',
+            cueSignId: 'siapa',
+            prompt:
+              'Lawan bicara menanyakan siapa yang menemanimu. Orang itu bukan keluarga; pilih jawabannya.',
             options: ['teman', 'rumah', 'motor'],
             answer: 'teman',
             successMessage: 'Teman perjalananmu sudah disebutkan.',
@@ -555,7 +564,7 @@ export const chapters: Chapter[] = [
         'checkpoint-perjalanan',
         '05',
         'Checkpoint arah & perjalanan',
-        'Selesaikan skenario bertanya arah tanpa petunjuk.',
+        'Ambil kembali sampel kosakata bab dan terapkan pada urutan perjalanan.',
         [
           'di-mana',
           'cari',
@@ -600,7 +609,7 @@ export const chapters: Chapter[] = [
     id: 'chapter-4',
     number: '04',
     eyebrow: 'Memperluas percakapan',
-    title: 'Keluarga, warna & identitas',
+    title: 'Keluarga, warna & komunikasi',
     description:
       'Lengkapi kosakata untuk membicarakan rumah, warna, dan cara berkomunikasi.',
     status: 'locked',
@@ -626,7 +635,7 @@ export const chapters: Chapter[] = [
             successMessage: 'Kamu menyebut keluarga dengan tepat.',
           },
           {
-            cueSignId: 'teman',
+            cueSignId: 'siapa',
             prompt:
               'Orang yang datang bukan anggota keluarga. Pilih hubungannya.',
             options: ['teman', 'keluarga', 'rumah'],
@@ -647,15 +656,17 @@ export const chapters: Chapter[] = [
         contextTitle: 'Mendeskripsikan benda',
         contextChallenges: [
           {
-            cueSignId: 'merah',
-            prompt: 'Pilih warna yang sama dengan tanda pada video.',
+            cueSignId: 'apa',
+            prompt:
+              'Lawan bicara menanyakan warna tanda berhenti pada lampu lalu lintas. Pilih jawaban satu tanda.',
             options: ['merah', 'kuning', 'hitam'],
             answer: 'merah',
             successMessage: 'Warna pertama dikenali.',
           },
           {
-            cueSignId: 'hijau',
-            prompt: 'Pilih warna yang sama dengan tanda pada video.',
+            cueSignId: 'apa',
+            prompt:
+              'Lawan bicara menanyakan warna isyarat boleh berjalan pada lampu lalu lintas. Pilih jawaban satu tanda.',
             options: ['hijau', 'hitam', 'kuning'],
             answer: 'hijau',
             successMessage: 'Kamu membedakan warna dengan tepat.',
@@ -666,7 +677,8 @@ export const chapters: Chapter[] = [
         id: 'dengar-dan-tuli',
         number: '03',
         title: 'Dengar dan Tuli',
-        description: 'Kenali kosakata identitas dan cara menerima informasi.',
+        description:
+          'Kenali tanda Dengar dan Tuli, lalu gunakan Bagaimana untuk membahas cara komunikasi.',
         duration: 8,
         xp: 60,
         type: 'lesson',
@@ -676,19 +688,20 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'tuli',
             prompt:
-              'Seseorang memperkenalkan identitasnya. Pilih tanda identitas yang sama.',
-            options: ['tuli', 'dengar', 'bagaimana'],
-            answer: 'tuli',
-            successMessage: 'Kamu mengenali identitas yang disampaikan.',
+              'Setelah seseorang menyampaikan identitasnya, pilih kata tanya untuk membahas cara komunikasi yang nyaman.',
+            options: ['bagaimana', 'dengar', 'tuli'],
+            answer: 'bagaimana',
+            successMessage:
+              'Bagaimana membuka ruang untuk menanyakan preferensi komunikasi.',
           },
           {
             cueSignId: 'bagaimana',
             prompt:
-              'Kamu ingin menanyakan cara komunikasi yang nyaman. Pilih kata tanya.',
-            options: ['bagaimana', 'dengar', 'tuli'],
-            answer: 'bagaimana',
+              'Lawan bicara menanyakan aktivitas menerima bunyi. Pilih jawaban satu tanda.',
+            options: ['dengar', 'tuli', 'bagaimana'],
+            answer: 'dengar',
             successMessage:
-              'Pertanyaanmu berpusat pada kebutuhan lawan bicara.',
+              'Dengar adalah kosakata yang sesuai untuk aktivitas menerima bunyi.',
           },
         ],
       }),
@@ -706,17 +719,18 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'apa',
             prompt:
-              'Benda yang ditanyakan berada di tempat tinggal. Pilih tandanya.',
+              'Lawan bicara menunjuk bangunan tempat tinggal dan menanyakan bendanya. Pilih jawaban.',
             options: ['rumah', 'keluarga', 'merah'],
             answer: 'rumah',
             successMessage: 'Konteks tempat sudah tepat.',
           },
           {
-            cueSignId: 'hitam',
-            prompt: 'Pilih warna pembanding yang tersedia dalam misi.',
-            options: ['merah', 'keluarga', 'rumah'],
-            answer: 'merah',
-            successMessage: 'Kamu dapat membandingkan dua warna.',
+            cueSignId: 'apa',
+            prompt:
+              'Lawan bicara menanyakan warna rambut yang gelap. Pilih jawaban satu tanda.',
+            options: ['hitam', 'merah', 'rumah'],
+            answer: 'hitam',
+            successMessage: 'Hitam sesuai dengan ciri benda dalam situasi.',
           },
         ],
       }),
@@ -724,7 +738,7 @@ export const chapters: Chapter[] = [
         'checkpoint-komunikasi',
         '05',
         'Checkpoint komunikasi lengkap',
-        'Uji keseluruhan 32 tanda melalui pengenalan terpilih dan skenario campuran.',
+        'Uji sampel seimbang dari 32 tanda dan terapkan kosakata lintas bab.',
         [...allSignIds],
         'Percakapan di rumah',
         [
@@ -737,7 +751,8 @@ export const chapters: Chapter[] = [
           },
           {
             cueSignId: 'apa',
-            prompt: 'Pilih salah satu warna yang dipelajari.',
+            prompt:
+              'Lawan bicara menanyakan warna yang umum dipakai untuk menggambarkan matahari cerah. Pilih jawaban.',
             options: ['kuning', 'tuli', 'rumah'],
             answer: 'kuning',
             successMessage: 'Deskripsi warna berhasil.',
@@ -775,6 +790,142 @@ export function getChapterForMission(missionId: string) {
 
 export function getMissionPosition(missionId: string) {
   return allMissions.findIndex((item) => item.id === missionId);
+}
+
+const recognitionGroups: readonly (readonly SignId[])[] = [
+  ['apa', 'siapa', 'kapan', 'di-mana', 'mengapa', 'bagaimana'],
+  ['hari', 'pagi', 'siang', 'sore', 'malam'],
+  ['air', 'makan', 'belajar', 'ingat', 'lagi'],
+  ['cari', 'motor', 'berangkat', 'datang', 'rumah'],
+  ['saya', 'teman', 'keluarga', 'terima-kasih', 'maaf', 'tuli', 'dengar'],
+  ['merah', 'kuning', 'hijau', 'hitam'],
+] as const;
+
+export function buildRecognitionQuestions(
+  mission: Mission,
+  attempt = 0,
+): RecognitionQuestion[] {
+  const missionIndex = Math.max(0, getMissionPosition(mission.id));
+  const introducedSignIds = uniqueSignIds(
+    allMissions
+      .slice(0, missionIndex + 1)
+      .flatMap((introducedMission) => introducedMission.signIds),
+  );
+  const questionLimit =
+    mission.type === 'checkpoint'
+      ? mission.id === 'checkpoint-komunikasi'
+        ? 8
+        : 6
+      : mission.signIds.length;
+  const questionIds =
+    mission.type === 'checkpoint'
+      ? balancedCheckpointSigns(mission.signIds, questionLimit, attempt)
+      : seededOrder(mission.signIds, `${mission.id}:${attempt}:questions`);
+
+  return questionIds.map((signId, index) => {
+    const semanticGroup =
+      recognitionGroups.find((group) => group.includes(signId)) ?? allSignIds;
+    const preferredDistractors = seededOrder(
+      semanticGroup.filter(
+        (id) => id !== signId && introducedSignIds.includes(id),
+      ),
+      `${mission.id}:${attempt}:${signId}:semantic-distractors`,
+    );
+    const currentMissionDistractors = seededOrder(
+      mission.signIds.filter(
+        (id) => id !== signId && !preferredDistractors.includes(id),
+      ),
+      `${mission.id}:${attempt}:${signId}:mission-distractors`,
+    );
+    const introducedDistractors = seededOrder(
+      introducedSignIds.filter(
+        (id) =>
+          id !== signId &&
+          !preferredDistractors.includes(id) &&
+          !currentMissionDistractors.includes(id),
+      ),
+      `${mission.id}:${attempt}:${signId}:introduced-distractors`,
+    );
+    const unseenFallback = seededOrder(
+      allSignIds.filter(
+        (id) =>
+          id !== signId &&
+          !preferredDistractors.includes(id) &&
+          !currentMissionDistractors.includes(id) &&
+          !introducedDistractors.includes(id),
+      ),
+      `${mission.id}:${attempt}:${signId}:unseen-fallback`,
+    );
+    const distractors = [
+      ...preferredDistractors,
+      ...currentMissionDistractors,
+      ...introducedDistractors,
+      ...unseenFallback,
+    ].slice(0, 2);
+    return {
+      signId,
+      options: seededOrder(
+        [signId, ...distractors],
+        `${mission.id}:${attempt}:${index}:options`,
+      ),
+    };
+  });
+}
+
+function balancedCheckpointSigns(
+  missionSignIds: readonly SignId[],
+  limit: number,
+  attempt: number,
+) {
+  const selected: SignId[] = [];
+  const orderedGroups = seededOrder(
+    recognitionGroups,
+    `checkpoint-groups:${attempt}`,
+  );
+  let round = 0;
+
+  while (selected.length < Math.min(limit, missionSignIds.length)) {
+    let added = false;
+    for (const group of orderedGroups) {
+      const bucket = seededOrder(
+        group.filter((id) => missionSignIds.includes(id)),
+        `checkpoint:${attempt}:${round}:${group.join('-')}`,
+      ).filter((id) => !selected.includes(id));
+      if (bucket[0]) {
+        selected.push(bucket[0]);
+        added = true;
+      }
+      if (selected.length === Math.min(limit, missionSignIds.length)) break;
+    }
+    if (!added) break;
+    round += 1;
+  }
+
+  return seededOrder(selected, `checkpoint-result:${attempt}`);
+}
+
+function uniqueSignIds(ids: readonly SignId[]) {
+  return [...new Set(ids)];
+}
+
+function seededOrder<T>(values: readonly T[], seed: string): T[] {
+  const result = [...values];
+  let state = hashString(seed) || 1;
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    const swapIndex = state % (index + 1);
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
+function hashString(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 export const activeMission = getMission('berkenalan');

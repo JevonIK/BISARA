@@ -38,8 +38,8 @@ export default async function MissionTestPage({
             Kenali tandanya, lalu pilih respons dalam konteks.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-            {mission.title}: skor pengenalan minimal 70 membuka simulasi
-            konteks.
+            {mission.title}: skor pengenalan minimal 70 membuka latihan
+            penerapan terpandu.
           </p>
         </header>
         <MissionAssessment missionId={mission.id} initialMode={params.mode} />
