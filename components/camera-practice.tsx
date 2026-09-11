@@ -58,9 +58,9 @@ const HAND_MODEL_URL =
 
 const COUNTDOWN_SECONDS = 3;
 const PRACTICE_PLAYBACK_RATE = 0.75;
-const FALLBACK_RECORDING_DURATION_MS = 5000;
-const REACTION_AND_FINAL_HOLD_MS = 1600;
-const MIN_RECORDING_DURATION_MS = 4000;
+const FALLBACK_RECORDING_DURATION_MS = 4000;
+const REACTION_AND_FINAL_HOLD_MS = 600;
+const MIN_RECORDING_DURATION_MS = 3000;
 const MAX_RECORDING_DURATION_MS = 10000;
 const REFERENCE_SAMPLE_INTERVAL_MS = 66;
 
@@ -589,7 +589,12 @@ export function CameraPractice({
   }, [completeRecording, getReferenceVideo, updatePhase]);
 
   const startPractice = useCallback(() => {
-    if (practicePhaseRef.current !== 'idle' || !referenceReady) return;
+    if (
+      (practicePhaseRef.current !== 'idle' &&
+        practicePhaseRef.current !== 'result') ||
+      !referenceReady
+    )
+      return;
 
     frameBufferRef.current = [];
     setRecordingProgress(0);
@@ -638,6 +643,14 @@ export function CameraPractice({
     updatePhase('idle');
     resumeReferencePreview();
   }, [resumeReferencePreview, updatePhase]);
+
+  const retryPractice = useCallback(() => {
+    if (referenceReady) {
+      startPractice();
+    } else {
+      resetPractice();
+    }
+  }, [referenceReady, resetPractice, startPractice]);
 
   const cancelPractice = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -1045,7 +1058,7 @@ export function CameraPractice({
             <Button
               type="button"
               variant={gestureScore.passed ? 'outline' : 'default'}
-              onClick={resetPractice}
+              onClick={retryPractice}
               className={cn(
                 'h-10 w-full font-extrabold',
                 gestureScore.passed
