@@ -81,7 +81,8 @@ export function MissionJourney() {
             ...mission,
             status: userProgress.completedMissionIds.includes(mission.id)
               ? ('completed' as const)
-              : currentMission.id === mission.id
+              : currentMission.id === mission.id ||
+                  isMissionUnlocked(mission.id, userProgress)
                 ? ('current' as const)
                 : ('locked' as const),
           }));

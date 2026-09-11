@@ -49,7 +49,7 @@ export default async function MissionLearningPage({
         </Link>
 
         <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-signal-navy px-6 py-9 text-white sm:px-9 lg:px-12">
-          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-end">
+          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
             <div>
               <div className="flex flex-wrap gap-2">
                 <Badge className="bg-signal-teal text-signal-navy">

@@ -12,6 +12,7 @@ export const RECOGNITION_PASS_SCORE = 70;
 export type LearningStageState = 'completed' | 'current' | 'locked';
 
 export function isMissionUnlocked(missionId: string, progress: UserProgress) {
+  if (missionId === 'checkpoint-kenalan') return true;
   const index = getMissionPosition(missionId);
   return (
     index <= 0 ||

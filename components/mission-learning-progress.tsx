@@ -91,10 +91,16 @@ export function MissionHeroProgress({
         href={state.next.href}
         className={cn(
           buttonVariants({ size: 'lg' }),
-          'mt-6 h-12 w-full rounded-full bg-signal-teal px-5 font-extrabold text-signal-navy hover:bg-signal-teal/90',
+          'mt-6 min-h-12 h-auto w-full rounded-2xl bg-signal-teal px-4 py-3 text-center text-sm font-black text-signal-navy hover:bg-signal-teal/90 whitespace-normal leading-snug flex items-center justify-center gap-2 group transition-all',
         )}
       >
-        {state.next.label} <span aria-hidden="true">→</span>
+        <span className="break-words">{state.next.label}</span>
+        <span
+          aria-hidden="true"
+          className="shrink-0 text-base transition-transform group-hover:translate-x-0.5"
+        >
+          →
+        </span>
       </Link>
       {!state.practiceComplete ? (
         <p className="mt-3 text-center text-xs text-white/55">

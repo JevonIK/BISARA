@@ -111,7 +111,11 @@ export function MissionAssessment({
         action={learning.next.label}
       />
     );
-  if (view === 'context' && !learning.recognitionComplete)
+  if (
+    view === 'context' &&
+    !learning.recognitionComplete &&
+    mission.type !== 'checkpoint'
+  )
     return (
       <Gate
         title="Uji pengenalan belum lulus"
@@ -488,7 +492,7 @@ export function MissionAssessment({
         description="Terapkan kosakata pada situasi terpandu. Jawaban yang keliru dikunci sementara agar koreksinya dibaca sebelum mencoba lagi."
         meta={`${mission.contextChallenges.length} situasi`}
         onStart={startContext}
-        locked={!learning.recognitionComplete}
+        locked={!learning.recognitionComplete && mission.type !== 'checkpoint'}
       />
     </section>
   );
