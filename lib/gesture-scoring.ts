@@ -270,12 +270,27 @@ function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
       .map(prepareHand)
       .filter((hand): hand is PreparedHand => hand !== null)
       .sort((a, b) => a.handedness.localeCompare(b.handedness));
+    let resolvedHands = hands;
+    if (
+      hands.length === 2 &&
+      hands[0].handedness === hands[1].handedness &&
+      Math.abs(hands[0].physicalWrist[0] - hands[1].physicalWrist[0]) > 0.04
+    ) {
+      const sortedByX = [...hands].sort(
+        (a, b) => a.physicalWrist[0] - b.physicalWrist[0],
+      );
+      resolvedHands = [
+        { ...sortedByX[0], handedness: 'left' },
+        { ...sortedByX[1], handedness: 'right' },
+      ];
+    }
     return {
       timeMs: frame.timeMs,
       // Ambiguous duplicate identities cannot be matched reliably.
       hands:
-        new Set(hands.map((hand) => hand.handedness)).size === hands.length
-          ? hands
+        new Set(resolvedHands.map((hand) => hand.handedness)).size ===
+        resolvedHands.length
+          ? resolvedHands
           : [],
     };
   });
@@ -298,7 +313,10 @@ function hasEnoughDuration(frames: PreparedFrame[]): boolean {
 
 export function hasUsableReference(frames: GestureFrame[]): boolean {
   const prepared = prepareSequence(frames);
+  if (!prepared.length) return false;
   const requiredHandCount = getRequiredHandCountFromPrepared(prepared);
+  const minCoverage =
+    requiredHandCount === 2 ? MIN_TWO_HAND_COVERAGE : MIN_COVERAGE;
   const visibleFrames = selectRequiredHands(
     prepared,
     requiredHandCount,
@@ -307,7 +325,7 @@ export function hasUsableReference(frames: GestureFrame[]): boolean {
   return (
     visibleFrames.length >= MIN_VISIBLE_FRAMES &&
     hasEnoughDuration(visibleFrames) &&
-    visibleFrames.length / prepared.length >= MIN_COVERAGE
+    visibleFrames.length / prepared.length >= minCoverage
   );
 }
 

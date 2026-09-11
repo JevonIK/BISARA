@@ -25,9 +25,8 @@ async function getExtractorLandmarker(): Promise<HandLandmarker> {
         baseOptions: { modelAssetPath: HAND_MODEL_URL },
         runningMode: 'IMAGE',
         numHands: 2,
-        minHandDetectionConfidence: 0.55,
-        minHandPresenceConfidence: 0.55,
-        minTrackingConfidence: 0.5,
+        minHandDetectionConfidence: 0.35,
+        minHandPresenceConfidence: 0.35,
       });
     })();
   }
@@ -86,26 +85,35 @@ async function extractFramesFromVideo(
   for (let t = 0; t < duration; t += interval) {
     video.currentTime = t;
     await new Promise<void>((resolve) => {
-      video.addEventListener('seeked', () => resolve(), { once: true });
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+      video.addEventListener('seeked', onSeeked, { once: true });
+      setTimeout(onSeeked, 150);
     });
 
     if (video.readyState < 2) continue;
 
     const timeMs = Math.round(t * 1000);
-    const result = landmarker.detect(video);
+    try {
+      const result = landmarker.detect(video);
 
-    const hands: HandObservation[] = result.landmarks.map((landmarks, i) => ({
-      landmarks: landmarks.map((l) => ({ x: l.x, y: l.y, z: l.z })),
-      worldLandmarks: result.worldLandmarks[i]?.map((l) => ({
-        x: l.x,
-        y: l.y,
-        z: l.z,
-      })),
-      handedness: result.handedness[i]?.[0]?.categoryName ?? 'Right',
-      confidence: result.handedness[i]?.[0]?.score ?? 0,
-    }));
+      const hands: HandObservation[] = result.landmarks.map((landmarks, i) => ({
+        landmarks: landmarks.map((l) => ({ x: l.x, y: l.y, z: l.z })),
+        worldLandmarks: result.worldLandmarks[i]?.map((l) => ({
+          x: l.x,
+          y: l.y,
+          z: l.z,
+        })),
+        handedness: result.handedness[i]?.[0]?.categoryName ?? 'Right',
+        confidence: result.handedness[i]?.[0]?.score ?? 0,
+      }));
 
-    frames.push({ timeMs, hands });
+      frames.push({ timeMs, hands });
+    } catch {
+      // Continue next frame
+    }
   }
 
   return frames;
