@@ -233,6 +233,57 @@ export function CameraPractice({
     };
   }, [releaseResources]);
 
+  // Reset scoring and reload reference frames whenever the target sign changes
+  const prevSignIdRef = useRef(signId);
+  useEffect(() => {
+    if (prevSignIdRef.current === signId) return;
+    prevSignIdRef.current = signId;
+
+    if (countdownTimerRef.current !== null) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (recordingTimerRef.current !== null) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (scoringTimerRef.current !== null) {
+      clearTimeout(scoringTimerRef.current);
+      scoringTimerRef.current = null;
+    }
+    frameBufferRef.current = [];
+
+    setCountdown(0);
+    setRecordingProgress(0);
+    setGestureScore(null);
+    setNextAction(null);
+    updatePhase('idle');
+    resumeReferencePreview();
+
+    setReferenceReady(false);
+    let isCancelled = false;
+
+    void getReferenceFrames(referenceVideoUrl)
+      .then((refFrames) => {
+        if (!mountedRef.current || isCancelled) return;
+        referenceFramesRef.current = refFrames;
+        const timing = getReferenceTiming(refFrames);
+        recordingDurationRef.current = timing.durationMs;
+        referenceStartRef.current = timing.startMs;
+        setRecordingDuration(timing.durationMs);
+        setRequiredHandCount(getRequiredHandCount(refFrames));
+        setReferenceReady(true);
+      })
+      .catch(() => {
+        if (!mountedRef.current || isCancelled) return;
+        setReferenceReady(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [referenceVideoUrl, resumeReferencePreview, signId, updatePhase]);
+
   const startCamera = useCallback(async () => {
     releaseResources();
     setErrorMessage('');
@@ -299,10 +350,7 @@ export function CameraPractice({
       // Extract reference frames from the demo video
       setStatus('loading-reference');
       try {
-        const refFrames = await getReferenceFrames(
-          referenceVideoUrl,
-          landmarker,
-        );
+        const refFrames = await getReferenceFrames(referenceVideoUrl);
         referenceFramesRef.current = refFrames;
         const timing = getReferenceTiming(refFrames);
         recordingDurationRef.current = timing.durationMs;
@@ -334,66 +382,70 @@ export function CameraPractice({
           lastVideoTimeRef.current = currentVideo.currentTime;
           lastInferenceRef.current = now;
 
-          const results = currentLandmarker.detectForVideo(currentVideo, now);
-          const overlay = canvasRef.current;
-          if (overlay) {
-            drawHandLandmarks(overlay, currentVideo, results);
-          }
-
-          const detectedHands = results.landmarks.length;
-          setHandCount((previous) =>
-            previous === detectedHands ? previous : detectedHands,
-          );
-
-          const nextConfidence = results.handedness[0]?.[0]?.score
-            ? Math.round(results.handedness[0][0].score * 100)
-            : null;
-          setConfidence((previous) =>
-            previous === nextConfidence ? previous : nextConfidence,
-          );
-
-          // Capture frames only while the timed recording window is open.
-          if (practicePhaseRef.current === 'recording') {
-            const elapsed = now - recordingStartRef.current;
-            if (elapsed < recordingDurationRef.current) {
-              const hands: HandObservation[] = results.landmarks.map(
-                (landmarks, i) => ({
-                  landmarks: landmarks.map((l) => ({
-                    x: l.x,
-                    y: l.y,
-                    z: l.z,
-                  })),
-                  worldLandmarks: results.worldLandmarks[i]?.map((l) => ({
-                    x: l.x,
-                    y: l.y,
-                    z: l.z,
-                  })),
-                  handedness:
-                    results.handedness[i]?.[0]?.categoryName ?? 'Right',
-                  confidence: results.handedness[i]?.[0]?.score ?? 0,
-                }),
-              );
-              frameBufferRef.current.push({
-                timeMs: Math.round(elapsed),
-                hands,
-              });
-
-              const progress = Math.min(
-                100,
-                Math.round((elapsed / recordingDurationRef.current) * 100),
-              );
-              setRecordingProgress((prev) =>
-                prev === progress ? prev : progress,
-              );
+          try {
+            const results = currentLandmarker.detectForVideo(currentVideo, now);
+            const overlay = canvasRef.current;
+            if (overlay) {
+              drawHandLandmarks(overlay, currentVideo, results);
             }
-          }
 
-          if (now - lastBrightnessCheckRef.current >= 1000) {
-            lastBrightnessCheckRef.current = now;
-            const sampleCanvas =
-              brightnessCanvasRef.current ?? document.createElement('canvas');
-            brightnessCanvasRef.current = sampleCanvas;
-            setLighting(readFrameLighting(currentVideo, sampleCanvas));
+            const detectedHands = results.landmarks.length;
+            setHandCount((previous) =>
+              previous === detectedHands ? previous : detectedHands,
+            );
+
+            const nextConfidence = results.handedness[0]?.[0]?.score
+              ? Math.round(results.handedness[0][0].score * 100)
+              : null;
+            setConfidence((previous) =>
+              previous === nextConfidence ? previous : nextConfidence,
+            );
+
+            // Capture frames only while the timed recording window is open.
+            if (practicePhaseRef.current === 'recording') {
+              const elapsed = now - recordingStartRef.current;
+              if (elapsed < recordingDurationRef.current) {
+                const hands: HandObservation[] = results.landmarks.map(
+                  (landmarks, i) => ({
+                    landmarks: landmarks.map((l) => ({
+                      x: l.x,
+                      y: l.y,
+                      z: l.z,
+                    })),
+                    worldLandmarks: results.worldLandmarks[i]?.map((l) => ({
+                      x: l.x,
+                      y: l.y,
+                      z: l.z,
+                    })),
+                    handedness:
+                      results.handedness[i]?.[0]?.categoryName ?? 'Right',
+                    confidence: results.handedness[i]?.[0]?.score ?? 0,
+                  }),
+                );
+                frameBufferRef.current.push({
+                  timeMs: Math.round(elapsed),
+                  hands,
+                });
+
+                const progress = Math.min(
+                  100,
+                  Math.round((elapsed / recordingDurationRef.current) * 100),
+                );
+                setRecordingProgress((prev) =>
+                  prev === progress ? prev : progress,
+                );
+              }
+            }
+
+            if (now - lastBrightnessCheckRef.current >= 1000) {
+              lastBrightnessCheckRef.current = now;
+              const sampleCanvas =
+                brightnessCanvasRef.current ?? document.createElement('canvas');
+              brightnessCanvasRef.current = sampleCanvas;
+              setLighting(readFrameLighting(currentVideo, sampleCanvas));
+            }
+          } catch (inferError) {
+            console.warn('Inference error in renderFrame:', inferError);
           }
         }
 
@@ -581,6 +633,7 @@ export function CameraPractice({
   const resetPractice = useCallback(() => {
     frameBufferRef.current = [];
     setRecordingProgress(0);
+    setGestureScore(null);
     setNextAction(null);
     updatePhase('idle');
     resumeReferencePreview();

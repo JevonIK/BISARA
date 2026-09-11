@@ -6,20 +6,49 @@ import {
   type HandObservation,
 } from '@/lib/gesture-scoring';
 
+const WASM_ROOT =
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
+const HAND_MODEL_URL =
+  'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+
 const referenceCache = new Map<string, GestureFrame[]>();
+let extractorPromise: Promise<HandLandmarker> | null = null;
+
+async function getExtractorLandmarker(): Promise<HandLandmarker> {
+  if (!extractorPromise) {
+    extractorPromise = (async () => {
+      const { FilesetResolver, HandLandmarker } = await import(
+        '@mediapipe/tasks-vision'
+      );
+      const vision = await FilesetResolver.forVisionTasks(WASM_ROOT);
+      return await HandLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: HAND_MODEL_URL },
+        runningMode: 'IMAGE',
+        numHands: 2,
+        minHandDetectionConfidence: 0.55,
+        minHandPresenceConfidence: 0.55,
+        minTrackingConfidence: 0.5,
+      });
+    })();
+  }
+  return extractorPromise;
+}
 
 /**
- * Extract hand landmark frames from a video using a loaded HandLandmarker.
+ * Extract hand landmark frames from a video.
+ * Uses a dedicated IMAGE-mode HandLandmarker so that timestamp conflicts
+ * and concurrent inference with the live camera VIDEO-mode stream never occur.
  * Results are cached in memory by URL so repeated calls skip extraction.
  */
 export async function getReferenceFrames(
   videoUrl: string,
-  landmarker: HandLandmarker,
+  _ignoredLandmarker?: HandLandmarker,
 ): Promise<GestureFrame[]> {
   const cached = referenceCache.get(videoUrl);
   if (cached) return cached;
 
-  const frames = await extractFramesFromVideo(videoUrl, landmarker);
+  const extractor = await getExtractorLandmarker();
+  const frames = await extractFramesFromVideo(videoUrl, extractor);
   if (!hasUsableReference(frames)) {
     throw new Error(
       'Referensi gerakan tidak memiliki cukup landmark tangan yang valid.',
@@ -63,7 +92,7 @@ async function extractFramesFromVideo(
     if (video.readyState < 2) continue;
 
     const timeMs = Math.round(t * 1000);
-    const result = landmarker.detectForVideo(video, timeMs);
+    const result = landmarker.detect(video);
 
     const hands: HandObservation[] = result.landmarks.map((landmarks, i) => ({
       landmarks: landmarks.map((l) => ({ x: l.x, y: l.y, z: l.z })),
