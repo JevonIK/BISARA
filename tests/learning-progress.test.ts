@@ -95,6 +95,11 @@ void test('every context activity has one valid target and differs from recognit
   for (const mission of allMissions) {
     for (const challenge of mission.contextChallenges) {
       assert.equal(
+        mission.signIds.includes(challenge.cueSignId),
+        true,
+        `${challenge.id} must use a cue taught in the mission`,
+      );
+      assert.equal(
         new Set(challenge.options).size,
         challenge.options.length,
         `${challenge.id} must not repeat an option`,
@@ -163,7 +168,10 @@ void test('recognition questions use unique options and rotate balanced checkpoi
 
 void test('missions unlock in curriculum order', () => {
   assert.equal(isMissionUnlocked('berkenalan', emptyAccountProgress), true);
-  assert.equal(isMissionUnlocked('orang-terdekat', emptyAccountProgress), false);
+  assert.equal(
+    isMissionUnlocked('orang-terdekat', emptyAccountProgress),
+    false,
+  );
   assert.equal(
     isMissionUnlocked('orang-terdekat', {
       ...emptyAccountProgress,

@@ -35,7 +35,7 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
     .toUpperCase();
 
   return (
-    <header className="border-b border-signal-navy/10 bg-card/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-signal-navy/10 bg-card/90 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         <Link
           href="/"

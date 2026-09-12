@@ -107,7 +107,8 @@ export const chapters: Chapter[] = [
         id: 'berkenalan',
         number: '01',
         title: 'Berkenalan',
-        description: 'Memulai interaksi sederhana dengan orang yang baru dikenal.',
+        description:
+          'Memulai interaksi sederhana dengan orang yang baru dikenal.',
         duration: 12,
         xp: 60,
         type: 'lesson',
@@ -126,7 +127,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'teman',
             prompt:
-              'Teman baru menyambutmu dengan ramah. Pilih respons yang menjaga interaksi tetap sopan.',
+              'Lawan bicara menandai hubungan kalian sebagai teman, lalu membantumu menemukan tempat duduk. Pilih respons untuk menghargai bantuannya.',
             options: ['terima-kasih', 'siapa', 'maaf'],
             answer: 'terima-kasih',
             successMessage: 'Percakapan berlanjut dengan ramah.',
@@ -134,7 +135,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'saya',
             prompt:
-              'Kamu tidak sengaja keliru menyebut nama teman barumu. Pilih respons sopan yang sesuai.',
+              'Lawan bicara memperkenalkan dirinya dengan tanda “Saya”, tetapi kamu kemudian keliru menyebut namanya. Pilih respons untuk memperbaiki kekeliruanmu.',
             options: ['maaf', 'terima-kasih', 'teman'],
             answer: 'maaf',
             successMessage:
@@ -165,7 +166,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'keluarga',
             prompt:
-              'Orang yang datang berkunjung bukan anggota keluarga, melainkan rekan sebayamu. Pilih hubungannya.',
+              'Lawan bicara lebih dulu menyebut keluarganya, lalu menunjuk orang lain yang bukan kerabat dan sering belajar bersamanya. Pilih hubungan orang tersebut.',
             options: ['teman', 'keluarga', 'saya'],
             answer: 'teman',
             successMessage:
@@ -178,7 +179,7 @@ export const chapters: Chapter[] = [
         number: '03',
         title: 'Tuli & Dengar',
         description:
-          'Mengenali vocabulary dasar terkait identitas dan komunikasi Tuli-dengar secara respectful.',
+          'Mengenali kosakata dasar terkait identitas dan cara berkomunikasi Tuli dan dengar dengan hormat.',
         duration: 8,
         xp: 50,
         type: 'lesson',
@@ -188,7 +189,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'teman',
             prompt:
-              'Teman barumu berkomunikasi menggunakan bahasa isyarat sebagai identitas budayanya. Pilih tanda identitas yang tepat.',
+              'Lawan bicara menandai hubungan kalian sebagai teman, lalu menjelaskan bahwa ia bagian dari komunitas yang menggunakan bahasa isyarat. Pilih tanda identitas yang ia sampaikan.',
             options: ['tuli', 'dengar', 'saya'],
             answer: 'tuli',
             successMessage:
@@ -197,7 +198,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'tuli',
             prompt:
-              'Lawan bicara menanyakan kelompok yang menggunakan modalitas pendengaran suara dalam komunikasi harian. Pilih tanda yang sesuai.',
+              'Setelah menyebut identitas Tuli, lawan bicara meminta kamu membedakannya dari orang yang mengandalkan pendengaran dalam komunikasi sehari-hari. Pilih tanda yang sesuai.',
             options: ['dengar', 'tuli', 'teman'],
             answer: 'dengar',
             successMessage:
@@ -209,8 +210,7 @@ export const chapters: Chapter[] = [
         id: 'bersikap-sopan',
         number: '04',
         title: 'Bersikap Sopan',
-        description:
-          'Memilih respons sosial yang sesuai berdasarkan situasi.',
+        description: 'Memilih respons sosial yang sesuai berdasarkan situasi.',
         duration: 8,
         xp: 45,
         type: 'lesson',
@@ -228,7 +228,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'saya',
             prompt:
-              'Kamu tidak sengaja menjatuhkan barang milik teman. Pilih respons yang tepat.',
+              'Teman menandai bahwa barang itu miliknya dengan tanda “Saya”. Kamu tidak sengaja menjatuhkan barang tersebut. Pilih respons yang tepat.',
             options: ['maaf', 'terima-kasih', 'teman'],
             answer: 'maaf',
             successMessage: 'Kamu bersikap sopan dengan meminta maaf.',
@@ -261,9 +261,9 @@ export const chapters: Chapter[] = [
             successMessage: 'Kamu mengawali perkenalan dengan jelas.',
           },
           {
-            cueSignId: 'teman',
+            cueSignId: 'saya',
             prompt:
-              'Teman baru memperkenalkan anggota yang hadir bersama dirinya di rumah. Pilih kelompok orang terdekat.',
+              'Lawan bicara menunjuk dirinya dengan tanda “Saya”, lalu menunjukkan foto orang-orang yang tinggal bersamanya sebagai kerabat. Pilih kelompok hubungan mereka.',
             options: ['keluarga', 'dengar', 'saya'],
             answer: 'keluarga',
             successMessage: 'Kamu mengenali keluarga dalam interaksi.',
@@ -307,16 +307,16 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'saya',
             prompt:
-              'Lawan bicara memegang benda baru dan menunjukkannya kepadamu. Pilih tanda untuk menanyakan bendanya.',
+              'Lawan bicara menandai benda yang dipegang sebagai miliknya dengan tanda “Saya”. Kamu belum mengenali benda itu. Pilih tanda untuk menanyakannya.',
             options: ['apa', 'siapa', 'saya'],
             answer: 'apa',
             successMessage:
               'Kamu meminta informasi dasar tentang benda tersebut.',
           },
           {
-            cueSignId: 'apa',
+            cueSignId: 'saya',
             prompt:
-              'Lawan bicara balik menanyakan orang yang membawa benda tersebut. Pilih kata tanya orang.',
+              'Lawan bicara menunjuk dirinya dengan tanda “Saya”, lalu menunjuk seseorang di foto. Kamu belum tahu identitas orang dalam foto. Pilih kata tanya orang.',
             options: ['siapa', 'apa', 'saya'],
             answer: 'siapa',
             successMessage:
@@ -336,9 +336,9 @@ export const chapters: Chapter[] = [
         contextTitle: 'Menanyakan waktu dan lokasi',
         contextChallenges: [
           {
-            cueSignId: 'apa',
+            cueSignId: 'siapa',
             prompt:
-              'Teman memberitahu ada janji kumpul, tetapi belum menyebut jadwalnya. Pilih kata tanya waktu.',
+              'Setelah menanyakan “Siapa” yang akan hadir, teman belum menyebut jadwal pertemuan. Pilih kata tanya untuk melengkapi informasi waktunya.',
             options: ['kapan', 'di-mana', 'siapa'],
             answer: 'kapan',
             successMessage: 'Kamu menanyakan waktu pertemuan.',
@@ -368,7 +368,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'di-mana',
             prompt:
-              'Teman tiba-tiba membatalkan janji pergi dan kamu ingin tahu penyebabnya. Pilih kata tanya alasan.',
+              'Teman sudah menjawab “Di mana” kalian akan bertemu, tetapi kemudian membatalkan janji. Pilih kata tanya untuk mengetahui penyebabnya.',
             options: ['mengapa', 'bagaimana', 'kapan'],
             answer: 'mengapa',
             successMessage: 'Kamu menanyakan alasan pembatalan.',
@@ -376,7 +376,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'apa',
             prompt:
-              'Teman menunjukkan contoh isyarat dan kamu ingin mengetahui langkah gerakannya. Pilih kata tanya cara.',
+              'Teman menjawab “Apa” yang akan dipelajari dengan menunjukkan sebuah isyarat. Kamu ingin mengetahui langkah gerakannya. Pilih kata tanya cara.',
             options: ['bagaimana', 'mengapa', 'di-mana'],
             answer: 'bagaimana',
             successMessage: 'Kamu menanyakan langkah gerakannya.',
@@ -414,7 +414,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'apa',
             prompt:
-              'Teman berpesan agar kamu tidak lupa materi yang telah dipelajari. Pilih tanda konfirmasi bahwa kamu masih ingat.',
+              'Teman bertanya “Apa” materi yang dipelajari kemarin. Kamu mengenali materinya dan ingin menegaskan bahwa kamu masih mengingatnya.',
             options: ['ingat', 'lagi', 'cari'],
             answer: 'ingat',
             successMessage:
@@ -442,7 +442,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'apa',
             prompt:
-              'Kamu tersesat di gedung pertemuan dan ingin menanyakan lokasi ruang utama. Pilih kata tanya tempat.',
+              'Petugas bertanya “Apa” yang kamu perlukan. Kamu membutuhkan lokasi ruang utama. Pilih kata tanya tempat untuk menyampaikan kebutuhanmu.',
             options: ['di-mana', 'kapan', 'mengapa'],
             answer: 'di-mana',
             successMessage: 'Kamu menanyakan letak ruang utama.',
@@ -461,8 +461,7 @@ export const chapters: Chapter[] = [
               'Petugas memberikan petunjuk rute yang rumit. Pilih tanda untuk meminta penjelasan diulang kembali.',
             options: ['lagi', 'ingat', 'kapan'],
             answer: 'lagi',
-            successMessage:
-              'Petugas mengulang penjelasannya dengan ramah.',
+            successMessage: 'Petugas mengulang penjelasannya dengan ramah.',
           },
         ],
         100,
@@ -483,8 +482,7 @@ export const chapters: Chapter[] = [
         id: 'makan-dan-minum',
         number: '11',
         title: 'Makan & Minum',
-        description:
-          'Mengenali kebutuhan sederhana terkait makan dan minum.',
+        description: 'Mengenali kebutuhan sederhana terkait makan dan minum.',
         duration: 7,
         xp: 45,
         type: 'lesson',
@@ -542,8 +540,7 @@ export const chapters: Chapter[] = [
         id: 'pergi-beraktivitas',
         number: '13',
         title: 'Pergi Beraktivitas',
-        description:
-          'Mengenali konteks bepergian dan aktivitas sebelum pergi.',
+        description: 'Mengenali konteks bepergian dan aktivitas sebelum pergi.',
         duration: 8,
         xp: 45,
         type: 'lesson',
@@ -572,8 +569,7 @@ export const chapters: Chapter[] = [
         id: 'datang-hari-ini',
         number: '14',
         title: 'Datang Hari Ini',
-        description:
-          'Menghubungkan kedatangan seseorang dengan konteks waktu.',
+        description: 'Menghubungkan kedatangan seseorang dengan konteks waktu.',
         duration: 8,
         xp: 50,
         type: 'lesson',
@@ -583,7 +579,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'kapan',
             prompt:
-              'Teman menanyakan kapan jadwal pertemuan kelompok diadakan. Pilih tanda penunjuk hari ini.',
+              'Teman bertanya “Kapan” sambil membuka kalender pertemuan. Pilih tanda untuk menyebut satuan waktu yang sedang dibicarakan pada kalender.',
             options: ['hari', 'datang', 'siapa'],
             answer: 'hari',
             successMessage: 'Kamu memberi kepastian hari.',
@@ -680,7 +676,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'berangkat',
             prompt:
-              'Teman menanyakan kapan waktu makan istirahat saat matahari tepat di atas kepala. Pilih tanda waktu tengah hari.',
+              'Setelah menyebut waktu berangkat, teman mengusulkan istirahat makan saat matahari berada tinggi. Pilih tanda waktu tengah hari.',
             options: ['siang', 'pagi', 'kapan'],
             answer: 'siang',
             successMessage: 'Kamu memilih waktu siang hari.',
@@ -721,8 +717,7 @@ export const chapters: Chapter[] = [
         id: 'mengenal-warna',
         number: '18',
         title: 'Mengenal Warna',
-        description:
-          'Mengenali dan membedakan karakteristik visual dasar.',
+        description: 'Mengenali dan membedakan karakteristik visual dasar.',
         duration: 9,
         xp: 55,
         type: 'lesson',
@@ -732,7 +727,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'motor',
             prompt:
-              'Teman menanyakan warna helm yang mirip warna daun atau lampu rambu jalan aman. Pilih tanda warna.',
+              'Teman menunjukkan tanda “Motor”, lalu menunjuk motor berwarna seperti daun. Pilih tanda warna motor tersebut.',
             options: ['hijau', 'merah', 'hitam'],
             answer: 'hijau',
             successMessage: 'Kamu mengenali warna hijau.',
@@ -740,7 +735,7 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'rumah',
             prompt:
-              'Teman menanyakan warna cat pagar yang menyala seperti rambu berhenti. Pilih tanda warna.',
+              'Teman menunjukkan tanda “Rumah”, lalu menunjuk pagar rumah berwarna seperti rambu berhenti. Pilih tanda warnanya.',
             options: ['merah', 'kuning', 'hijau'],
             answer: 'merah',
             successMessage: 'Warna merah berhasil kamu tentukan.',

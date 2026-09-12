@@ -21,12 +21,12 @@ import {
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { useProgress } from '@/hooks/use-progress';
 import { getSigns, type SignId } from '@/lib/curriculum-data';
 import {
   getRequiredHandCount,
+  getReferenceGestureWindow,
   scoreGesture,
   type GestureFrame,
   type GestureScore,
@@ -141,7 +141,6 @@ export function CameraPractice({
   const [status, setStatus] = useState<CameraStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [handCount, setHandCount] = useState(0);
-  const [confidence, setConfidence] = useState<number | null>(null);
   const [lighting, setLighting] = useState<LightingStatus>('unknown');
 
   // Scoring state
@@ -214,7 +213,6 @@ export function CameraPractice({
     releaseResources();
     setStatus('idle');
     setHandCount(0);
-    setConfidence(null);
     setLighting('unknown');
     setErrorMessage('');
     updatePhase('idle');
@@ -288,7 +286,6 @@ export function CameraPractice({
     releaseResources();
     setErrorMessage('');
     setHandCount(0);
-    setConfidence(null);
     setLighting('unknown');
     updatePhase('idle');
     setGestureScore(null);
@@ -392,13 +389,6 @@ export function CameraPractice({
             const detectedHands = results.landmarks.length;
             setHandCount((previous) =>
               previous === detectedHands ? previous : detectedHands,
-            );
-
-            const nextConfidence = results.handedness[0]?.[0]?.score
-              ? Math.round(results.handedness[0][0].score * 100)
-              : null;
-            setConfidence((previous) =>
-              previous === nextConfidence ? previous : nextConfidence,
             );
 
             // Capture frames only while the timed recording window is open.
@@ -743,7 +733,7 @@ export function CameraPractice({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
       <section className="overflow-hidden border border-signal-navy/10 bg-signal-navy">
         <div className="relative aspect-video min-h-[360px] bg-[#0d1128]">
           <video
@@ -833,24 +823,21 @@ export function CameraPractice({
           {isReady &&
             practicePhase !== 'countdown' &&
             practicePhase !== 'scoring' && (
-              <div className="absolute inset-x-4 top-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="absolute inset-x-3 top-3 flex items-start sm:inset-x-4 sm:top-4">
                 <span
                   className={cn(
-                    'rounded-full px-3 py-2 text-xs font-extrabold backdrop-blur-sm',
+                    'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-extrabold leading-4 backdrop-blur-sm',
                     handCount > 0
                       ? 'bg-signal-teal text-signal-navy'
                       : 'bg-black/45 text-white',
                   )}
                 >
                   {handCount > 0
-                    ? `${handCount} tangan terdeteksi`
+                    ? handCount >= requiredHandCount && requiredHandCount === 2
+                      ? 'Kedua tangan terdeteksi'
+                      : 'Tangan terdeteksi'
                     : 'Posisikan tangan di dalam bingkai'}
                 </span>
-                {confidence !== null && (
-                  <span className="rounded-full bg-black/45 px-3 py-2 text-xs font-bold text-white backdrop-blur-sm">
-                    Confidence {confidence}%
-                  </span>
-                )}
               </div>
             )}
 
@@ -982,40 +969,41 @@ export function CameraPractice({
 
       {/* Sidebar: score results or calibration */}
       {practicePhase === 'result' && gestureScore ? (
-        <aside className="border-t-4 border-signal-coral bg-card p-6">
+        <aside className="self-start border-t-4 border-signal-coral bg-card p-6">
           <div className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-coral">
-              Skor latihan
+              Hasil latihan
             </p>
-            <div className="mt-4 flex items-baseline gap-3">
-              <span className="text-5xl font-black tracking-[-0.06em] text-signal-navy">
-                {gestureScore.overall}
-              </span>
-              <Badge
-                className={cn(
-                  'font-extrabold',
-                  gestureScore.passed
-                    ? 'bg-signal-teal text-signal-navy'
-                    : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {gestureScore.passed ? 'Lulus ✓' : 'Belum lulus'}
-              </Badge>
-            </div>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-signal-navy">
+              {practiceResultLabel(gestureScore)}
+            </h2>
           </div>
 
           <div className="space-y-3">
-            <ScoreBar label="Bentuk tangan" value={gestureScore.handshape} />
-            <ScoreBar label="Gerakan" value={gestureScore.movement} />
-            <ScoreBar label="Orientasi" value={gestureScore.orientation} />
-            <ScoreBar label="Dalam bingkai" value={gestureScore.position} />
-            <ScoreBar label="Koordinasi" value={gestureScore.coordination} />
+            <QualitativeMetric
+              label="Bentuk tangan"
+              value={gestureScore.handshape}
+            />
+            <QualitativeMetric label="Gerakan" value={gestureScore.movement} />
+            <QualitativeMetric
+              label="Arah telapak"
+              value={gestureScore.orientation}
+            />
+            <QualitativeMetric
+              label="Dalam bingkai"
+              value={gestureScore.position}
+            />
+            <QualitativeMetric
+              label="Koordinasi"
+              value={gestureScore.coordination}
+            />
           </div>
 
           <div className="mt-5 border-t border-signal-navy/10 pt-4">
-            <ScoreBar
+            <QualitativeMetric
               label="Kualitas deteksi"
               value={gestureScore.detectionQuality}
+              detection
             />
           </div>
 
@@ -1071,7 +1059,7 @@ export function CameraPractice({
           </div>
         </aside>
       ) : (
-        <aside className="border-t-4 border-signal-yellow bg-card p-6">
+        <aside className="self-start border-t-4 border-signal-yellow bg-card p-6">
           <div className="mb-7 flex items-center justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.13em] text-amber-700">
@@ -1239,16 +1227,14 @@ function readFrameLighting(
 }
 
 function getReferenceTiming(frames: GestureFrame[]) {
-  const visibleFrames = frames.filter((frame) => frame.hands.length > 0);
-  if (visibleFrames.length < 2) {
+  const gestureWindow = getReferenceGestureWindow(frames);
+  if (!gestureWindow) {
     return { startMs: 0, durationMs: FALLBACK_RECORDING_DURATION_MS };
   }
 
-  const startMs = visibleFrames[0].timeMs;
+  const startMs = gestureWindow.startMs;
   const visibleDuration =
-    visibleFrames[visibleFrames.length - 1].timeMs -
-    startMs +
-    REFERENCE_SAMPLE_INTERVAL_MS;
+    gestureWindow.endMs - startMs + REFERENCE_SAMPLE_INTERVAL_MS;
   return {
     startMs,
     durationMs: Math.round(
@@ -1263,26 +1249,56 @@ function getReferenceTiming(frames: GestureFrame[]) {
   };
 }
 
-function ScoreBar({ label, value }: { label: string; value: number }) {
+function practiceResultLabel(score: GestureScore) {
+  if (score.passed) return 'Sudah sesuai';
+  return score.overall >= 50 ? 'Hampir sesuai' : 'Coba lagi';
+}
+
+function QualitativeMetric({
+  label,
+  value,
+  detection = false,
+}: {
+  label: string;
+  value: number;
+  detection?: boolean;
+}) {
+  const state =
+    value >= 75
+      ? detection
+        ? 'Stabil'
+        : 'Baik'
+      : value >= 50
+        ? detection
+          ? 'Cukup'
+          : 'Mendekati'
+        : 'Perlu diperbaiki';
   return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between text-xs font-bold">
-        <span className="text-signal-navy">{label}</span>
-        <span className="text-muted-foreground">{value}</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div
+    <div className="flex items-center justify-between gap-3 text-xs font-bold">
+      <span className="text-signal-navy">{label}</span>
+      <span
+        className={cn(
+          'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1',
+          value >= 75
+            ? 'bg-signal-teal-soft text-emerald-800'
+            : value >= 50
+              ? 'bg-signal-yellow/25 text-amber-800'
+              : 'bg-signal-coral/10 text-signal-coral',
+        )}
+      >
+        <span
           className={cn(
-            'h-full rounded-full transition-all duration-500',
+            'size-1.5 rounded-full',
             value >= 75
               ? 'bg-signal-teal'
               : value >= 50
                 ? 'bg-signal-yellow'
                 : 'bg-signal-coral',
           )}
-          style={{ width: `${value}%` }}
+          aria-hidden="true"
         />
-      </div>
+        {state}
+      </span>
     </div>
   );
 }

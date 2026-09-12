@@ -49,6 +49,11 @@ const TWO_HAND_REFERENCE_RATIO = 0.6;
 const MIN_ATTEMPT_WINDOW_RATIO = 0.55;
 const MAX_ATTEMPT_BOUNDARY_TRIM_RATIO = 0.3;
 const MAX_BOUNDARY_CANDIDATES = 20;
+const MAX_REFERENCE_BOUNDARY_SCAN_RATIO = 0.35;
+const MIN_REFERENCE_CORE_RATIO = 0.55;
+const REFERENCE_SETTLED_STEP_SCALE = 0.8;
+const REFERENCE_SETTLED_STEPS = 2;
+const MIN_REFERENCE_BOUNDARY_TRAVEL_SCALE = 1.5;
 
 export function scoreGesture(
   referenceFrames: GestureFrame[],
@@ -58,11 +63,12 @@ export function scoreGesture(
   const rawAttempt = prepareSequence(attemptFrames);
   const requiredHandCount = getRequiredHandCountFromPrepared(rawReference);
   const primaryHandedness = getPrimaryHandedness(rawReference);
-  const reference = selectRequiredHands(
+  const selectedReference = selectRequiredHands(
     rawReference,
     requiredHandCount,
     primaryHandedness,
   ).filter((frame) => frame.hands.length === requiredHandCount);
+  const reference = trimReferenceSetupAndExit(selectedReference);
   const directAttempt = selectRequiredHands(
     rawAttempt,
     requiredHandCount,
@@ -333,6 +339,23 @@ export function getRequiredHandCount(frames: GestureFrame[]) {
   return getRequiredHandCountFromPrepared(prepareSequence(frames));
 }
 
+export function getReferenceGestureWindow(frames: GestureFrame[]) {
+  const prepared = prepareSequence(frames);
+  if (!prepared.length) return null;
+  const requiredHandCount = getRequiredHandCountFromPrepared(prepared);
+  const selected = selectRequiredHands(
+    prepared,
+    requiredHandCount,
+    getPrimaryHandedness(prepared),
+  ).filter((frame) => frame.hands.length === requiredHandCount);
+  const gesture = trimReferenceSetupAndExit(selected);
+  if (gesture.length < 2) return null;
+  return {
+    startMs: gesture[0].timeMs,
+    endMs: gesture[gesture.length - 1].timeMs,
+  };
+}
+
 function getRequiredHandCountFromPrepared(frames: PreparedFrame[]) {
   const visibleFrames = frames.filter((frame) => frame.hands.length > 0);
   if (!visibleFrames.length) return 1;
@@ -370,6 +393,88 @@ function selectRequiredHands(
       (frame.hands.length === 1 ? frame.hands[0] : undefined);
     return { ...frame, hands: primary ? [primary] : [] };
   });
+}
+
+function trimReferenceSetupAndExit(sequence: PreparedFrame[]) {
+  if (sequence.length < MIN_VISIBLE_FRAMES + REFERENCE_SETTLED_STEPS * 2)
+    return sequence;
+
+  const handScale = median(
+    sequence.flatMap((frame) => frame.hands.map((hand) => hand.screenScale)),
+  );
+  const positions = sequence.map(
+    (frame) =>
+      [
+        average(frame.hands.map((hand) => hand.wrist[0])),
+        average(frame.hands.map((hand) => hand.wrist[1])),
+      ] as Vector2,
+  );
+  const settledStep = handScale * REFERENCE_SETTLED_STEP_SCALE;
+  const minimumBoundaryTravel = handScale * MIN_REFERENCE_BOUNDARY_TRAVEL_SCALE;
+  const scanFrames = Math.min(
+    Math.floor(sequence.length * MAX_REFERENCE_BOUNDARY_SCAN_RATIO),
+    sequence.length - MIN_VISIBLE_FRAMES,
+  );
+
+  const isSettledAfter = (index: number) =>
+    Array.from({ length: REFERENCE_SETTLED_STEPS }, (_, offset) =>
+      distanceArrays(positions[index + offset], positions[index + offset + 1]),
+    ).every((distance) => distance <= settledStep);
+  const isSettledBefore = (index: number) =>
+    Array.from({ length: REFERENCE_SETTLED_STEPS }, (_, offset) =>
+      distanceArrays(positions[index - offset], positions[index - offset - 1]),
+    ).every((distance) => distance <= settledStep);
+
+  let start = 0;
+  for (let index = 1; index <= scanFrames; index += 1) {
+    if (
+      index + REFERENCE_SETTLED_STEPS < sequence.length &&
+      positions[0][1] - positions[index][1] > minimumBoundaryTravel &&
+      isSettledAfter(index)
+    ) {
+      start = index;
+      break;
+    }
+  }
+
+  let end = sequence.length - 1;
+  for (
+    let index = sequence.length - 2;
+    index >= sequence.length - 1 - scanFrames;
+    index -= 1
+  ) {
+    if (
+      index - REFERENCE_SETTLED_STEPS >= 0 &&
+      positions[sequence.length - 1][1] - positions[index][1] >
+        minimumBoundaryTravel &&
+      isSettledBefore(index)
+    ) {
+      end = index;
+      break;
+    }
+  }
+
+  // Reference videos start and end with the signer lifting a relaxed hand from
+  // below the camera. Remove those transitions only when they travel clearly
+  // upward/downward by more than a palm-sized distance. This keeps lexical
+  // motion, including signs that intentionally move down, inside the window.
+  const trimStart =
+    start > 0 && positions[0][1] - positions[start][1] >= minimumBoundaryTravel
+      ? start
+      : 0;
+  const trimEnd =
+    end < sequence.length - 1 &&
+    positions.at(-1)![1] - positions[end][1] >= minimumBoundaryTravel
+      ? end
+      : sequence.length - 1;
+  const candidate = sequence.slice(trimStart, trimEnd + 1);
+  return candidate.length >=
+    Math.max(
+      MIN_VISIBLE_FRAMES,
+      Math.ceil(sequence.length * MIN_REFERENCE_CORE_RATIO),
+    ) && hasEnoughDuration(candidate)
+    ? candidate
+    : sequence;
 }
 
 function swapHandedness(frames: PreparedFrame[]): PreparedFrame[] {

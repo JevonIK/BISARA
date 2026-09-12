@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
   getRequiredHandCount,
+  getReferenceGestureWindow,
   hasUsableReference,
   scoreGesture,
   type GestureFrame,
@@ -38,6 +39,42 @@ function sequence(deformation = 0, direction = 1) {
   );
 }
 
+function moveVertically(item: GestureFrame, deltaY: number, timeMs: number) {
+  return {
+    ...item,
+    timeMs,
+    hands: item.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point) => ({
+        ...point,
+        y: point.y + deltaY,
+      })),
+      worldLandmarks: hand.worldLandmarks?.map((point) => ({
+        ...point,
+        y: point.y + deltaY,
+      })),
+    })),
+  };
+}
+
+function referenceWithLowerEdgeSetup() {
+  const core = sequence().map((item) => ({
+    ...item,
+    timeMs: item.timeMs + 480,
+  }));
+  const entry = [0.3, 0.24, 0.18, 0.12, 0.06, 0].map((deltaY, index) =>
+    moveVertically(core[0], deltaY, index * 80),
+  );
+  const exit = [0, 0.06, 0.12, 0.18, 0.24, 0.3].map((deltaY, index) =>
+    moveVertically(
+      core.at(-1)!,
+      deltaY,
+      core.at(-1)!.timeMs + (index + 1) * 80,
+    ),
+  );
+  return [...entry, ...core, ...exit];
+}
+
 void test('identical temporal gestures receive a near-perfect score', () => {
   const result = scoreGesture(sequence(), sequence());
   assert.ok(result.overall >= 99);
@@ -55,6 +92,21 @@ void test('reversed trajectory lowers movement score', () => {
   const result = scoreGesture(sequence(), sequence(0, -1));
   assert.ok(result.movement < 80);
   assert.equal(result.passed, false, JSON.stringify(result));
+});
+
+void test('reference setup and exit from the lower camera edge are excluded', () => {
+  const reference = referenceWithLowerEdgeSetup();
+  const gestureWindow = getReferenceGestureWindow(reference);
+  assert.ok(gestureWindow);
+  assert.ok(gestureWindow.startMs > reference[0].timeMs);
+  assert.ok(gestureWindow.endMs < reference.at(-1)!.timeMs);
+
+  const matchingCore = scoreGesture(reference, sequence());
+  assert.equal(matchingCore.passed, true, JSON.stringify(matchingCore));
+  assert.ok(matchingCore.movement >= 80, JSON.stringify(matchingCore));
+
+  const reversedCore = scoreGesture(reference, sequence(0, -1));
+  assert.equal(reversedCore.passed, false, JSON.stringify(reversedCore));
 });
 
 function mirror(frames: GestureFrame[]): GestureFrame[] {
