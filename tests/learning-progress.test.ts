@@ -23,8 +23,8 @@ import {
 void test('mission stages unlock only after their real prerequisite', () => {
   const unlockedProgress = {
     ...emptyAccountProgress,
-    completedMissions: 2,
-    completedMissionIds: ['saya-dan-kamu', 'sapaan-waktu'],
+    completedMissions: 0,
+    completedMissionIds: [],
   };
   const initial = getBerkenalanLearningState(unlockedProgress);
   assert.equal(initial.masteredSignCount, 0);
@@ -54,7 +54,7 @@ void test('mission stages unlock only after their real prerequisite', () => {
   const unrelatedScore = getBerkenalanLearningState({
     ...allSignsPassed,
     bestChapterScore: 100,
-    missionScores: { 'saya-dan-kamu': 100 },
+    missionScores: { 'orang-terdekat': 100 },
   });
   assert.equal(
     unrelatedScore.recognitionComplete,
@@ -134,7 +134,7 @@ void test('recognition questions use unique options and rotate balanced checkpoi
     );
     const expectedCount =
       mission.type === 'checkpoint'
-        ? mission.id === 'checkpoint-komunikasi'
+        ? mission.id === 'checkpoint-percakapan'
           ? 8
           : Math.min(6, mission.signIds.length)
         : mission.signIds.length;
@@ -155,19 +155,19 @@ void test('recognition questions use unique options and rotate balanced checkpoi
   }
 
   const finalCheckpoint = buildRecognitionQuestions(
-    getMission('checkpoint-komunikasi'),
+    getMission('checkpoint-percakapan'),
     0,
   );
   assert.equal(finalCheckpoint.length, 8);
 });
 
 void test('missions unlock in curriculum order', () => {
-  assert.equal(isMissionUnlocked('saya-dan-kamu', emptyAccountProgress), true);
-  assert.equal(isMissionUnlocked('sapaan-waktu', emptyAccountProgress), false);
+  assert.equal(isMissionUnlocked('berkenalan', emptyAccountProgress), true);
+  assert.equal(isMissionUnlocked('orang-terdekat', emptyAccountProgress), false);
   assert.equal(
-    isMissionUnlocked('sapaan-waktu', {
+    isMissionUnlocked('orang-terdekat', {
       ...emptyAccountProgress,
-      completedMissionIds: ['saya-dan-kamu'],
+      completedMissionIds: ['berkenalan'],
       completedMissions: 1,
     }),
     true,

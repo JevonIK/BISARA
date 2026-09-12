@@ -12,12 +12,13 @@ SIGN_IDS = {
     "siang", "sore", "malam",
 }
 MISSION_IDS = {
-    "saya-dan-kamu", "sapaan-waktu", "berkenalan", "minta-pengulangan",
-    "checkpoint-kenalan", "makan-dan-minum", "belajar-dan-mengingat",
-    "rencana-hari-ini", "datang-dan-berangkat", "checkpoint-aktivitas",
-    "mencari-tempat", "bertanya-arah", "waktu-perjalanan", "naik-motor",
-    "checkpoint-perjalanan", "keluarga-dan-rumah", "warna-dasar",
-    "dengar-dan-tuli", "deskripsi-sekitar", "checkpoint-komunikasi",
+    "berkenalan", "orang-terdekat", "tuli-dan-dengar", "bersikap-sopan",
+    "checkpoint-kenalan", "bertanya-apa", "waktu-dan-tempat",
+    "alasan-dan-cara", "cari-dan-pahami", "checkpoint-informasi",
+    "makan-dan-minum", "belajar-di-rumah", "pergi-beraktivitas",
+    "datang-hari-ini", "checkpoint-aktivitas", "pagi-dan-siang",
+    "sore-dan-malam", "mengenal-warna", "mendeskripsikan-pilihan",
+    "checkpoint-percakapan",
 }
 
 
