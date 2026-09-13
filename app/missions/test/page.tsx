@@ -8,13 +8,13 @@ import { getChapterForMission, getMission } from '@/lib/learning-data';
 
 export const metadata: Metadata = {
   title: 'Uji Misi BISINDO',
-  description: 'Uji pengenalan tanda dan penerapannya dalam konteks.',
+  description: 'Uji pengenalan tanda dan latihan mengingat tanpa contoh.',
 };
 
 export default async function MissionTestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mission?: string; mode?: string }>;
+  searchParams: Promise<{ mission?: string; mode?: string; replay?: string }>;
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
@@ -35,11 +35,12 @@ export default async function MissionTestPage({
             {mission.number}
           </p>
           <h1 className="mt-3 max-w-4xl text-4xl font-black leading-[1.08] tracking-[-0.05em] text-signal-navy sm:text-5xl">
-            Kenali tandanya, lalu pilih respons dalam konteks.
+            Kenali tandanya, lalu coba dari ingatan.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-            {mission.title}: skor pengenalan minimal 70 membuka latihan
-            penerapan terpandu.
+            {params.replay === '1'
+              ? `${mission.title}: ulangi uji pengenalan untuk memperkuat ingatan. Progres misi dan nilai terbaik tetap tersimpan.`
+              : `${mission.title}: selesaikan Tirukan, lalu capai minimal 70 pada uji pengenalan untuk menyelesaikan misi. Latihan mengingat tersedia sebagai penguatan opsional.`}
           </p>
         </header>
         <MissionAssessment missionId={mission.id} initialMode={params.mode} />

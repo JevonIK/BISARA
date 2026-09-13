@@ -5,9 +5,10 @@ import {
   Hand,
   Info,
   Languages,
-  MessageCircleMore,
+  Brain,
   MoveRight,
   ShieldCheck,
+  RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,7 +27,12 @@ export const metadata: Metadata = {
 export default async function PracticePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mission?: string; sign?: string; source?: string }>;
+  searchParams: Promise<{
+    mission?: string;
+    sign?: string;
+    source?: string;
+    replay?: string;
+  }>;
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
@@ -41,6 +47,7 @@ export default async function PracticePage({
   const referenceVideoId = `${mission.id}-${sign.id}-reference-video`;
   const referenceVideoUrl = versionedSignVideo(sign.videoSrc);
   const reviewMode = params.source === 'review';
+  const replayMode = params.replay === '1';
 
   return (
     <main className="min-h-screen bg-background">
@@ -65,20 +72,26 @@ export default async function PracticePage({
               >
                 Tahap Tirukan
               </Badge>
+              {replayMode ? (
+                <Badge className="bg-signal-yellow text-signal-navy">
+                  <RotateCcw className="size-3" /> Mode ulang misi
+                </Badge>
+              ) : null}
             </div>
             <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] text-signal-navy sm:text-5xl">
               Latih tanda “{sign.label}”
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Amati contoh, aktifkan kamera, bersiap selama hitung mundur, lalu
-              ikuti gerakan sampai indikator rekaman selesai.
+              {replayMode
+                ? 'Ulangi tanda sesuai urutanmu. Progres yang sudah dicapai dan nilai terbaik tetap tersimpan.'
+                : 'Amati contoh, aktifkan kamera, bersiap selama hitung mundur, lalu ikuti gerakan sampai indikator rekaman selesai.'}
             </p>
           </div>
           <ol
             className="flex items-center gap-2"
             aria-label="Tahap pembelajaran"
           >
-            {[Check, Hand, Languages, MessageCircleMore].map((Icon, index) => (
+            {[Check, Hand, Languages, Brain].map((Icon, index) => (
               <li key={index} className="flex items-center gap-2">
                 <span
                   className={`grid size-10 place-items-center rounded-full border ${index === 0 ? 'border-signal-teal bg-signal-teal' : index === 1 ? 'border-signal-yellow bg-signal-yellow' : 'border-signal-navy/10 bg-muted text-muted-foreground'}`}

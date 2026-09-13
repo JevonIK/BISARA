@@ -12,7 +12,6 @@ export const RECOGNITION_PASS_SCORE = 70;
 export type LearningStageState = 'completed' | 'current' | 'locked';
 
 export function isMissionUnlocked(missionId: string, progress: UserProgress) {
-  if (missionId === 'checkpoint-kenalan') return true;
   const index = getMissionPosition(missionId);
   return (
     index <= 0 ||
@@ -40,10 +39,10 @@ export function getMissionLearningState(
   const recognitionScore = progress.missionScores[mission.id] ?? 0;
   const recognitionComplete =
     practiceComplete && recognitionScore >= RECOGNITION_PASS_SCORE;
-  const conversationComplete =
-    recognitionComplete &&
-    (progress.completedMissionIds.includes(mission.id) ||
-      (progress.conversationCompletionsByMission[mission.id] ?? 0) > 0);
+  const missionComplete = recognitionComplete;
+  const recallPracticedCount = missionSigns.filter(
+    (sign) => progress.signMastery[sign.id]?.recall,
+  ).length;
   const nextSign = missionSigns.find(
     (sign) => !progress.signMastery[sign.id]?.passed,
   );
@@ -56,17 +55,15 @@ export function getMissionLearningState(
             (masteredSignIds.length / Math.max(1, missionSigns.length)) * 45,
           )
         : 0;
-  const progressPercent = conversationComplete
+  const progressPercent = missionComplete
     ? 100
-    : recognitionComplete
-      ? 85
-      : practiceComplete
-        ? 65
-        : basePractice;
+    : practiceComplete
+      ? 65
+      : basePractice;
   const missionQuery = `mission=${mission.id}`;
   const next = !isMissionUnlocked(mission.id, progress)
     ? { href: '/missions', label: 'Selesaikan misi sebelumnya' }
-    : nextSign
+    : nextSign && !practiceComplete
       ? {
           href: `/missions/practice?${missionQuery}&sign=${nextSign.id}`,
           label:
@@ -79,12 +76,7 @@ export function getMissionLearningState(
             href: `/missions/test?${missionQuery}&mode=recognition`,
             label: 'Mulai uji pengenalan',
           }
-        : !conversationComplete
-          ? {
-              href: `/missions/test?${missionQuery}&mode=context`,
-              label: 'Terapkan dalam konteks',
-            }
-          : getNextMissionAction(mission.id);
+        : getNextMissionAction(mission.id);
 
   return {
     mission,
@@ -95,7 +87,10 @@ export function getMissionLearningState(
     practiceComplete,
     recognitionScore,
     recognitionComplete,
-    conversationComplete,
+    missionComplete,
+    // Compatibility for consumers of the former context stage.
+    conversationComplete: missionComplete,
+    recallPracticedCount,
     progressPercent,
     unlocked: isMissionUnlocked(mission.id, progress),
     next,
@@ -107,6 +102,26 @@ function getNextMissionAction(missionId: string) {
   return nextMission
     ? { href: nextMission.href, label: `Lanjut: ${nextMission.title}` }
     : { href: '/review', label: 'Perkuat lewat review' };
+}
+
+/**
+ * Replaying never resets mastery or rewards. It only chooses the first useful
+ * activity so learners can revisit a finished mission without losing progress.
+ */
+export function getMissionReplayAction(missionOrId: Mission | string) {
+  const mission =
+    typeof missionOrId === 'string' ? getMission(missionOrId) : missionOrId;
+  const missionQuery = `mission=${mission.id}`;
+
+  return mission.type === 'checkpoint'
+    ? {
+        href: `/missions/test?${missionQuery}&mode=recognition&replay=1`,
+        label: 'Ulangi uji pengenalan',
+      }
+    : {
+        href: `/missions/practice?${missionQuery}&sign=${mission.signIds[0]}&replay=1`,
+        label: 'Ulangi misi dari awal',
+      };
 }
 
 export function getBerkenalanLearningState(progress: UserProgress) {

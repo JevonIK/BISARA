@@ -1,8 +1,39 @@
 # BISARA
 
 BISARA is a gamified BISINDO learning platform focused on practical, real-world
-communication. Learners progress from recognizing a sign, to imitating it with
-camera-assisted feedback, to using it in a conversation scenario.
+communication. Learners observe signs, imitate with camera feedback, and test
+recognition. Independent recall and spaced review then reinforce vocabulary.
+
+## Current learning flow (September 2026)
+
+- The active curriculum has 4 chapters, 20 missions, and all 32 dataset words.
+- Required flow: **Amati → Tirukan → Uji pengenalan**. After practice is
+  complete, a recognition score of at least 70 completes the mission and unlocks
+  the next one. Checkpoints test recognition without mandatory camera repeats.
+- **Ingat & peragakan** is optional reinforcement, with up to 3 words including
+  previously learned material when available. The learner physically tries the
+  sign before opening the comparison video, or explicitly requests help.
+- Outcomes are self-reported as independent, assisted, or needing practice.
+  They never change checker scores or imply verified production mastery.
+- Review returns learned words when due, up to 5 a day. Independent recall on
+  separate days grows intervals through 1/3/7/14/30 days; help or difficulty
+  schedules tomorrow. First daily recall per word earns 10 XP; repeated clicks
+  do not increase spacing or award the same daily XP again.
+- Existing completion records are preserved. Previously passed practice and
+  recognition qualify without repeating the retired situation quiz. Legacy
+  `mode=context` and `mode=conversation` links open the optional recall flow.
+- Important files: `lib/learning-progress.ts` (mission gates),
+  `lib/progress-storage.ts` (completion and recall scheduling),
+  `components/mission-assessment.tsx` (recognition),
+  `components/recall-practice.tsx` (hidden example and self-assessment), and
+  `components/review-quest.tsx` (due review queue).
+- Recall history lives in optional `signMastery[id].recall`, alongside the
+  existing checker record. The API schema accepts it in the existing JSONB
+  column; no database migration is required. Restart/rebuild the API to use the
+  updated schema before syncing recall history.
+
+The milestones below describe earlier iterations; the current flow above
+supersedes their scenario-completion and review requirements.
 
 ## Implemented milestones
 
@@ -240,14 +271,14 @@ and deployment requirements.
 - `/missions` — complete learning journey
 - `/missions/berkenalan` — active mission detail
 - `/missions/berkenalan/practice` — camera and hand-landmark practice
-- `/missions/berkenalan/test` — chapter test and branching conversation
+- `/missions/test?mission=berkenalan` — recognition and optional recall
 - `/progress` — activity, mastery, scores, and badge dashboard
-- `/review` — daily sign-review quest
+- `/review` — due vocabulary recall and spaced review
 - `/account` — registration, login, logout, and sync management
 
 ## Product principles
 
-1. Teach communication scenarios, not isolated memorization.
+1. Make each activity practice an explicit skill; isolated vocabulary practice does not establish conversational competence.
 2. Keep regional BISINDO scope explicit.
 3. Involve Deaf language experts in content validation and release decisions.
 4. Process camera input locally by default whenever the device supports it.

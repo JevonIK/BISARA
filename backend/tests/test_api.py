@@ -151,3 +151,23 @@ def test_password_hash_and_secret_validation():
     assert not verify_password("incorrect", encoded)
     with pytest.raises(ValidationError):
         Settings(secret_key="too-short")
+
+
+async def test_recall_history_roundtrips_without_changing_checker_mastery(client):
+    await register(client)
+    original = (await client.get(f"{PREFIX}/progress")).json()
+    sign = {
+        "bestScore": 82, "passed": True, "attempts": 2, "lastPracticedAt": "",
+        "recall": {
+            "independentAttempts": 1, "assistedAttempts": 2, "needsPracticeAttempts": 1,
+            "lastOutcome": "assisted", "lastPracticedAt": "2026-09-12",
+            "nextReviewAt": "2026-09-13", "intervalDays": 1,
+        },
+    }
+    saved = await client.put(f"{PREFIX}/progress", json=writable(original, signMastery={"teman": sign}))
+    assert saved.status_code == 200, saved.text
+    restored = (await client.get(f"{PREFIX}/progress")).json()
+    assert restored["signMastery"]["teman"] == sign
+    invalid = {**sign, "recall": {**sign["recall"], "lastOutcome": "perfect"}}
+    rejected = await client.put(f"{PREFIX}/progress", json=writable(restored, signMastery={"teman": invalid}))
+    assert rejected.status_code == 422

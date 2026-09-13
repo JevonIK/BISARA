@@ -6,6 +6,7 @@ import {
 
 export type MissionStatus = 'completed' | 'current' | 'locked';
 
+/** Legacy scenario content; the active flow uses recognition and optional recall. */
 export type ContextChallenge = {
   id: string;
   cueSignId: SignId;
@@ -239,7 +240,7 @@ export const chapters: Chapter[] = [
         'checkpoint-kenalan',
         '05',
         'Tantangan: Kenalan Baru',
-        'Menggabungkan kemampuan dari seluruh Bab 01 dalam satu rangkaian situasi perkenalan.',
+        'Menguji pengenalan kosakata relasi dan perkenalan dari Bab 01 tanpa label.',
         [
           'saya',
           'siapa',
@@ -426,7 +427,7 @@ export const chapters: Chapter[] = [
         'checkpoint-informasi',
         '10',
         'Tantangan: Mencari Informasi',
-        'Menyelesaikan rangkaian situasi ketika pengguna perlu mendapatkan atau memperjelas informasi.',
+        'Menguji pengenalan kata tanya dan kosakata untuk mencari informasi.',
         [
           'apa',
           'kapan',
@@ -598,7 +599,7 @@ export const chapters: Chapter[] = [
         'checkpoint-aktivitas',
         '15',
         'Tantangan: Sehari Beraktivitas',
-        'Menggabungkan aktivitas sehari-hari dalam beberapa situasi yang saling berhubungan.',
+        'Menguji pengenalan kosakata aktivitas sehari-hari dari bab ini.',
         [
           'rumah',
           'berangkat',
@@ -784,8 +785,8 @@ export const chapters: Chapter[] = [
       checkpoint(
         'checkpoint-percakapan',
         '20',
-        'Tantangan Akhir: Percakapan',
-        'Menggabungkan kemampuan dari keempat bab dalam beberapa situasi komunikasi sederhana.',
+        'Tantangan Akhir: Kosakata',
+        'Menguji pengenalan campuran kosakata dari keempat bab, lalu memperkuat tanda yang masih sulit.',
         [...allSignIds],
         'Percakapan akhir menyeluruh',
         [
