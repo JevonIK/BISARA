@@ -740,7 +740,7 @@ export function CameraPractice({
   return (
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
       <section className="overflow-hidden border border-signal-navy/10 bg-signal-navy">
-        <div className="relative aspect-video min-h-[360px] bg-[#0d1128]">
+        <div className="relative aspect-video bg-[#0d1128] sm:min-h-[360px]">
           <video
             ref={videoRef}
             className={cn(
