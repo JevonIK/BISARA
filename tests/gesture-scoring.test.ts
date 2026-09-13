@@ -166,6 +166,21 @@ void test('two-hand identity survives confidence and array order changes', () =>
   assert.equal(scoreGesture(reference, mirror(reference)).overall, 100);
 });
 
+void test('single-hand identity survives intermittent detector handedness flips', () => {
+  const reference = sequence();
+  const attempt = structuredClone(reference).map((item, index) => ({
+    ...item,
+    hands: item.hands.map((hand) => ({
+      ...hand,
+      handedness: index % 2 === 0 ? 'Left' : 'Right',
+    })),
+  }));
+
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.overall >= 95, JSON.stringify(result));
+});
+
 void test('two-hand identity survives intermittent detector handedness flips', () => {
   const reference = twoHandSequence();
   const attempt = structuredClone(reference).map((item, index) => ({

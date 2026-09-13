@@ -372,7 +372,7 @@ function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
     )
   )
     return [];
-  const identityStableFrames = stabilizeTwoHandIdentities(frames);
+  const identityStableFrames = stabilizeHandIdentities(frames);
   const prepared = identityStableFrames.map((frame) => {
     const hands = frame.hands
       .map(prepareHand)
@@ -409,6 +409,74 @@ function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
   let last = prepared.length - 1;
   while (!prepared[last].hands.length) last -= 1;
   return prepared.slice(first, last + 1);
+}
+
+function stabilizeHandIdentities(frames: GestureFrame[]): GestureFrame[] {
+  const twoHandStabilized = stabilizeTwoHandIdentities(frames);
+
+  // If the sequence is predominantly single-hand, stabilize the single hand's identity
+  // to avoid MediaPipe's palm-up / edge-on handedness jitter (which flips 'Left'/'Right'
+  // between frames, causing sporadic horizontal mirroring inside the same sign).
+  const singleHandFrames = twoHandStabilized.filter((f) => f.hands.length === 1);
+  if (!singleHandFrames.length) return twoHandStabilized;
+
+  const twoHandFrames = twoHandStabilized.filter((f) => f.hands.length >= 2);
+  const isPredominantlySingleHand =
+    singleHandFrames.length > twoHandFrames.length;
+
+  if (isPredominantlySingleHand) {
+    const counts = { left: 0, right: 0 };
+    for (const frame of singleHandFrames) {
+      const label = frame.hands[0].handedness.toLowerCase();
+      if (label === 'left' || label === 'right') {
+        counts[label] += 1;
+      }
+    }
+    const dominant = counts.right >= counts.left ? 'Right' : 'Left';
+    return twoHandStabilized.map((frame) => {
+      if (frame.hands.length === 1) {
+        return {
+          ...frame,
+          hands: [{ ...frame.hands[0], handedness: dominant }],
+        };
+      }
+      return frame;
+    });
+  }
+
+  // In a two-hand sequence, resolve single-hand frames based on proximity to previous positions
+  let lastKnown: Record<'left' | 'right', Vector2> | null = null;
+  return twoHandStabilized.map((frame) => {
+    if (frame.hands.length === 2) {
+      const leftHand = frame.hands.find(
+        (h) => h.handedness.toLowerCase() === 'left',
+      );
+      const rightHand = frame.hands.find(
+        (h) => h.handedness.toLowerCase() === 'right',
+      );
+      if (leftHand?.landmarks[0] && rightHand?.landmarks[0]) {
+        lastKnown = {
+          left: [leftHand.landmarks[0].x, leftHand.landmarks[0].y],
+          right: [rightHand.landmarks[0].x, rightHand.landmarks[0].y],
+        };
+      }
+      return frame;
+    }
+    if (frame.hands.length === 1 && lastKnown) {
+      const wrist = frame.hands[0].landmarks[0];
+      if (wrist && Number.isFinite(wrist.x) && Number.isFinite(wrist.y)) {
+        const dLeft = distanceArrays([wrist.x, wrist.y], lastKnown.left);
+        const dRight = distanceArrays([wrist.x, wrist.y], lastKnown.right);
+        const assigned = dLeft <= dRight ? 'Left' : 'Right';
+        lastKnown[assigned.toLowerCase() as 'left' | 'right'] = [wrist.x, wrist.y];
+        return {
+          ...frame,
+          hands: [{ ...frame.hands[0], handedness: assigned }],
+        };
+      }
+    }
+    return frame;
+  });
 }
 
 function stabilizeTwoHandIdentities(frames: GestureFrame[]): GestureFrame[] {
