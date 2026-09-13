@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  HandLandmarker,
-  HandLandmarkerResult,
-} from '@mediapipe/tasks-vision';
+import type { HandLandmarker } from '@mediapipe/tasks-vision';
 import {
   ArrowRight,
   Camera,
@@ -28,6 +25,7 @@ import {
   getRequiredHandCount,
   getReferenceGestureWindow,
   scoreGesture,
+  smoothLiveHandObservations,
   type GestureFrame,
   type GestureScore,
   type HandObservation,
@@ -130,6 +128,7 @@ export function CameraPractice({
   // Scoring refs
   const referenceFramesRef = useRef<GestureFrame[]>([]);
   const frameBufferRef = useRef<GestureFrame[]>([]);
+  const smoothedHandsRef = useRef<HandObservation[]>([]);
   const recordingStartRef = useRef(0);
   const recordingDurationRef = useRef(FALLBACK_RECORDING_DURATION_MS);
   const referenceStartRef = useRef(0);
@@ -207,6 +206,7 @@ export function CameraPractice({
 
     const canvas = canvasRef.current;
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    smoothedHandsRef.current = [];
   }, []);
 
   const stopCamera = useCallback(() => {
@@ -381,12 +381,34 @@ export function CameraPractice({
 
           try {
             const results = currentLandmarker.detectForVideo(currentVideo, now);
+            const rawHands: HandObservation[] = results.landmarks.map(
+              (landmarks, i) => ({
+                landmarks: landmarks.map((landmark) => ({
+                  x: landmark.x,
+                  y: landmark.y,
+                  z: landmark.z,
+                })),
+                worldLandmarks: results.worldLandmarks[i]?.map((landmark) => ({
+                  x: landmark.x,
+                  y: landmark.y,
+                  z: landmark.z,
+                })),
+                handedness:
+                  results.handedness[i]?.[0]?.categoryName ?? 'Right',
+                confidence: results.handedness[i]?.[0]?.score ?? 0,
+              }),
+            );
+            const hands = smoothLiveHandObservations(
+              rawHands,
+              smoothedHandsRef.current,
+            );
+            smoothedHandsRef.current = hands;
             const overlay = canvasRef.current;
             if (overlay) {
-              drawHandLandmarks(overlay, currentVideo, results);
+              drawHandLandmarks(overlay, currentVideo, hands);
             }
 
-            const detectedHands = results.landmarks.length;
+            const detectedHands = hands.length;
             setHandCount((previous) =>
               previous === detectedHands ? previous : detectedHands,
             );
@@ -395,23 +417,6 @@ export function CameraPractice({
             if (practicePhaseRef.current === 'recording') {
               const elapsed = now - recordingStartRef.current;
               if (elapsed < recordingDurationRef.current) {
-                const hands: HandObservation[] = results.landmarks.map(
-                  (landmarks, i) => ({
-                    landmarks: landmarks.map((l) => ({
-                      x: l.x,
-                      y: l.y,
-                      z: l.z,
-                    })),
-                    worldLandmarks: results.worldLandmarks[i]?.map((l) => ({
-                      x: l.x,
-                      y: l.y,
-                      z: l.z,
-                    })),
-                    handedness:
-                      results.handedness[i]?.[0]?.categoryName ?? 'Right',
-                    confidence: results.handedness[i]?.[0]?.score ?? 0,
-                  }),
-                );
                 frameBufferRef.current.push({
                   timeMs: Math.round(elapsed),
                   hands,
@@ -1145,7 +1150,7 @@ function lightingLabel(status: LightingStatus) {
 function drawHandLandmarks(
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
-  results: HandLandmarkerResult,
+  hands: HandObservation[],
 ) {
   if (
     canvas.width !== video.videoWidth ||
@@ -1162,7 +1167,7 @@ function drawHandLandmarks(
   context.lineCap = 'round';
   context.lineJoin = 'round';
 
-  for (const landmarks of results.landmarks) {
+  for (const { landmarks } of hands) {
     context.strokeStyle = '#55c7b5';
     context.lineWidth = Math.max(3, canvas.width / 320);
 

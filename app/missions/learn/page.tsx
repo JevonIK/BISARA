@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Misi Belajar BISINDO',
   description:
-    'Pelajari tanda, latih dengan kamera, uji pengenalan, lalu gunakan dalam konteks.',
+    'Amati, tirukan, uji pengenalan, lalu perkuat ingatan dengan review berkala.',
 };
 
 export default async function MissionLearningPage({
@@ -134,14 +134,14 @@ export default async function MissionLearningPage({
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {mission.type === 'checkpoint'
-                ? 'Checkpoint menguji pengenalan dan pemilihan respons. Tanda yang lemah dapat diulang dari halaman review.'
+                ? 'Checkpoint menguji pengenalan tanda dari bab ini tanpa mengulang seluruh latihan kamera. Setelah lulus, misi selesai dan latihan mengingat tersedia.'
                 : 'Checker membandingkan landmark tanganmu dengan satu demonstrasi referensi. Skor menunjukkan kemiripan gerak tangan pada kamera, bukan penilaian bahasa oleh manusia.'}
             </p>
             <div className="mt-6 flex gap-3 border-t border-signal-navy/10 pt-5 text-xs leading-5 text-muted-foreground">
               <Info className="mt-0.5 size-4 shrink-0 text-emerald-700" />
-              Video referensi berasal dari WL-BISINDO variasi Banten. Kosakata,
-              skenario, dan ambang checker perlu divalidasi bersama pengajar dan
-              komunitas Tuli sebelum penggunaan formal.
+              Video referensi berasal dari WL-BISINDO variasi Banten. Kosakata
+              dan ambang checker perlu divalidasi bersama pengajar dan komunitas
+              Tuli sebelum penggunaan formal.
             </div>
           </aside>
         </section>
@@ -150,7 +150,7 @@ export default async function MissionLearningPage({
           <section className="pb-10">
             <div className="mb-6">
               <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-700">
-                Tahap 1 · Kenali
+                Tahap 1 · Amati
               </p>
               <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
                 Amati setiap tanda sebelum menirukan.
@@ -209,11 +209,11 @@ export default async function MissionLearningPage({
                 Alur misi
               </p>
               <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
-                Bantuan berkurang, lalu kesalahan diberi koreksi.
+                Selesaikan misi, lalu perkuat ingatan.
               </h2>
             </div>
             <p className="text-sm font-bold text-muted-foreground">
-              Kenali → Tirukan → Uji → Terapkan
+              Amati → Tirukan → Kenali · Penguatan: ingat & review
             </p>
           </div>
           <MissionStageList missionId={mission.id} />

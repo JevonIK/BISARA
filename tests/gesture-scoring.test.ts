@@ -6,6 +6,7 @@ import {
   getReferenceGestureWindow,
   hasUsableReference,
   scoreGesture,
+  smoothLiveHandObservations,
   type GestureFrame,
   type Point3,
 } from '../lib/gesture-scoring.ts';
@@ -163,6 +164,68 @@ void test('two-hand identity survives confidence and array order changes', () =>
   }));
   assert.equal(scoreGesture(reference, attempt).overall, 100);
   assert.equal(scoreGesture(reference, mirror(reference)).overall, 100);
+});
+
+void test('two-hand identity survives intermittent detector handedness flips', () => {
+  const reference = twoHandSequence();
+  const attempt = structuredClone(reference).map((item, index) => ({
+    ...item,
+    hands: item.hands.map((hand) => ({
+      ...hand,
+      handedness:
+        index >= 7 && index <= 15
+          ? hand.handedness === 'Right'
+            ? 'Left'
+            : 'Right'
+          : hand.handedness,
+    })),
+  }));
+
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.handshape >= 95, JSON.stringify(result));
+  assert.ok(result.orientation >= 95, JSON.stringify(result));
+  assert.ok(result.movement >= 95, JSON.stringify(result));
+});
+
+void test('two-hand reference survives duplicate handedness classifications', () => {
+  const attempt = twoHandSequence();
+  const reference = structuredClone(attempt).map((item, index) => ({
+    ...item,
+    hands: item.hands.map((hand) => ({
+      ...hand,
+      handedness: index >= 5 && index <= 19 ? 'Right' : hand.handedness,
+    })),
+  }));
+
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.handshape >= 95, JSON.stringify(result));
+  assert.ok(result.orientation >= 95, JSON.stringify(result));
+  assert.ok(result.movement >= 95, JSON.stringify(result));
+});
+
+void test('live landmark smoothing suppresses an overlap spike but follows hand motion', () => {
+  const previous = frame(0).hands;
+  const spiked = structuredClone(previous);
+  spiked[0].landmarks[8].x += 0.3;
+  const smoothedSpike = smoothLiveHandObservations(spiked, previous);
+  const retainedSpike =
+    smoothedSpike[0].landmarks[8].x - previous[0].landmarks[8].x;
+  assert.ok(retainedSpike > 0);
+  assert.ok(retainedSpike < 0.06, String(retainedSpike));
+
+  const moved = structuredClone(previous).map((hand) => ({
+    ...hand,
+    landmarks: hand.landmarks.map((landmark) => ({
+      ...landmark,
+      x: landmark.x + 0.1,
+    })),
+  }));
+  const smoothedMotion = smoothLiveHandObservations(moved, previous);
+  const retainedMotion =
+    smoothedMotion[0].landmarks[0].x - previous[0].landmarks[0].x;
+  assert.ok(retainedMotion > 0.075, String(retainedMotion));
 });
 
 void test('same path has the same score across frame rates and durations', () => {

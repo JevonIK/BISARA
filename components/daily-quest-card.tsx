@@ -15,7 +15,7 @@ export function DailyQuestCard() {
     userProgress.reviewedSigns.includes(id),
   ).length;
   const total = reviewSignIds.length;
-  const percentage = Math.round((completed / total) * 100);
+  const percentage = total ? Math.round((completed / total) * 100) : 0;
   const isComplete = completed === total;
 
   return (
@@ -36,21 +36,23 @@ export function DailyQuestCard() {
             variant="outline"
             className="h-7 border-signal-coral/20 px-3 text-signal-coral"
           >
-            {isComplete ? 'Selesai' : '+100 XP'}
+            {isComplete
+              ? 'Tidak ada yang tertunda'
+              : `${total - completed} tanda`}
           </Badge>
         </div>
         <p className="text-xs font-black uppercase tracking-[0.15em] text-signal-coral">
-          Daily quest
+          Review berkala
         </p>
         <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
           {isComplete
             ? 'Latihan hari ini sudah selesai'
-            : 'Ulangi 5 tanda yang perlu diperkuat'}
+            : `Ingat kembali ${total - completed} tanda`}
         </h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {isComplete
-            ? 'Kamu mempertahankan ritme latihan dan mendapatkan bonus harian.'
-            : 'Fokus hari ini: posisi tangan dan arah gerakan.'}
+            ? 'Beri jeda sebelum mengulang. Kamu bisa melanjutkan materi berikutnya.'
+            : 'Coba tanpa contoh, lalu bandingkan dan catat bantuan yang dibutuhkan.'}
         </p>
       </div>
       <div className="mt-10">
@@ -66,7 +68,7 @@ export function DailyQuestCard() {
           href="/review"
           className="mt-6 flex w-full items-center justify-between border-t border-signal-navy/10 pt-5 text-left text-sm font-extrabold text-signal-navy transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {isComplete ? 'Lihat hasil quest' : 'Mulai quest'}
+          {isComplete ? 'Lihat jadwal review' : 'Mulai review'}
           <ArrowRight className="size-4" />
         </Link>
       </div>

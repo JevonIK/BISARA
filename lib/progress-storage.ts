@@ -9,7 +9,19 @@ import {
 } from '@/lib/account-cache';
 
 export type WeeklyActivity = { day: string; minutes: number };
+export type RecallOutcome = 'independent' | 'assisted' | 'needs-practice';
+export type RecallHistory = {
+  independentAttempts: number;
+  assistedAttempts: number;
+  needsPracticeAttempts: number;
+  lastOutcome: RecallOutcome;
+  lastPracticedAt: string;
+  nextReviewAt: string;
+  intervalDays: number;
+};
+
 export type SignMastery = {
+  recall?: RecallHistory;
   bestScore: number;
   passed: boolean;
   attempts: number;
@@ -129,21 +141,117 @@ export const emptyAccountProgress: UserProgress = {
   })),
 };
 
-export function getReviewSignIds(progress: UserProgress): SignId[] {
-  const attempted = signs.filter(
-    (sign) => progress.signMastery[sign.id].attempts > 0,
-  );
-  const candidates = attempted.length ? attempted : signs.slice(0, REVIEW_SIZE);
-  return [...candidates]
-    .sort((first, second) => {
-      const a = progress.signMastery[first.id];
-      const b = progress.signMastery[second.id];
-      if (a.passed !== b.passed) return a.passed ? 1 : -1;
-      if (a.bestScore !== b.bestScore) return a.bestScore - b.bestScore;
-      return a.lastPracticedAt.localeCompare(b.lastPracticedAt);
+export function getReviewSignIds(
+  progress: UserProgress,
+  now = new Date(),
+): SignId[] {
+  const today = localDateKey(now);
+  const done =
+    progress.reviewDate === today
+      ? progress.reviewedSigns.filter((id): id is SignId =>
+          signIds.includes(id as SignId),
+        )
+      : [];
+  const due = signs
+    .filter(({ id }) => {
+      const mastery = progress.signMastery[id];
+      return (
+        !done.includes(id) &&
+        (mastery?.attempts > 0 || mastery?.recall) &&
+        (!mastery.recall || mastery.recall.nextReviewAt <= today)
+      );
     })
-    .slice(0, REVIEW_SIZE)
-    .map((sign) => sign.id);
+    .sort((a, b) => {
+      const first = progress.signMastery[a.id];
+      const second = progress.signMastery[b.id];
+      const firstDue = first.recall?.nextReviewAt ?? '';
+      const secondDue = second.recall?.nextReviewAt ?? '';
+      return (
+        firstDue.localeCompare(secondDue) || first.bestScore - second.bestScore
+      );
+    });
+  return [...done, ...due.map((sign) => sign.id)].slice(0, REVIEW_SIZE);
+}
+
+export function getRecallSignIds(
+  progress: UserProgress,
+  missionId: string,
+): SignId[] {
+  const mission = getMission(missionId);
+  const current = [...mission.signIds].sort((a, b) => {
+    const first = progress.signMastery[a];
+    const second = progress.signMastery[b];
+    return (
+      (first?.recall?.lastPracticedAt ?? '').localeCompare(
+        second?.recall?.lastPracticedAt ?? '',
+      ) || (first?.bestScore ?? 0) - (second?.bestScore ?? 0)
+    );
+  });
+  const earlier = allMissions
+    .slice(0, allMissions.indexOf(mission))
+    .flatMap((item) => item.signIds);
+  const previous = getReviewSignIds(progress).find(
+    (id) => earlier.includes(id) && !current.includes(id),
+  );
+  return previous ? [...current.slice(0, 2), previous] : current.slice(0, 3);
+}
+
+export function nextRecallHistory(
+  previous: RecallHistory | undefined,
+  outcome: RecallOutcome,
+  now = new Date(),
+): RecallHistory {
+  const today = localDateKey(now);
+  const alreadyRecalledToday = previous?.lastPracticedAt.slice(0, 10) === today;
+  const intervals = [1, 3, 7, 14, 30];
+  const intervalDays =
+    outcome !== 'independent'
+      ? 1
+      : alreadyRecalledToday
+        ? previous!.intervalDays
+        : (intervals.find((days) => days > (previous?.intervalDays ?? 0)) ??
+          30);
+  const due = new Date(now);
+  due.setDate(due.getDate() + intervalDays);
+  return {
+    independentAttempts:
+      (previous?.independentAttempts ?? 0) + Number(outcome === 'independent'),
+    assistedAttempts:
+      (previous?.assistedAttempts ?? 0) + Number(outcome === 'assisted'),
+    needsPracticeAttempts:
+      (previous?.needsPracticeAttempts ?? 0) +
+      Number(outcome === 'needs-practice'),
+    lastOutcome: outcome,
+    // A local date keeps daily scheduling stable across UTC midnight.
+    lastPracticedAt: today,
+    nextReviewAt: localDateKey(due),
+    intervalDays,
+  };
+}
+
+export function recordRecallAttempt(signId: SignId, outcome: RecallOutcome) {
+  return updateProgress((progress) => {
+    const previous = progress.signMastery[signId];
+    const today = localDateKey(new Date());
+    const doneToday =
+      progress.reviewDate === today ? progress.reviewedSigns : [];
+    const firstToday = !doneToday.includes(signId);
+    return markActive({
+      ...progress,
+      signMastery: {
+        ...progress.signMastery,
+        [signId]: {
+          ...previous,
+          recall: nextRecallHistory(previous.recall, outcome),
+        },
+      },
+      reviewDate: today,
+      reviewedSigns: [...new Set([...doneToday, signId])],
+      xp: progress.xp + (firstToday ? 10 : 0),
+      totalPracticeMinutes: progress.totalPracticeMinutes + 1,
+      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 1),
+    });
+  });
 }
 
 export function getProgressSnapshot() {
@@ -164,6 +272,7 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
         const entry = stored.signMastery[signId];
         if (!entry || typeof entry !== 'object') continue;
         signMastery[signId] = {
+          recall: cleanRecallHistory(entry.recall),
           bestScore: clampScore(entry.bestScore),
           passed: entry.passed === true,
           attempts: Number.isFinite(entry.attempts)
@@ -219,10 +328,6 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
     }
     for (const missionId of completedMissionIds) {
       missionScores[missionId] = Math.max(missionScores[missionId] ?? 0, 70);
-      conversationCompletionsByMission[missionId] = Math.max(
-        conversationCompletionsByMission[missionId] ?? 0,
-        1,
-      );
     }
     const recordedConversationCompletions = Object.values(
       conversationCompletionsByMission,
@@ -231,6 +336,16 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
       0,
       ...Object.values(missionScores),
     );
+
+    for (const mission of allMissions) {
+      if (
+        (missionScores[mission.id] ?? 0) >= 70 &&
+        (mission.type === 'checkpoint' ||
+          mission.signIds.every((id) => signMastery[id].passed)) &&
+        !completedMissionIds.includes(mission.id)
+      )
+        completedMissionIds.push(mission.id);
+    }
 
     const progress: UserProgress = {
       ...defaultProgress,
@@ -295,17 +410,25 @@ export function recordMissionRecognition(
       Math.round((nextScore / 100) * 15) -
         Math.round((previousScore / 100) * 15),
     );
-    return markActive({
-      ...progress,
-      xp: progress.xp + xpGain,
-      bestChapterScore: Math.max(progress.bestChapterScore, nextScore),
-      lastChapterScore: clampScore(score),
-      chapterOneStars: Math.max(progress.chapterOneStars, stars) as StarRating,
-      testAttempts: progress.testAttempts + 1,
-      missionScores: { ...progress.missionScores, [missionId]: nextScore },
-      totalPracticeMinutes: progress.totalPracticeMinutes + 3,
-      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
-    });
+    return markActive(
+      completeEligibleMission(
+        {
+          ...progress,
+          xp: progress.xp + xpGain,
+          bestChapterScore: Math.max(progress.bestChapterScore, nextScore),
+          lastChapterScore: clampScore(score),
+          chapterOneStars: Math.max(
+            progress.chapterOneStars,
+            stars,
+          ) as StarRating,
+          testAttempts: progress.testAttempts + 1,
+          missionScores: { ...progress.missionScores, [missionId]: nextScore },
+          totalPracticeMinutes: progress.totalPracticeMinutes + 3,
+          weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
+        },
+        missionId,
+      ),
+    );
   });
 }
 
@@ -313,37 +436,33 @@ export function recordTranslationTest(score: number, stars: StarRating) {
   return recordMissionRecognition('berkenalan', score, stars);
 }
 
+function completeEligibleMission(
+  progress: UserProgress,
+  missionId: string,
+): UserProgress {
+  const mission = getMission(missionId);
+  if (
+    progress.completedMissionIds.includes(missionId) ||
+    (progress.missionScores[missionId] ?? 0) < 70 ||
+    (mission.type !== 'checkpoint' &&
+      !mission.signIds.every((id) => progress.signMastery[id]?.passed))
+  )
+    return progress;
+  const completedMissionIds = [...progress.completedMissionIds, missionId];
+  const practiceReward =
+    mission.type === 'lesson' ? mission.signIds.length * 5 : 0;
+  return {
+    ...progress,
+    completedMissionIds,
+    completedMissions: completedMissionIds.length,
+    xp: progress.xp + Math.max(10, mission.xp - practiceReward - 15),
+  };
+}
+
 export function recordMissionCompletion(missionId: string) {
-  return updateProgress((progress) => {
-    const mission = getMission(missionId);
-    const practiceComplete =
-      mission.type === 'checkpoint' ||
-      mission.signIds.every((id) => progress.signMastery[id].passed);
-    const recognitionComplete = (progress.missionScores[missionId] ?? 0) >= 70;
-    if (!practiceComplete || !recognitionComplete) return progress;
-    const firstCompletion = !progress.completedMissionIds.includes(missionId);
-    const completedMissionIds = firstCompletion
-      ? [...progress.completedMissionIds, missionId]
-      : progress.completedMissionIds;
-    const completionCount =
-      (progress.conversationCompletionsByMission[missionId] ?? 0) + 1;
-    const practiceReward =
-      mission.type === 'lesson' ? mission.signIds.length * 5 : 0;
-    const completionReward = Math.max(10, mission.xp - practiceReward - 15);
-    return markActive({
-      ...progress,
-      xp: progress.xp + (firstCompletion ? completionReward : 0),
-      completedMissions: completedMissionIds.length,
-      completedMissionIds,
-      conversationCompletions: progress.conversationCompletions + 1,
-      conversationCompletionsByMission: {
-        ...progress.conversationCompletionsByMission,
-        [missionId]: completionCount,
-      },
-      totalPracticeMinutes: progress.totalPracticeMinutes + 3,
-      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
-    });
-  });
+  return updateProgress((progress) =>
+    completeEligibleMission(progress, missionId),
+  );
 }
 
 export function recordConversationCompletion() {
@@ -359,72 +478,31 @@ export function recordGestureAssessment(
   return updateProgress((progress) => {
     const previousMastery = progress.signMastery[signId];
     const firstPass = passed && !previousMastery.passed;
-    const today = localDateKey(new Date());
-    const todayReviewIds = getReviewSignIds(progress);
-    const isFirstReviewToday =
-      options.review === true &&
-      passed &&
-      todayReviewIds.includes(signId) &&
-      !progress.reviewedSigns.includes(signId);
-    const reviewedSigns = isFirstReviewToday
-      ? [...progress.reviewedSigns, signId]
-      : progress.reviewedSigns;
-    const completedDailyReview =
-      isFirstReviewToday &&
-      todayReviewIds.every((id) => reviewedSigns.includes(id));
     const practiceMinutes = Math.max(
       1,
       Math.ceil((options.recordingDurationMs ?? 60_000) / 60_000),
     );
     return markActive({
       ...progress,
-      xp:
-        progress.xp +
-        (firstPass ? 5 : 0) +
-        (isFirstReviewToday ? 10 : 0) +
-        (completedDailyReview ? 50 : 0),
+      xp: progress.xp + (firstPass ? 5 : 0),
       bestGestureScore: Math.max(progress.bestGestureScore, score),
       gestureAttempts: progress.gestureAttempts + 1,
       masteredSigns: progress.masteredSigns + (firstPass ? 1 : 0),
       signMastery: {
         ...progress.signMastery,
         [signId]: {
+          ...previousMastery,
           bestScore: Math.max(previousMastery.bestScore, score),
           passed: previousMastery.passed || passed,
           attempts: previousMastery.attempts + 1,
           lastPracticedAt: new Date().toISOString(),
         },
       },
-      reviewDate: isFirstReviewToday ? today : progress.reviewDate,
-      reviewedSigns,
       totalPracticeMinutes: progress.totalPracticeMinutes + practiceMinutes,
       weeklyActivity: addMinutesToToday(
         progress.weeklyActivity,
         practiceMinutes,
       ),
-    });
-  });
-}
-
-export function completeReviewSign(signId: string) {
-  return updateProgress((progress) => {
-    if (
-      !signIds.includes(signId as SignId) ||
-      progress.reviewedSigns.includes(signId)
-    )
-      return progress;
-    const reviewedSigns = [...progress.reviewedSigns, signId];
-    const targetIds = getReviewSignIds(progress);
-    const completionBonus = targetIds.every((id) => reviewedSigns.includes(id))
-      ? 50
-      : 0;
-    return markActive({
-      ...progress,
-      xp: progress.xp + 10 + completionBonus,
-      reviewDate: localDateKey(new Date()),
-      reviewedSigns,
-      totalPracticeMinutes: progress.totalPracticeMinutes + 3,
-      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
     });
   });
 }
@@ -505,4 +583,30 @@ function clampScore(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value)
     ? Math.min(100, Math.max(0, Math.round(value)))
     : 0;
+}
+
+function cleanRecallHistory(value: unknown): RecallHistory | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as RecallHistory;
+  if (
+    !['independent', 'assisted', 'needs-practice'].includes(
+      record.lastOutcome,
+    ) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(record.nextReviewAt) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(record.lastPracticedAt)
+  )
+    return undefined;
+  const count = (value: number) =>
+    Number.isFinite(value)
+      ? Math.min(1_000_000, Math.max(0, Math.floor(value)))
+      : 0;
+  return {
+    independentAttempts: count(record.independentAttempts),
+    assistedAttempts: count(record.assistedAttempts),
+    needsPracticeAttempts: count(record.needsPracticeAttempts),
+    lastOutcome: record.lastOutcome,
+    lastPracticedAt: record.lastPracticedAt,
+    nextReviewAt: record.nextReviewAt,
+    intervalDays: Math.min(30, Math.max(1, count(record.intervalDays))),
+  };
 }

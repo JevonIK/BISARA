@@ -55,6 +55,107 @@ const REFERENCE_SETTLED_STEP_SCALE = 0.8;
 const REFERENCE_SETTLED_STEPS = 2;
 const MIN_REFERENCE_BOUNDARY_TRAVEL_SCALE = 1.5;
 
+export function smoothLiveHandObservations(
+  currentHands: HandObservation[],
+  previousHands: HandObservation[],
+): HandObservation[] {
+  if (!previousHands.length) return currentHands;
+
+  const wristDistance = (currentIndex: number, previousIndex: number) => {
+    const current = currentHands[currentIndex]?.landmarks[0];
+    const previous = previousHands[previousIndex]?.landmarks[0];
+    if (!current || !previous) return Number.POSITIVE_INFINITY;
+    return Math.hypot(current.x - previous.x, current.y - previous.y);
+  };
+  const previousForCurrent = new Map<number, number>();
+
+  if (currentHands.length === 2 && previousHands.length === 2) {
+    const direct = wristDistance(0, 0) + wristDistance(1, 1);
+    const swapped = wristDistance(0, 1) + wristDistance(1, 0);
+    if (direct <= swapped) {
+      previousForCurrent.set(0, 0);
+      previousForCurrent.set(1, 1);
+    } else {
+      previousForCurrent.set(0, 1);
+      previousForCurrent.set(1, 0);
+    }
+  } else {
+    const candidates = currentHands.flatMap((_, currentIndex) =>
+      previousHands.map((__, previousIndex) => ({
+        currentIndex,
+        previousIndex,
+        distance: wristDistance(currentIndex, previousIndex),
+      })),
+    );
+    const usedCurrent = new Set<number>();
+    const usedPrevious = new Set<number>();
+    for (const candidate of candidates.sort(
+      (left, right) => left.distance - right.distance,
+    )) {
+      if (
+        usedCurrent.has(candidate.currentIndex) ||
+        usedPrevious.has(candidate.previousIndex)
+      )
+        continue;
+      previousForCurrent.set(candidate.currentIndex, candidate.previousIndex);
+      usedCurrent.add(candidate.currentIndex);
+      usedPrevious.add(candidate.previousIndex);
+    }
+  }
+
+  return currentHands.map((hand, currentIndex) => {
+    const previousIndex = previousForCurrent.get(currentIndex);
+    const previous =
+      previousIndex === undefined ? undefined : previousHands[previousIndex];
+    if (!previous || previous.landmarks.length !== hand.landmarks.length)
+      return hand;
+
+    const wrist = hand.landmarks[0];
+    const previousWrist = previous.landmarks[0];
+    const middleMcp = hand.landmarks[9];
+    const indexMcp = hand.landmarks[5];
+    const pinkyMcp = hand.landmarks[17];
+    if (!wrist || !previousWrist || !middleMcp || !indexMcp || !pinkyMcp)
+      return hand;
+
+    const palmScale = Math.max(
+      0.001,
+      (Math.hypot(wrist.x - middleMcp.x, wrist.y - middleMcp.y) +
+        Math.hypot(indexMcp.x - pinkyMcp.x, indexMcp.y - pinkyMcp.y)) /
+        2,
+    );
+    const wristMovement = Math.hypot(
+      wrist.x - previousWrist.x,
+      wrist.y - previousWrist.y,
+    );
+    const movementRatio = wristMovement / palmScale;
+    const motionAlpha = Math.min(0.82, 0.35 + movementRatio * 0.8);
+
+    return {
+      ...hand,
+      landmarks: hand.landmarks.map((landmark, index) => {
+        const previousLandmark = previous.landmarks[index];
+        const relativeJump = Math.hypot(
+          landmark.x - wrist.x - (previousLandmark.x - previousWrist.x),
+          landmark.y - wrist.y - (previousLandmark.y - previousWrist.y),
+        );
+        // Overlap failures usually move an individual joint much farther than
+        // the wrist or its neighboring palm. Hold most of the prior skeleton
+        // for that single frame, while genuine whole-hand motion stays quick.
+        const alpha =
+          relativeJump > palmScale * 0.75 && wristMovement < palmScale * 0.5
+            ? 0.15
+            : motionAlpha;
+        return {
+          x: previousLandmark.x + (landmark.x - previousLandmark.x) * alpha,
+          y: previousLandmark.y + (landmark.y - previousLandmark.y) * alpha,
+          z: previousLandmark.z + (landmark.z - previousLandmark.z) * alpha,
+        };
+      }),
+    };
+  });
+}
+
 export function scoreGesture(
   referenceFrames: GestureFrame[],
   attemptFrames: GestureFrame[],
@@ -271,7 +372,8 @@ function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
     )
   )
     return [];
-  const prepared = frames.map((frame) => {
+  const identityStableFrames = stabilizeTwoHandIdentities(frames);
+  const prepared = identityStableFrames.map((frame) => {
     const hands = frame.hands
       .map(prepareHand)
       .filter((hand): hand is PreparedHand => hand !== null)
@@ -307,6 +409,69 @@ function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
   let last = prepared.length - 1;
   while (!prepared[last].hands.length) last -= 1;
   return prepared.slice(first, last + 1);
+}
+
+function stabilizeTwoHandIdentities(frames: GestureFrame[]): GestureFrame[] {
+  let previous: Record<'left' | 'right', Vector2> | null = null;
+
+  return frames.map((frame) => {
+    if (frame.hands.length !== 2) return frame;
+    const wrists = frame.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      return wrist && Number.isFinite(wrist.x) && Number.isFinite(wrist.y)
+        ? ([wrist.x, wrist.y] as Vector2)
+        : null;
+    });
+    if (!wrists[0] || !wrists[1]) return frame;
+
+    let leftIndex: number;
+    let rightIndex: number;
+    const labels = frame.hands.map((hand) => hand.handedness.toLowerCase());
+    const detectedLeft = labels.indexOf('left');
+    const detectedRight = labels.indexOf('right');
+    const hasDistinctDetectedLabels = detectedLeft >= 0 && detectedRight >= 0;
+    if (previous) {
+      const directCost =
+        distanceArrays(wrists[0], previous.left) +
+        distanceArrays(wrists[1], previous.right);
+      const swappedCost =
+        distanceArrays(wrists[1], previous.left) +
+        distanceArrays(wrists[0], previous.right);
+      if (
+        hasDistinctDetectedLabels &&
+        Math.abs(directCost - swappedCost) < 0.01
+      ) {
+        [leftIndex, rightIndex] = [detectedLeft, detectedRight];
+      } else {
+        [leftIndex, rightIndex] =
+          directCost <= swappedCost ? [0, 1] : [1, 0];
+      }
+    } else {
+      if (hasDistinctDetectedLabels) {
+        [leftIndex, rightIndex] = [detectedLeft, detectedRight];
+      } else if (distanceArrays(wrists[0], wrists[1]) > 0.04) {
+        [leftIndex, rightIndex] =
+          wrists[0][0] <= wrists[1][0] ? [0, 1] : [1, 0];
+      } else {
+        // Two near-identical detections with the same label are commonly a
+        // duplicate of one hand. Leave them ambiguous so they cannot turn a
+        // one-hand sign into a two-hand reference.
+        return frame;
+      }
+    }
+
+    previous = {
+      left: wrists[leftIndex]!,
+      right: wrists[rightIndex]!,
+    };
+    return {
+      ...frame,
+      hands: [
+        { ...frame.hands[leftIndex], handedness: 'Left' },
+        { ...frame.hands[rightIndex], handedness: 'Right' },
+      ],
+    };
+  });
 }
 
 function hasEnoughDuration(frames: PreparedFrame[]): boolean {

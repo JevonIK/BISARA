@@ -12,12 +12,19 @@ import {
 import {
   getBerkenalanLearningState,
   getMissionLearningState,
+  getMissionReplayAction,
   isMissionUnlocked,
 } from '@/lib/learning-progress';
 import {
   defaultProgress,
   emptyAccountProgress,
   parseProgressSnapshot,
+  getReviewSignIds,
+  getRecallSignIds,
+  nextRecallHistory,
+  recordRecallAttempt,
+  recordMissionRecognition,
+  getProgressSnapshot,
 } from '@/lib/progress-storage';
 
 void test('mission stages unlock only after their real prerequisite', () => {
@@ -67,7 +74,8 @@ void test('mission stages unlock only after their real prerequisite', () => {
     missionScores: { berkenalan: 80 },
   });
   assert.equal(contextNext.recognitionComplete, true);
-  assert.equal(contextNext.next.href.includes('mode=context'), true);
+  assert.equal(contextNext.missionComplete, true);
+  assert.equal(contextNext.next.href.includes('mission=orang-terdekat'), true);
 
   const completed = getBerkenalanLearningState({
     ...allSignsPassed,
@@ -78,6 +86,18 @@ void test('mission stages unlock only after their real prerequisite', () => {
   assert.equal(completed.progressPercent, 100);
 });
 
+void test('completed missions replay from their first useful activity without resetting progress', () => {
+  const lessonReplay = getMissionReplayAction('berkenalan');
+  assert.equal(lessonReplay.href.includes('/missions/practice?'), true);
+  assert.equal(lessonReplay.href.includes('sign=saya'), true);
+  assert.equal(lessonReplay.href.includes('replay=1'), true);
+
+  const checkpointReplay = getMissionReplayAction('checkpoint-kenalan');
+  assert.equal(checkpointReplay.href.includes('/missions/test?'), true);
+  assert.equal(checkpointReplay.href.includes('mode=recognition'), true);
+  assert.equal(checkpointReplay.href.includes('replay=1'), true);
+});
+
 void test('curriculum covers all 32 dataset labels once and exposes four complete chapters', () => {
   assert.equal(signIds.length, 32);
   assert.equal(new Set(signIds).size, 32);
@@ -85,47 +105,6 @@ void test('curriculum covers all 32 dataset labels once and exposes four complet
   assert.equal(allMissions.length, 20);
   const covered = new Set(allMissions.flatMap((mission) => mission.signIds));
   assert.deepEqual([...signIds].sort(), [...covered].sort());
-  assert.equal(
-    allMissions.every((mission) => mission.contextChallenges.length >= 2),
-    true,
-  );
-});
-
-void test('every context activity has one valid target and differs from recognition', () => {
-  for (const mission of allMissions) {
-    for (const challenge of mission.contextChallenges) {
-      assert.equal(
-        mission.signIds.includes(challenge.cueSignId),
-        true,
-        `${challenge.id} must use a cue taught in the mission`,
-      );
-      assert.equal(
-        new Set(challenge.options).size,
-        challenge.options.length,
-        `${challenge.id} must not repeat an option`,
-      );
-      assert.equal(
-        challenge.options.length,
-        3,
-        `${challenge.id} needs 3 options`,
-      );
-      assert.equal(
-        challenge.options.includes(challenge.answer),
-        true,
-        `${challenge.id} must include its answer`,
-      );
-      assert.equal(
-        mission.signIds.includes(challenge.answer),
-        true,
-        `${challenge.id} must assess a sign taught in the mission`,
-      );
-      assert.notEqual(
-        challenge.cueSignId,
-        challenge.answer,
-        `${challenge.id} must apply a cue instead of repeating recognition`,
-      );
-    }
-  }
 });
 
 void test('recognition questions use unique options and rotate balanced checkpoints', () => {
@@ -213,4 +192,160 @@ void test('legacy gesture result migrates as Saya only', () => {
     2,
     'legacy single-sign completion must not finish the whole mission',
   );
+});
+
+void test('legacy passing recognition completes the mission without inventing recall history', () => {
+  const stored = structuredClone(defaultProgress);
+  stored.completedMissionIds = [];
+  stored.completedMissions = 0;
+  stored.conversationCompletions = 0;
+  stored.conversationCompletionsByMission = {};
+  const migrated = parseProgressSnapshot(JSON.stringify(stored));
+  assert.ok(migrated.completedMissionIds.includes('berkenalan'));
+  assert.equal(migrated.conversationCompletions, 0);
+  assert.equal(migrated.signMastery.teman.recall, undefined);
+  assert.equal(isMissionUnlocked('orang-terdekat', migrated), true);
+  assert.equal(
+    isMissionUnlocked('checkpoint-kenalan', emptyAccountProgress),
+    false,
+  );
+});
+
+void test('recall scheduling spaces independent attempts but brings assisted signs back sooner', () => {
+  const first = nextRecallHistory(
+    undefined,
+    'independent',
+    new Date(2026, 8, 12, 10),
+  );
+  assert.equal(first.nextReviewAt, '2026-09-13');
+  const sameDay = nextRecallHistory(
+    first,
+    'independent',
+    new Date(2026, 8, 12, 12),
+  );
+  assert.equal(
+    sameDay.intervalDays,
+    1,
+    'same-day repetition must not advance spacing',
+  );
+  const nextDay = nextRecallHistory(
+    sameDay,
+    'independent',
+    new Date(2026, 8, 13, 10),
+  );
+  assert.equal(nextDay.intervalDays, 3);
+  assert.equal(nextDay.nextReviewAt, '2026-09-16');
+  const help = nextRecallHistory(
+    nextDay,
+    'assisted',
+    new Date(2026, 8, 16, 10),
+  );
+  assert.equal(help.nextReviewAt, '2026-09-17');
+  assert.equal(help.independentAttempts, 3);
+  assert.equal(help.assistedAttempts, 1);
+  const retry = nextRecallHistory(
+    help,
+    'needs-practice',
+    new Date(2026, 8, 17, 10),
+  );
+  assert.equal(retry.needsPracticeAttempts, 1);
+  assert.equal(retry.intervalDays, 1);
+});
+
+void test('review contains learned, due signs and retains completed cards for the day', () => {
+  const progress = structuredClone(emptyAccountProgress);
+  assert.deepEqual(
+    getReviewSignIds(progress),
+    [],
+    'never test unseen vocabulary',
+  );
+  progress.signMastery.saya.attempts = 1;
+  progress.signMastery.teman.attempts = 1;
+  progress.signMastery.teman.recall = nextRecallHistory(
+    undefined,
+    'independent',
+    new Date(2026, 8, 12, 10),
+  );
+  assert.deepEqual(getReviewSignIds(progress, new Date(2026, 8, 12, 11)), [
+    'saya',
+  ]);
+  progress.reviewDate = '2026-09-12';
+  progress.reviewedSigns = ['teman'];
+  assert.deepEqual(getReviewSignIds(progress, new Date(2026, 8, 12, 11)), [
+    'teman',
+    'saya',
+  ]);
+  assert.equal(getReviewSignIds(progress, new Date(2026, 8, 13, 11)).length, 2);
+  assert.ok(getRecallSignIds(defaultProgress, 'berkenalan').length <= 3);
+  assert.ok(
+    getRecallSignIds(defaultProgress, 'orang-terdekat').some(
+      (id) => !getMission('orang-terdekat').signIds.includes(id),
+    ),
+    'mix in a learned earlier sign',
+  );
+});
+
+void test('recognition completes once and self-report keeps checker mastery separate', () => {
+  let snapshot = JSON.stringify({
+    ...defaultProgress,
+    completedMissionIds: [],
+    completedMissions: 0,
+    missionScores: {},
+    xp: 0,
+  });
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: () => snapshot,
+        setItem: (_key: string, value: string) => {
+          snapshot = value;
+        },
+      },
+      dispatchEvent: () => true,
+    },
+  });
+  try {
+    const failed = recordMissionRecognition('berkenalan', 60, 1);
+    assert.equal(failed.completedMissionIds.includes('berkenalan'), false);
+    const passed = recordMissionRecognition('berkenalan', 80, 2);
+    assert.equal(passed.completedMissionIds.includes('berkenalan'), true);
+    const repeat = recordMissionRecognition('berkenalan', 80, 2);
+    assert.equal(repeat.xp, passed.xp, 'completion reward is awarded once');
+    assert.equal(
+      repeat.conversationCompletions,
+      defaultProgress.conversationCompletions,
+    );
+    const checkerBefore = repeat.signMastery.teman;
+    const assisted = recordRecallAttempt('teman', 'assisted');
+    const independent = recordRecallAttempt('teman', 'independent');
+    assert.equal(
+      independent.xp,
+      assisted.xp,
+      'repeated self reports cannot farm daily XP',
+    );
+    assert.equal(
+      independent.signMastery.teman.bestScore,
+      checkerBefore.bestScore,
+    );
+    assert.equal(
+      independent.signMastery.teman.attempts,
+      checkerBefore.attempts,
+    );
+    assert.equal(independent.signMastery.teman.passed, checkerBefore.passed);
+    const restored = parseProgressSnapshot(getProgressSnapshot());
+    assert.equal(restored.signMastery.teman.recall?.assistedAttempts, 1);
+    assert.equal(restored.signMastery.teman.recall?.independentAttempts, 1);
+    const fresh = recordRecallAttempt('air', 'independent');
+    assert.equal(
+      fresh.signMastery.air.passed,
+      false,
+      'self-report is not checker verification',
+    );
+  } finally {
+    if (originalWindow)
+      Object.defineProperty(globalThis, 'window', originalWindow);
+    else Reflect.deleteProperty(globalThis, 'window');
+  }
 });

@@ -19,6 +19,7 @@ import { allMissions, chapters, type Mission } from '@/lib/learning-data';
 import {
   getChapterProgress,
   getCurrentMission,
+  getMissionReplayAction,
   getPrototypeMissionCount,
   isMissionUnlocked,
 } from '@/lib/learning-progress';
@@ -155,6 +156,8 @@ export function MissionJourney() {
 }
 
 function MissionRow({ mission }: { mission: Mission }) {
+  const replay =
+    mission.status === 'completed' ? getMissionReplayAction(mission) : null;
   const content = (
     <>
       <span
@@ -198,6 +201,11 @@ function MissionRow({ mission }: { mission: Mission }) {
         <span className="mt-1 block text-sm leading-5 text-muted-foreground">
           {mission.description}
         </span>
+        {replay ? (
+          <span className="mt-2 flex items-center gap-1 text-xs font-black text-emerald-700 sm:hidden">
+            <Play className="size-3" fill="currentColor" /> Ulangi misi
+          </span>
+        ) : null}
       </span>
       <span className="hidden shrink-0 text-right sm:block">
         <span className="flex items-center justify-end gap-1 text-xs font-bold text-signal-navy">
@@ -207,8 +215,13 @@ function MissionRow({ mission }: { mission: Mission }) {
         <span className="mt-1 block text-xs text-muted-foreground">
           {mission.duration} menit
         </span>
+        {replay ? (
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-black text-emerald-700">
+            <Play className="size-3" fill="currentColor" /> Ulangi misi
+          </span>
+        ) : null}
       </span>
-      {mission.status === 'current' ? (
+      {mission.status === 'current' || mission.status === 'completed' ? (
         <ChevronRight className="size-5 shrink-0 text-emerald-700" />
       ) : null}
     </>
@@ -223,7 +236,13 @@ function MissionRow({ mission }: { mission: Mission }) {
   return (
     <li>
       {mission.status !== 'locked' ? (
-        <Link href={mission.href} className={className}>
+        <Link
+          href={replay?.href ?? mission.href}
+          aria-label={
+            replay ? `${replay.label}: ${mission.title}` : undefined
+          }
+          className={className}
+        >
           {content}
         </Link>
       ) : (

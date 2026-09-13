@@ -9,7 +9,7 @@ import {
   LockKeyhole,
   Languages,
   Map,
-  MessageCircleMore,
+  Brain,
   Play,
   Target,
 } from 'lucide-react';
@@ -43,11 +43,11 @@ export default function Home() {
     completedMissions > 0,
     progress.streak >= 7,
     progress.bestChapterScore >= 70,
-    progress.conversationCompletions > 0,
+    Object.values(progress.signMastery).some((item) => item.recall),
   ].filter(Boolean).length;
   const learningSteps = [
     {
-      label: 'Kenali',
+      label: 'Amati',
       icon: BookOpen,
       state: missionState.practiceStarted
         ? ('done' as const)
@@ -72,17 +72,18 @@ export default function Home() {
           : ('next' as const),
     },
     {
-      label: 'Terapkan',
-      icon: MessageCircleMore,
-      state: missionState.conversationComplete
-        ? ('done' as const)
-        : missionState.recognitionComplete
-          ? ('active' as const)
-          : ('next' as const),
+      label: 'Ingat (opsional)',
+      icon: Brain,
+      state:
+        missionState.recallPracticedCount > 0
+          ? ('done' as const)
+          : missionState.recognitionComplete
+            ? ('active' as const)
+            : ('next' as const),
     },
   ];
-  const activeStage = missionState.conversationComplete
-    ? 4
+  const activeStage = missionState.missionComplete
+    ? 3
     : learningSteps.findIndex((step) => step.state === 'active') + 1;
 
   return (
@@ -160,7 +161,9 @@ export default function Home() {
                 <div className="mb-5 flex items-center justify-between">
                   <p className="text-sm font-bold">Tahap pembelajaran</p>
                   <span className="text-xs font-bold text-signal-teal">
-                    {activeStage}/4
+                    {missionState.missionComplete
+                      ? 'Misi selesai'
+                      : `${activeStage}/3 wajib`}
                   </span>
                 </div>
                 <ol className="space-y-3">
@@ -322,7 +325,7 @@ export default function Home() {
           </div>
           <ol className="grid divide-y divide-signal-navy/10 p-7 sm:p-9">
             {[
-              ['01', 'Kenali', 'Amati bentuk, arah, dan arti setiap tanda.'],
+              ['01', 'Amati', 'Amati bentuk, arah, dan arti setiap tanda.'],
               [
                 '02',
                 'Tirukan',
@@ -335,8 +338,8 @@ export default function Home() {
               ],
               [
                 '04',
-                'Terapkan',
-                'Pilih respons satu tanda pada situasi terpandu.',
+                'Ingat & peragakan',
+                'Coba tanpa contoh, lalu bandingkan. Penguatan ini opsional.',
               ],
             ].map(([number, title, description]) => (
               <li

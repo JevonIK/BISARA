@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from uuid import UUID
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -67,7 +68,18 @@ class WeeklyActivityItem(ApiModel):
     minutes: int = Field(ge=0, le=1440)
 
 
+class RecallHistoryItem(ApiModel):
+    independent_attempts: int = Field(ge=0, le=1_000_000)
+    assisted_attempts: int = Field(ge=0, le=1_000_000)
+    needs_practice_attempts: int = Field(ge=0, le=1_000_000)
+    last_outcome: Literal["independent", "assisted", "needs-practice"]
+    last_practiced_at: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    next_review_at: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    interval_days: int = Field(ge=1, le=30)
+
+
 class SignMasteryItem(ApiModel):
+    recall: RecallHistoryItem | None = None
     best_score: int = Field(ge=0, le=100)
     passed: bool
     attempts: int = Field(ge=0, le=1_000_000)
