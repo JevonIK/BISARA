@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
 import { MissionAssessment } from '@/components/mission-assessment';
+import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
 
 export const metadata: Metadata = {
@@ -39,11 +40,25 @@ export default async function MissionTestPage({
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
             {params.replay === '1'
-              ? `${mission.title}: ulangi uji pengenalan untuk memperkuat ingatan. Progres misi dan nilai terbaik tetap tersimpan.`
-              : `${mission.title}: selesaikan Tirukan, lalu capai minimal 70 pada uji pengenalan untuk menyelesaikan misi. Latihan mengingat tersedia sebagai penguatan opsional.`}
+              ? `${mission.title}: ulangi uji pengenalan untuk memperkuat ingatan. Progres dan nilai terbaik tetap tersimpan.`
+              : `${mission.title}: capai minimal 70 pada uji pengenalan, lalu selesaikan Ingat & peragakan untuk membuka misi berikutnya.`}
           </p>
         </header>
-        <MissionAssessment missionId={mission.id} initialMode={params.mode} />
+        <MissionSectionNavigation
+          missionId={mission.id}
+          section={
+            params.mode === 'recall' ||
+            params.mode === 'context' ||
+            params.mode === 'conversation'
+              ? 'recall'
+              : 'recognition'
+          }
+        />
+        <MissionAssessment
+          key={`${mission.id}:${params.mode ?? 'menu'}`}
+          missionId={mission.id}
+          initialMode={params.mode}
+        />
       </div>
     </main>
   );

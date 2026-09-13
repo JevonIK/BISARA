@@ -337,16 +337,6 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
       ...Object.values(missionScores),
     );
 
-    for (const mission of allMissions) {
-      if (
-        (missionScores[mission.id] ?? 0) >= 70 &&
-        (mission.type === 'checkpoint' ||
-          mission.signIds.every((id) => signMastery[id].passed)) &&
-        !completedMissionIds.includes(mission.id)
-      )
-        completedMissionIds.push(mission.id);
-    }
-
     const progress: UserProgress = {
       ...defaultProgress,
       ...stored,
@@ -410,25 +400,17 @@ export function recordMissionRecognition(
       Math.round((nextScore / 100) * 15) -
         Math.round((previousScore / 100) * 15),
     );
-    return markActive(
-      completeEligibleMission(
-        {
-          ...progress,
-          xp: progress.xp + xpGain,
-          bestChapterScore: Math.max(progress.bestChapterScore, nextScore),
-          lastChapterScore: clampScore(score),
-          chapterOneStars: Math.max(
-            progress.chapterOneStars,
-            stars,
-          ) as StarRating,
-          testAttempts: progress.testAttempts + 1,
-          missionScores: { ...progress.missionScores, [missionId]: nextScore },
-          totalPracticeMinutes: progress.totalPracticeMinutes + 3,
-          weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
-        },
-        missionId,
-      ),
-    );
+    return markActive({
+      ...progress,
+      xp: progress.xp + xpGain,
+      bestChapterScore: Math.max(progress.bestChapterScore, nextScore),
+      lastChapterScore: clampScore(score),
+      chapterOneStars: Math.max(progress.chapterOneStars, stars) as StarRating,
+      testAttempts: progress.testAttempts + 1,
+      missionScores: { ...progress.missionScores, [missionId]: nextScore },
+      totalPracticeMinutes: progress.totalPracticeMinutes + 3,
+      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
+    });
   });
 }
 

@@ -1,11 +1,10 @@
 'use client';
 
-import { ArrowRight, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
 
 import { getSigns, type SignId } from '@/lib/curriculum-data';
 import { useProgress } from '@/hooks/use-progress';
-import { getMissionLearningState } from '@/lib/learning-progress';
 import { cn } from '@/lib/utils';
 
 export function PracticeSignProgress({
@@ -23,19 +22,6 @@ export function PracticeSignProgress({
     (sign) => progress.signMastery[sign.id].passed,
   ).length;
   const practiceComplete = passedCount === missionSigns.length;
-  const learning = getMissionLearningState(missionId, progress);
-  const nextAction = learning.recognitionComplete
-    ? {
-        ...learning.next,
-        description:
-          'Uji pengenalan sudah selesai. Kamu dapat melanjutkan perjalanan belajar.',
-      }
-    : {
-        href: `/missions/test?mission=${missionId}&mode=recognition`,
-        label: 'Lanjut ke uji pengenalan',
-        description:
-          'Semua tanda sudah lulus checker. Sekarang kenali tandanya tanpa label.',
-      };
 
   return (
     <section className="mb-5 border border-signal-navy/10 bg-card p-4 sm:p-5">
@@ -94,21 +80,14 @@ export function PracticeSignProgress({
         })}
       </ol>
       {practiceComplete ? (
-        <div className="mt-5 flex flex-col gap-4 border border-signal-teal bg-signal-teal-soft p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-black text-signal-navy">
-              Semua tanda sudah lulus checker
-            </p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {nextAction.description}
-            </p>
-          </div>
-          <Link
-            href={nextAction.href}
-            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-signal-navy px-5 py-2 text-sm font-black text-white hover:bg-signal-navy/90"
-          >
-            {nextAction.label} <ArrowRight className="size-4" />
-          </Link>
+        <div className="mt-5 border border-signal-teal bg-signal-teal-soft p-4">
+          <p className="font-black text-signal-navy">
+            Semua tanda sudah lulus checker
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Lanjut ke Uji pengenalan melalui navigasi bagian misi di atas. Kamu
+            juga bisa kembali ke tanda mana pun untuk berlatih lagi.
+          </p>
         </div>
       ) : null}
     </section>

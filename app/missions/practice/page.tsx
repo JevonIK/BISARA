@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
 import { CameraPractice } from '@/components/camera-practice';
 import { PracticeSignProgress } from '@/components/practice-sign-progress';
+import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { Badge } from '@/components/ui/badge';
 import { getSign, isSignId, versionedSignVideo } from '@/lib/curriculum-data';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
@@ -105,6 +106,10 @@ export default async function PracticePage({
             ))}
           </ol>
         </div>
+
+        {!reviewMode ? (
+          <MissionSectionNavigation missionId={mission.id} section="tirukan" />
+        ) : null}
 
         {!reviewMode ? (
           <PracticeSignProgress

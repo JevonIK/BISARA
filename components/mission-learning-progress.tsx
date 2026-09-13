@@ -49,7 +49,7 @@ const stageDefinitions = [
     number: '04',
     title: 'Ingat & peragakan',
     description:
-      'Opsional: coba tanpa contoh, bandingkan, lalu catat bantuan yang diperlukan.',
+      'Coba tanpa contoh, bandingkan, lalu catat bantuan yang diperlukan.',
     duration: '2 menit',
     icon: Brain,
   },
@@ -64,12 +64,12 @@ export function MissionHeroProgress({
   const mission = getMission(missionId);
   const state = getMissionLearningState(mission, progress);
   const replay = getMissionReplayAction(mission);
-  const activeStage = state.missionComplete
-    ? 4
-    : state.recognitionComplete
-      ? 4
+  const stageCount = mission.type === 'checkpoint' ? 3 : 4;
+  const activeStage =
+    state.missionComplete || state.recognitionComplete
+      ? stageCount
       : state.practiceComplete
-        ? 3
+        ? stageCount - 1
         : state.practiceStarted
           ? 2
           : 1;
@@ -86,7 +86,7 @@ export function MissionHeroProgress({
         <span className="text-xs font-bold text-signal-teal">
           {state.missionComplete
             ? 'Misi selesai'
-            : `Tahap ${activeStage} dari 3`}
+            : `Tahap ${activeStage} dari ${stageCount}`}
         </span>
       </div>
       <Progress value={state.progressPercent} className="mt-5 gap-2">
@@ -134,18 +134,30 @@ export function MissionStageList({
     learning.practiceStarted,
     learning.practiceComplete,
     learning.recognitionComplete,
-    learning.recallPracticedCount > 0,
+    learning.missionComplete,
   ];
   const currentIndex = completed.findIndex((value) => !value);
+  const visibleStages =
+    mission.type === 'checkpoint'
+      ? stageDefinitions.filter((stage) => stage.title !== 'Tirukan')
+      : stageDefinitions;
 
   return (
-    <ol className="grid gap-4 lg:grid-cols-4">
-      {stageDefinitions.map((stage, index) => {
+    <ol
+      className={cn(
+        'grid gap-4',
+        mission.type === 'checkpoint' ? 'lg:grid-cols-3' : 'lg:grid-cols-4',
+      )}
+    >
+      {visibleStages.map((stage, visibleIndex) => {
+        const index = stageDefinitions.indexOf(stage);
         const state =
           index === 3
-            ? learning.recognitionComplete
-              ? 'optional'
-              : 'locked'
+            ? learning.missionComplete
+              ? 'completed'
+              : learning.recognitionComplete
+                ? 'current'
+                : 'locked'
             : completed[index]
               ? 'completed'
               : index === currentIndex
@@ -158,7 +170,6 @@ export function MissionStageList({
             className={cn(
               'relative min-h-72 border p-6 sm:p-7',
               state === 'current' && 'border-signal-yellow bg-signal-yellow/15',
-              state === 'optional' && 'border-signal-navy/10 bg-card',
               state === 'completed' && 'border-signal-teal bg-signal-teal-soft',
               state === 'locked' && 'border-signal-navy/10 bg-card',
             )}
@@ -169,8 +180,7 @@ export function MissionStageList({
                   'grid size-12 place-items-center rounded-full',
                   state === 'completed' && 'bg-signal-teal text-signal-navy',
                   state === 'current' && 'bg-signal-yellow text-signal-navy',
-                  (state === 'locked' || state === 'optional') &&
-                    'bg-muted text-muted-foreground',
+                  state === 'locked' && 'bg-muted text-muted-foreground',
                 )}
               >
                 {state === 'completed' ? (
@@ -180,33 +190,27 @@ export function MissionStageList({
                 )}
               </span>
               <span className="font-mono text-xs font-black text-muted-foreground">
-                {stage.number}
+                {String(visibleIndex + 1).padStart(2, '0')}
               </span>
             </div>
             <p className="mt-7 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-              {index === 3
-                ? 'Penguatan opsional'
-                : state === 'completed'
-                  ? 'Selesai'
-                  : state === 'current'
-                    ? 'Tahap aktif'
-                    : 'Terkunci'}
+              {state === 'completed'
+                ? 'Selesai'
+                : state === 'current'
+                  ? 'Tahap aktif'
+                  : 'Terkunci'}
             </p>
             <h3 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
-              {mission.type === 'checkpoint' && index === 1
-                ? 'Bekal bab'
-                : stage.title}
+              {stage.title}
             </h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {mission.type === 'checkpoint' && index === 1
-                ? 'Mastery dari misi sebelumnya dipakai kembali; tidak ada pengulangan checker wajib.'
-                : index === 1
-                  ? `Luluskan checker kamera untuk ${mission.signIds.length} tanda, satu per satu.`
-                  : index === 2
-                    ? mission.type === 'checkpoint'
-                      ? 'Kenali sampel tanda dari bab tanpa label dan capai minimal 70 poin.'
-                      : 'Kenali tanda misi tanpa label dan capai minimal 70 poin.'
-                    : stage.description}
+              {index === 1
+                ? `Luluskan checker kamera untuk ${mission.signIds.length} tanda, satu per satu.`
+                : index === 2
+                  ? mission.type === 'checkpoint'
+                    ? 'Kenali sampel tanda dari bab tanpa label dan capai minimal 70 poin.'
+                    : 'Kenali tanda misi tanpa label dan capai minimal 70 poin.'
+                  : stage.description}
             </p>
             {index === 3 && learning.recognitionComplete ? (
               <Link

@@ -23,6 +23,7 @@ import {
   getRecallSignIds,
   nextRecallHistory,
   recordRecallAttempt,
+  recordMissionCompletion,
   recordMissionRecognition,
   getProgressSnapshot,
 } from '@/lib/progress-storage';
@@ -74,12 +75,14 @@ void test('mission stages unlock only after their real prerequisite', () => {
     missionScores: { berkenalan: 80 },
   });
   assert.equal(contextNext.recognitionComplete, true);
-  assert.equal(contextNext.missionComplete, true);
-  assert.equal(contextNext.next.href.includes('mission=orang-terdekat'), true);
+  assert.equal(contextNext.missionComplete, false);
+  assert.equal(contextNext.next.href.includes('mode=recall'), true);
 
   const completed = getBerkenalanLearningState({
     ...allSignsPassed,
     missionScores: { berkenalan: 80 },
+    completedMissionIds: ['berkenalan'],
+    completedMissions: 1,
     conversationCompletionsByMission: { berkenalan: 1 },
   });
   assert.equal(completed.conversationComplete, true);
@@ -194,17 +197,30 @@ void test('legacy gesture result migrates as Saya only', () => {
   );
 });
 
-void test('legacy passing recognition completes the mission without inventing recall history', () => {
+void test('old completion stays valid, while recognition-only progress waits for final section', () => {
   const stored = structuredClone(defaultProgress);
   stored.completedMissionIds = [];
   stored.completedMissions = 0;
   stored.conversationCompletions = 0;
   stored.conversationCompletionsByMission = {};
   const migrated = parseProgressSnapshot(JSON.stringify(stored));
-  assert.ok(migrated.completedMissionIds.includes('berkenalan'));
+  assert.equal(migrated.completedMissionIds.includes('berkenalan'), false);
+  assert.equal(
+    getMissionLearningState('berkenalan', migrated).next.href.includes(
+      'mode=recall',
+    ),
+    true,
+  );
   assert.equal(migrated.conversationCompletions, 0);
   assert.equal(migrated.signMastery.teman.recall, undefined);
-  assert.equal(isMissionUnlocked('orang-terdekat', migrated), true);
+  assert.equal(isMissionUnlocked('orang-terdekat', migrated), false);
+  assert.equal(
+    isMissionUnlocked(
+      'orang-terdekat',
+      parseProgressSnapshot(JSON.stringify(defaultProgress)),
+    ),
+    true,
+  );
   assert.equal(
     isMissionUnlocked('checkpoint-kenalan', emptyAccountProgress),
     false,
@@ -285,7 +301,7 @@ void test('review contains learned, due signs and retains completed cards for th
   );
 });
 
-void test('recognition completes once and self-report keeps checker mastery separate', () => {
+void test('only finishing all mission sections unlocks the next mission and pays completion once', () => {
   let snapshot = JSON.stringify({
     ...defaultProgress,
     completedMissionIds: [],
@@ -310,7 +326,8 @@ void test('recognition completes once and self-report keeps checker mastery sepa
     const failed = recordMissionRecognition('berkenalan', 60, 1);
     assert.equal(failed.completedMissionIds.includes('berkenalan'), false);
     const passed = recordMissionRecognition('berkenalan', 80, 2);
-    assert.equal(passed.completedMissionIds.includes('berkenalan'), true);
+    assert.equal(passed.completedMissionIds.includes('berkenalan'), false);
+    assert.equal(isMissionUnlocked('orang-terdekat', passed), false);
     const repeat = recordMissionRecognition('berkenalan', 80, 2);
     assert.equal(repeat.xp, passed.xp, 'completion reward is awarded once');
     assert.equal(
@@ -337,6 +354,12 @@ void test('recognition completes once and self-report keeps checker mastery sepa
     const restored = parseProgressSnapshot(getProgressSnapshot());
     assert.equal(restored.signMastery.teman.recall?.assistedAttempts, 1);
     assert.equal(restored.signMastery.teman.recall?.independentAttempts, 1);
+    recordRecallAttempt('saya', 'independent');
+    recordRecallAttempt('siapa', 'assisted');
+    const completed = recordMissionCompletion('berkenalan');
+    assert.equal(completed.completedMissionIds.includes('berkenalan'), true);
+    assert.equal(isMissionUnlocked('orang-terdekat', completed), true);
+    assert.equal(recordMissionCompletion('berkenalan').xp, completed.xp);
     const fresh = recordRecallAttempt('air', 'independent');
     assert.equal(
       fresh.signMastery.air.passed,

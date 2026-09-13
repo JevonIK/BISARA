@@ -72,18 +72,19 @@ export default function Home() {
           : ('next' as const),
     },
     {
-      label: 'Ingat (opsional)',
+      label: 'Ingat & peragakan',
       icon: Brain,
-      state:
-        missionState.recallPracticedCount > 0
-          ? ('done' as const)
-          : missionState.recognitionComplete
-            ? ('active' as const)
-            : ('next' as const),
+      state: missionState.missionComplete
+        ? ('done' as const)
+        : missionState.recognitionComplete
+          ? ('active' as const)
+          : ('next' as const),
     },
-  ];
+  ].filter(
+    (step) => currentMission.type !== 'checkpoint' || step.label !== 'Tirukan',
+  );
   const activeStage = missionState.missionComplete
-    ? 3
+    ? learningSteps.length
     : learningSteps.findIndex((step) => step.state === 'active') + 1;
 
   return (
@@ -163,7 +164,7 @@ export default function Home() {
                   <span className="text-xs font-bold text-signal-teal">
                     {missionState.missionComplete
                       ? 'Misi selesai'
-                      : `${activeStage}/3 wajib`}
+                      : `${activeStage}/${learningSteps.length} tahap`}
                   </span>
                 </div>
                 <ol className="space-y-3">
@@ -339,7 +340,7 @@ export default function Home() {
               [
                 '04',
                 'Ingat & peragakan',
-                'Coba tanpa contoh, lalu bandingkan. Penguatan ini opsional.',
+                'Coba tanpa contoh, lalu bandingkan sebelum misi selesai.',
               ],
             ].map(([number, title, description]) => (
               <li

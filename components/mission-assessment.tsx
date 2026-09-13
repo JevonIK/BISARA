@@ -37,6 +37,7 @@ import {
 } from '@/lib/learning-progress';
 import {
   getRecallSignIds,
+  recordMissionCompletion,
   recordMissionRecognition,
 } from '@/lib/progress-storage';
 import { calculateScore, calculateStars } from '@/lib/scoring';
@@ -84,7 +85,6 @@ export function MissionAssessment({
     setAnswers([]);
     setView('recognition');
   };
-  const startRecall = () => setView('recall');
 
   if (!learning.unlocked)
     return (
@@ -107,7 +107,7 @@ export function MissionAssessment({
   if (view === 'recall' && !learning.recognitionComplete)
     return (
       <Gate
-        title="Termasuk latihan penguatan"
+        title="Tahap Ingat belum terbuka"
         description="Selesaikan Tirukan dan uji pengenalan terlebih dahulu sebelum mencoba tanda dari ingatan."
         href={learning.next.href}
         action={learning.next.label}
@@ -117,7 +117,8 @@ export function MissionAssessment({
     return (
       <RecallPractice
         signIds={getRecallSignIds(progress, mission.id)}
-        onExit={() => setView('complete')}
+        onComplete={() => recordMissionCompletion(mission.id)}
+        onExit={() => setView(learning.missionComplete ? 'complete' : 'menu')}
       />
     );
 
@@ -252,7 +253,7 @@ export function MissionAssessment({
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {passed
-              ? 'Misi selesai dan misi berikutnya sudah terbuka. Kamu juga bisa memperkuat ingatan tanpa melihat contoh.'
+              ? 'Uji pengenalan lulus. Lanjutkan ke Ingat & peragakan untuk menyelesaikan seluruh bagian misi.'
               : `Skor minimal adalah ${RECOGNITION_PASS_SCORE}. Tonton ulang tanda yang keliru lalu coba lagi.`}
           </p>
           {missedAnswers.length ? (
@@ -283,22 +284,15 @@ export function MissionAssessment({
           ) : null}
           <div className="mt-7 flex flex-wrap gap-3">
             {passed ? (
-              <Button
-                size="lg"
-                onClick={startRecall}
-                className="rounded-full bg-signal-teal font-extrabold text-signal-navy"
+              <Link
+                href={`/missions/test?mission=${mission.id}&mode=recall`}
+                className={cn(
+                  buttonVariants({ size: 'lg' }),
+                  'rounded-full bg-signal-teal font-extrabold text-signal-navy',
+                )}
               >
                 Ingat & peragakan <ArrowRight className="size-4" />
-              </Button>
-            ) : null}
-            {passed ? (
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => setView('complete')}
-              >
-                Lanjut ke misi berikutnya <ArrowRight className="size-4" />
-              </Button>
+              </Link>
             ) : null}
             <Button
               size="lg"
@@ -313,7 +307,7 @@ export function MissionAssessment({
     );
   }
 
-  if (view === 'complete') {
+  if (view === 'complete' && learning.missionComplete) {
     const missionIndex = allMissions.findIndex(
       (item) => item.id === mission.id,
     );
@@ -337,8 +331,8 @@ export function MissionAssessment({
             Target latihan “{mission.title}” selesai
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Latihan tanda dan uji pengenalan selesai. Penguatan ingatan dapat
-            dilanjutkan melalui review berkala.
+            Tirukan, uji pengenalan, dan Ingat & peragakan selesai. Kamu dapat
+            melanjutkan ke misi berikutnya atau review berkala.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
@@ -381,11 +375,11 @@ export function MissionAssessment({
       />
       <ModeCard
         icon={Brain}
-        eyebrow="Penguatan opsional"
+        eyebrow="Tahap 4"
         title="Ingat & peragakan"
         description="Peragakan beberapa tanda tanpa contoh, lalu bandingkan. Penggunaan bantuan dicatat untuk menentukan review berikutnya."
         meta="Maksimal 3 tanda · tanpa syarat skor"
-        onStart={startRecall}
+        href={`/missions/test?mission=${mission.id}&mode=recall`}
         locked={!learning.recognitionComplete}
       />
     </section>
@@ -451,6 +445,7 @@ function ModeCard({
   description,
   meta,
   onStart,
+  href,
   locked,
 }: {
   icon: typeof Play;
@@ -458,7 +453,8 @@ function ModeCard({
   title: string;
   description: string;
   meta: string;
-  onStart: () => void;
+  onStart?: () => void;
+  href?: string;
   locked: boolean;
 }) {
   return (
@@ -477,18 +473,30 @@ function ModeCard({
       </div>
       <div className="mt-7 flex items-center justify-between border-t border-signal-navy/10 pt-5">
         <span className="text-xs font-bold text-muted-foreground">{meta}</span>
-        <Button
-          onClick={onStart}
-          disabled={locked}
-          className="rounded-full bg-signal-navy font-extrabold text-white"
-        >
-          {locked ? (
-            <LockKeyhole className="size-4" />
-          ) : (
-            <Play className="size-4" />
-          )}
-          {locked ? 'Terkunci' : 'Mulai'}
-        </Button>
+        {href && !locked ? (
+          <Link
+            href={href}
+            className={cn(
+              buttonVariants(),
+              'rounded-full bg-signal-navy font-extrabold text-white',
+            )}
+          >
+            <Play className="size-4" /> Mulai
+          </Link>
+        ) : (
+          <Button
+            onClick={onStart}
+            disabled={locked}
+            className="rounded-full bg-signal-navy font-extrabold text-white"
+          >
+            {locked ? (
+              <LockKeyhole className="size-4" />
+            ) : (
+              <Play className="size-4" />
+            )}
+            {locked ? 'Terkunci' : 'Mulai'}
+          </Button>
+        )}
       </div>
     </article>
   );

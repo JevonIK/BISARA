@@ -15,6 +15,7 @@ import {
   MissionHeroProgress,
   MissionStageList,
 } from '@/components/mission-learning-progress';
+import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { getSigns, versionedSignVideo } from '@/lib/curriculum-data';
@@ -97,6 +98,10 @@ export default async function MissionLearningPage({
           </div>
         </section>
 
+        <div className="pt-6">
+          <MissionSectionNavigation missionId={mission.id} section="amati" />
+        </div>
+
         <section className="grid gap-6 py-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
           <div className="border border-signal-navy/10 bg-card p-6 sm:p-8">
             <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-700">
@@ -134,7 +139,7 @@ export default async function MissionLearningPage({
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {mission.type === 'checkpoint'
-                ? 'Checkpoint menguji pengenalan tanda dari bab ini tanpa mengulang seluruh latihan kamera. Setelah lulus, misi selesai dan latihan mengingat tersedia.'
+                ? 'Checkpoint menguji pengenalan tanda dari bab ini tanpa mengulang seluruh latihan kamera. Setelah lulus, selesaikan Ingat & peragakan untuk membuka misi berikutnya.'
                 : 'Checker membandingkan landmark tanganmu dengan satu demonstrasi referensi. Skor menunjukkan kemiripan gerak tangan pada kamera, bukan penilaian bahasa oleh manusia.'}
             </p>
             <div className="mt-6 flex gap-3 border-t border-signal-navy/10 pt-5 text-xs leading-5 text-muted-foreground">
@@ -209,11 +214,13 @@ export default async function MissionLearningPage({
                 Alur misi
               </p>
               <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
-                Selesaikan misi, lalu perkuat ingatan.
+                Selesaikan setiap tahap untuk membuka misi berikutnya.
               </h2>
             </div>
             <p className="text-sm font-bold text-muted-foreground">
-              Amati → Tirukan → Kenali · Penguatan: ingat & review
+              {mission.type === 'checkpoint'
+                ? 'Amati → Kenali → Ingat & peragakan'
+                : 'Amati → Tirukan → Kenali → Ingat & peragakan'}
             </p>
           </div>
           <MissionStageList missionId={mission.id} />

@@ -39,7 +39,9 @@ export function getMissionLearningState(
   const recognitionScore = progress.missionScores[mission.id] ?? 0;
   const recognitionComplete =
     practiceComplete && recognitionScore >= RECOGNITION_PASS_SCORE;
-  const missionComplete = recognitionComplete;
+  // Existing completed IDs remain valid; new completions are recorded only
+  // after the final recall section has been finished.
+  const missionComplete = progress.completedMissionIds.includes(mission.id);
   const recallPracticedCount = missionSigns.filter(
     (sign) => progress.signMastery[sign.id]?.recall,
   ).length;
@@ -57,9 +59,11 @@ export function getMissionLearningState(
         : 0;
   const progressPercent = missionComplete
     ? 100
-    : practiceComplete
-      ? 65
-      : basePractice;
+    : recognitionComplete
+      ? 80
+      : practiceComplete
+        ? 60
+        : Math.min(55, basePractice);
   const missionQuery = `mission=${mission.id}`;
   const next = !isMissionUnlocked(mission.id, progress)
     ? { href: '/missions', label: 'Selesaikan misi sebelumnya' }
@@ -76,7 +80,12 @@ export function getMissionLearningState(
             href: `/missions/test?${missionQuery}&mode=recognition`,
             label: 'Mulai uji pengenalan',
           }
-        : getNextMissionAction(mission.id);
+        : !missionComplete
+          ? {
+              href: `/missions/test?${missionQuery}&mode=recall`,
+              label: 'Lanjut ke Ingat & peragakan',
+            }
+          : getNextMissionAction(mission.id);
 
   return {
     mission,

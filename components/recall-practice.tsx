@@ -27,9 +27,11 @@ const outcomeLabels: Record<RecallOutcome, string> = {
 export function RecallPractice({
   signIds,
   onExit,
+  onComplete,
 }: {
   signIds: SignId[];
   onExit: () => void;
+  onComplete?: () => void;
 }) {
   const [queue] = useState(signIds);
   const [index, setIndex] = useState(0);
@@ -89,6 +91,7 @@ export function RecallPractice({
     const honestOutcome =
       usedHelp && outcome === 'independent' ? 'assisted' : outcome;
     const updated = recordRecallAttempt(sign.id, honestOutcome);
+    if (index === queue.length - 1) onComplete?.();
     setResults((previous) => [
       ...previous,
       {

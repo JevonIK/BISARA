@@ -7,10 +7,11 @@ recognition. Independent recall and spaced review then reinforce vocabulary.
 ## Current learning flow (September 2026)
 
 - The active curriculum has 4 chapters, 20 missions, and all 32 dataset words.
-- Required flow: **Amati → Tirukan → Uji pengenalan**. After practice is
-  complete, a recognition score of at least 70 completes the mission and unlocks
-  the next one. Checkpoints test recognition without mandatory camera repeats.
-- **Ingat & peragakan** is optional reinforcement, with up to 3 words including
+- Required flow: **Amati → Tirukan → Uji pengenalan → Ingat & peragakan**.
+  After all signs pass camera practice and recognition reaches at least 70,
+  learners complete the recall section before the next mission unlocks.
+  Checkpoints test recognition without mandatory camera repeats.
+- **Ingat & peragakan** uses up to 3 words including
   previously learned material when available. The learner physically tries the
   sign before opening the comparison video, or explicitly requests help.
 - Outcomes are self-reported as independent, assisted, or needing practice.
@@ -19,9 +20,9 @@ recognition. Independent recall and spaced review then reinforce vocabulary.
   separate days grows intervals through 1/3/7/14/30 days; help or difficulty
   schedules tomorrow. First daily recall per word earns 10 XP; repeated clicks
   do not increase spacing or award the same daily XP again.
-- Existing completion records are preserved. Previously passed practice and
-  recognition qualify without repeating the retired situation quiz. Legacy
-  `mode=context` and `mode=conversation` links open the optional recall flow.
+- Existing completion records are preserved. Previously finished missions stay
+  unlocked; a newly passed recognition test alone no longer records mission
+  completion. Legacy `mode=context` and `mode=conversation` links open recall.
 - Important files: `lib/learning-progress.ts` (mission gates),
   `lib/progress-storage.ts` (completion and recall scheduling),
   `components/mission-assessment.tsx` (recognition),
