@@ -47,10 +47,10 @@ const stageDefinitions = [
   },
   {
     number: '04',
-    title: 'Ingat & peragakan',
+    title: 'Uji peragaan',
     description:
-      'Coba tanpa contoh, bandingkan, lalu catat bantuan yang diperlukan.',
-    duration: '2 menit',
+      'Peragakan kata dari ingatan tanpa contoh; checker memeriksa tiap tanda.',
+    duration: '5–10 menit',
     icon: Brain,
   },
 ] as const;
@@ -217,7 +217,7 @@ export function MissionStageList({
                 href={`/missions/test?mission=${mission.id}&mode=recall`}
                 className="mt-4 mb-9 inline-block text-sm font-bold text-emerald-700 underline"
               >
-                Latihan mengingat →
+                Mulai uji peragaan →
               </Link>
             ) : null}
             <p className="absolute bottom-6 left-6 right-6 flex items-center gap-2 text-xs font-bold text-signal-navy sm:left-7 sm:right-7">

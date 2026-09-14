@@ -9,7 +9,7 @@ import { getChapterForMission, getMission } from '@/lib/learning-data';
 
 export const metadata: Metadata = {
   title: 'Uji Misi BISINDO',
-  description: 'Uji pengenalan tanda dan latihan mengingat tanpa contoh.',
+  description: 'Uji pengenalan tanda dan peragaan tanpa contoh.',
 };
 
 export default async function MissionTestPage({
@@ -41,7 +41,7 @@ export default async function MissionTestPage({
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
             {params.replay === '1'
               ? `${mission.title}: ulangi uji pengenalan untuk memperkuat ingatan. Progres dan nilai terbaik tetap tersimpan.`
-              : `${mission.title}: capai minimal 70 pada uji pengenalan, lalu selesaikan Ingat & peragakan untuk membuka misi berikutnya.`}
+              : `${mission.title}: capai minimal 70 pada uji pengenalan, lalu luluskan Uji peragaan tanpa contoh untuk membuka misi berikutnya.`}
           </p>
         </header>
         <MissionSectionNavigation

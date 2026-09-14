@@ -14,6 +14,7 @@ export type GestureScore = {
   movement: number;
   coordination: number;
   detectionQuality: number;
+  assessable: boolean;
   passed: boolean;
   feedback: string;
 };
@@ -355,6 +356,7 @@ function scorePrepared(
     overall,
     ...components,
     detectionQuality,
+    assessable: true,
     passed: overall >= PASS_THRESHOLD,
     feedback: feedbackFor(
       overall,
@@ -417,7 +419,9 @@ function stabilizeHandIdentities(frames: GestureFrame[]): GestureFrame[] {
   // If the sequence is predominantly single-hand, stabilize the single hand's identity
   // to avoid MediaPipe's palm-up / edge-on handedness jitter (which flips 'Left'/'Right'
   // between frames, causing sporadic horizontal mirroring inside the same sign).
-  const singleHandFrames = twoHandStabilized.filter((f) => f.hands.length === 1);
+  const singleHandFrames = twoHandStabilized.filter(
+    (f) => f.hands.length === 1,
+  );
   if (!singleHandFrames.length) return twoHandStabilized;
 
   const twoHandFrames = twoHandStabilized.filter((f) => f.hands.length >= 2);
@@ -468,7 +472,10 @@ function stabilizeHandIdentities(frames: GestureFrame[]): GestureFrame[] {
         const dLeft = distanceArrays([wrist.x, wrist.y], lastKnown.left);
         const dRight = distanceArrays([wrist.x, wrist.y], lastKnown.right);
         const assigned = dLeft <= dRight ? 'Left' : 'Right';
-        lastKnown[assigned.toLowerCase() as 'left' | 'right'] = [wrist.x, wrist.y];
+        lastKnown[assigned.toLowerCase() as 'left' | 'right'] = [
+          wrist.x,
+          wrist.y,
+        ];
         return {
           ...frame,
           hands: [{ ...frame.hands[0], handedness: assigned }],
@@ -511,8 +518,7 @@ function stabilizeTwoHandIdentities(frames: GestureFrame[]): GestureFrame[] {
       ) {
         [leftIndex, rightIndex] = [detectedLeft, detectedRight];
       } else {
-        [leftIndex, rightIndex] =
-          directCost <= swappedCost ? [0, 1] : [1, 0];
+        [leftIndex, rightIndex] = directCost <= swappedCost ? [0, 1] : [1, 0];
       }
     } else {
       if (hasDistinctDetectedLabels) {
@@ -1235,6 +1241,7 @@ function emptyScore(detectionQuality: number, feedback: string): GestureScore {
     movement: 0,
     coordination: 0,
     detectionQuality,
+    assessable: false,
     passed: false,
     feedback,
   };

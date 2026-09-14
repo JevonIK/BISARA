@@ -21,12 +21,16 @@ import {
   parseProgressSnapshot,
   getReviewSignIds,
   getRecallSignIds,
+  getProductionTestSignIds,
+  hasPassedProductionTest,
   nextRecallHistory,
   recordRecallAttempt,
   recordMissionCompletion,
   recordMissionRecognition,
+  recordProductionAssessment,
   getProgressSnapshot,
 } from '@/lib/progress-storage';
+import type { GestureScore } from '@/lib/gesture-scoring';
 
 void test('mission stages unlock only after their real prerequisite', () => {
   const unlockedProgress = {
@@ -356,10 +360,57 @@ void test('only finishing all mission sections unlocks the next mission and pays
     assert.equal(restored.signMastery.teman.recall?.independentAttempts, 1);
     recordRecallAttempt('saya', 'independent');
     recordRecallAttempt('siapa', 'assisted');
-    const completed = recordMissionCompletion('berkenalan');
+    assert.equal(
+      recordMissionCompletion('berkenalan').completedMissionIds.includes(
+        'berkenalan',
+      ),
+      false,
+    );
+    const scored: GestureScore = {
+      overall: 82,
+      handshape: 80,
+      movement: 80,
+      orientation: 80,
+      position: 80,
+      coordination: 80,
+      detectionQuality: 100,
+      assessable: true,
+      passed: true,
+      feedback: 'Gerakan sesuai.',
+    };
+    const invalid = recordProductionAssessment('berkenalan', 'saya', {
+      ...scored,
+      assessable: false,
+      passed: false,
+    });
+    assert.equal(hasPassedProductionTest(invalid, 'berkenalan', 'saya'), false);
+    const wrong = recordProductionAssessment('berkenalan', 'saya', {
+      ...scored,
+      overall: 40,
+      passed: false,
+    });
+    assert.equal(hasPassedProductionTest(wrong, 'berkenalan', 'saya'), false);
+    const targets = getProductionTestSignIds('berkenalan');
+    for (const signId of targets.slice(0, -1)) {
+      const partial = recordProductionAssessment('berkenalan', signId, scored);
+      assert.equal(partial.completedMissionIds.includes('berkenalan'), false);
+      assert.equal(isMissionUnlocked('orang-terdekat', partial), false);
+    }
+    const resumed = parseProgressSnapshot(getProgressSnapshot());
+    assert.equal(hasPassedProductionTest(resumed, 'berkenalan', 'saya'), true);
+    const completed = recordProductionAssessment(
+      'berkenalan',
+      targets.at(-1)!,
+      scored,
+    );
     assert.equal(completed.completedMissionIds.includes('berkenalan'), true);
     assert.equal(isMissionUnlocked('orang-terdekat', completed), true);
     assert.equal(recordMissionCompletion('berkenalan').xp, completed.xp);
+    assert.equal(
+      getProductionTestSignIds('checkpoint-percakapan').length,
+      8,
+      'the final checkpoint tests a fixed sample rather than all 32 signs',
+    );
     const fresh = recordRecallAttempt('air', 'independent');
     assert.equal(
       fresh.signMastery.air.passed,

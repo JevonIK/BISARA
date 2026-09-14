@@ -6,7 +6,11 @@ import {
   getMissionPosition,
   type Mission,
 } from '@/lib/learning-data';
-import type { UserProgress } from '@/lib/progress-storage';
+import {
+  getProductionTestSignIds,
+  hasPassedProductionTest,
+  type UserProgress,
+} from '@/lib/progress-storage';
 
 export const RECOGNITION_PASS_SCORE = 70;
 export type LearningStageState = 'completed' | 'current' | 'locked';
@@ -39,11 +43,12 @@ export function getMissionLearningState(
   const recognitionScore = progress.missionScores[mission.id] ?? 0;
   const recognitionComplete =
     practiceComplete && recognitionScore >= RECOGNITION_PASS_SCORE;
-  // Existing completed IDs remain valid; new completions are recorded only
-  // after the final recall section has been finished.
+  // Existing completed IDs remain valid; new completions require every target
+  // in the camera-based production test to pass.
   const missionComplete = progress.completedMissionIds.includes(mission.id);
-  const recallPracticedCount = missionSigns.filter(
-    (sign) => progress.signMastery[sign.id]?.recall,
+  const productionSignIds = getProductionTestSignIds(mission.id);
+  const productionPassedCount = productionSignIds.filter((id) =>
+    hasPassedProductionTest(progress, mission.id, id),
   ).length;
   const nextSign = missionSigns.find(
     (sign) => !progress.signMastery[sign.id]?.passed,
@@ -83,7 +88,7 @@ export function getMissionLearningState(
         : !missionComplete
           ? {
               href: `/missions/test?${missionQuery}&mode=recall`,
-              label: 'Lanjut ke Ingat & peragakan',
+              label: 'Lanjut ke Uji peragaan',
             }
           : getNextMissionAction(mission.id);
 
@@ -99,7 +104,8 @@ export function getMissionLearningState(
     missionComplete,
     // Compatibility for consumers of the former context stage.
     conversationComplete: missionComplete,
-    recallPracticedCount,
+    productionPassedCount,
+    productionSignCount: productionSignIds.length,
     progressPercent,
     unlocked: isMissionUnlocked(mission.id, progress),
     next,

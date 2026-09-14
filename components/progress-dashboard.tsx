@@ -298,10 +298,10 @@ export function ProgressDashboard() {
               validator Tuli.
             </p>
             <MasteryRow
-              label={`Latihan mandiri: ${missionLearning.recallPracticedCount}/${currentMission.signIds.length} tanda pernah dicoba`}
+              label={`Uji peragaan: ${missionLearning.productionPassedCount}/${missionLearning.productionSignCount} tanda lulus`}
               value={
-                (missionLearning.recallPracticedCount /
-                  currentMission.signIds.length) *
+                (missionLearning.productionPassedCount /
+                  missionLearning.productionSignCount) *
                 100
               }
               color="bg-signal-coral"

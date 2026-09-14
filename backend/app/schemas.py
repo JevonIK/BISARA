@@ -84,6 +84,14 @@ class SignMasteryItem(ApiModel):
     passed: bool
     attempts: int = Field(ge=0, le=1_000_000)
     last_practiced_at: str = Field(max_length=64)
+    production_passed_mission_ids: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("production_passed_mission_ids")
+    @classmethod
+    def valid_production_missions(cls, values: list[str]) -> list[str]:
+        if len(set(values)) != len(values) or not set(values) <= MISSION_IDS:
+            raise ValueError("Invalid or duplicate production missions")
+        return values
 
 
 class ProgressUpdate(ApiModel):

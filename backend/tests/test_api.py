@@ -158,6 +158,7 @@ async def test_recall_history_roundtrips_without_changing_checker_mastery(client
     original = (await client.get(f"{PREFIX}/progress")).json()
     sign = {
         "bestScore": 82, "passed": True, "attempts": 2, "lastPracticedAt": "",
+        "productionPassedMissionIds": ["berkenalan"],
         "recall": {
             "independentAttempts": 1, "assistedAttempts": 2, "needsPracticeAttempts": 1,
             "lastOutcome": "assisted", "lastPracticedAt": "2026-09-12",
@@ -171,3 +172,5 @@ async def test_recall_history_roundtrips_without_changing_checker_mastery(client
     invalid = {**sign, "recall": {**sign["recall"], "lastOutcome": "perfect"}}
     rejected = await client.put(f"{PREFIX}/progress", json=writable(restored, signMastery={"teman": invalid}))
     assert rejected.status_code == 422
+    invalid_production = {**sign, "productionPassedMissionIds": ["berkenalan", "berkenalan"]}
+    assert (await client.put(f"{PREFIX}/progress", json=writable(restored, signMastery={"teman": invalid_production}))).status_code == 422

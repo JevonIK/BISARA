@@ -72,7 +72,7 @@ export default function Home() {
           : ('next' as const),
     },
     {
-      label: 'Ingat & peragakan',
+      label: 'Uji peragaan',
       icon: Brain,
       state: missionState.missionComplete
         ? ('done' as const)
@@ -339,7 +339,7 @@ export default function Home() {
               ],
               [
                 '04',
-                'Ingat & peragakan',
+                'Uji peragaan',
                 'Coba tanpa contoh, lalu bandingkan sebelum misi selesai.',
               ],
             ].map(([number, title, description]) => (

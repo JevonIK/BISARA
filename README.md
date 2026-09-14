@@ -1,21 +1,23 @@
 # BISARA
 
 BISARA is a gamified BISINDO learning platform focused on practical, real-world
-communication. Learners observe signs, imitate with camera feedback, and test
-recognition. Independent recall and spaced review then reinforce vocabulary.
+communication. Learners observe signs, imitate with camera feedback, test
+recognition, and perform signs from memory without an example.
 
 ## Current learning flow (September 2026)
 
 - The active curriculum has 4 chapters, 20 missions, and all 32 dataset words.
-- Required flow: **Amati → Tirukan → Uji pengenalan → Ingat & peragakan**.
+- Required flow: **Amati → Tirukan → Uji pengenalan → Uji peragaan**.
   After all signs pass camera practice and recognition reaches at least 70,
-  learners complete the recall section before the next mission unlocks.
-  Checkpoints test recognition without mandatory camera repeats.
-- **Ingat & peragakan** uses up to 3 words including
-  previously learned material when available. The learner physically tries the
-  sign before opening the comparison video, or explicitly requests help.
-- Outcomes are self-reported as independent, assisted, or needing practice.
-  They never change checker scores or imply verified production mastery.
+  learners perform each mission sign from memory with the camera checker before
+  the next mission unlocks. Checkpoints test a fixed sample of 6–8 signs from
+  the chapter rather than all 32 signs in the final checkpoint.
+- **Uji peragaan** shows a word and keeps the reference video hidden during
+  capture. Each passing sign is saved independently, so users resume where they
+  stopped. Poor detection is not counted as an incorrect gesture. A learner can
+  return to Tirukan to view the example, then retry the test without an example.
+- **Review** still offers self-reported recall with optional help and spaced
+  repetition. These review reports cannot complete a mission.
 - Review returns learned words when due, up to 5 a day. Independent recall on
   separate days grows intervals through 1/3/7/14/30 days; help or difficulty
   schedules tomorrow. First daily recall per word earns 10 XP; repeated clicks
@@ -26,12 +28,13 @@ recognition. Independent recall and spaced review then reinforce vocabulary.
 - Important files: `lib/learning-progress.ts` (mission gates),
   `lib/progress-storage.ts` (completion and recall scheduling),
   `components/mission-assessment.tsx` (recognition),
-  `components/recall-practice.tsx` (hidden example and self-assessment), and
+  `components/production-test.tsx` (camera-based final test),
+  `components/recall-practice.tsx` (self-assessed spaced review), and
   `components/review-quest.tsx` (due review queue).
-- Recall history lives in optional `signMastery[id].recall`, alongside the
-  existing checker record. The API schema accepts it in the existing JSONB
-  column; no database migration is required. Restart/rebuild the API to use the
-  updated schema before syncing recall history.
+- Recall history and per-mission production passes live in optional
+  `signMastery[id]` fields. The API schema accepts these in the existing JSONB
+  column; no database migration is required. Restart/rebuild the API before
+  syncing the new production pass field.
 
 The milestones below describe earlier iterations; the current flow above
 supersedes their scenario-completion and review requirements.
@@ -272,7 +275,7 @@ and deployment requirements.
 - `/missions` — complete learning journey
 - `/missions/berkenalan` — active mission detail
 - `/missions/berkenalan/practice` — camera and hand-landmark practice
-- `/missions/test?mission=berkenalan` — recognition and optional recall
+- `/missions/test?mission=berkenalan` — recognition and camera-based production test
 - `/progress` — activity, mastery, scores, and badge dashboard
 - `/review` — due vocabulary recall and spaced review
 - `/account` — registration, login, logout, and sync management

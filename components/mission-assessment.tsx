@@ -15,7 +15,7 @@ import {
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-import { RecallPractice } from '@/components/recall-practice';
+import { ProductionTest } from '@/components/production-test';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
@@ -35,11 +35,7 @@ import {
   getMissionReplayAction,
   RECOGNITION_PASS_SCORE,
 } from '@/lib/learning-progress';
-import {
-  getRecallSignIds,
-  recordMissionCompletion,
-  recordMissionRecognition,
-} from '@/lib/progress-storage';
+import { recordMissionRecognition } from '@/lib/progress-storage';
 import { calculateScore, calculateStars } from '@/lib/scoring';
 import { cn } from '@/lib/utils';
 
@@ -107,7 +103,7 @@ export function MissionAssessment({
   if (view === 'recall' && !learning.recognitionComplete)
     return (
       <Gate
-        title="Tahap Ingat belum terbuka"
+        title="Uji peragaan belum terbuka"
         description="Selesaikan Tirukan dan uji pengenalan terlebih dahulu sebelum mencoba tanda dari ingatan."
         href={learning.next.href}
         action={learning.next.label}
@@ -115,9 +111,8 @@ export function MissionAssessment({
     );
   if (view === 'recall')
     return (
-      <RecallPractice
-        signIds={getRecallSignIds(progress, mission.id)}
-        onComplete={() => recordMissionCompletion(mission.id)}
+      <ProductionTest
+        missionId={mission.id}
         onExit={() => setView(learning.missionComplete ? 'complete' : 'menu')}
       />
     );
@@ -253,7 +248,7 @@ export function MissionAssessment({
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {passed
-              ? 'Uji pengenalan lulus. Lanjutkan ke Ingat & peragakan untuk menyelesaikan seluruh bagian misi.'
+              ? 'Uji pengenalan lulus. Lanjutkan ke Uji peragaan tanpa contoh untuk menyelesaikan misi.'
               : `Skor minimal adalah ${RECOGNITION_PASS_SCORE}. Tonton ulang tanda yang keliru lalu coba lagi.`}
           </p>
           {missedAnswers.length ? (
@@ -291,7 +286,7 @@ export function MissionAssessment({
                   'rounded-full bg-signal-teal font-extrabold text-signal-navy',
                 )}
               >
-                Ingat & peragakan <ArrowRight className="size-4" />
+                Uji peragaan <ArrowRight className="size-4" />
               </Link>
             ) : null}
             <Button
@@ -331,8 +326,11 @@ export function MissionAssessment({
             Target latihan “{mission.title}” selesai
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Tirukan, uji pengenalan, dan Ingat & peragakan selesai. Kamu dapat
-            melanjutkan ke misi berikutnya atau review berkala.
+            {mission.type === 'checkpoint'
+              ? 'Uji pengenalan dan Uji peragaan'
+              : 'Tirukan, uji pengenalan, dan Uji peragaan'}{' '}
+            selesai. Kamu dapat melanjutkan ke misi berikutnya atau review
+            berkala.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
@@ -366,7 +364,7 @@ export function MissionAssessment({
     <section className="grid gap-5 lg:grid-cols-2">
       <ModeCard
         icon={Video}
-        eyebrow="Tahap 3"
+        eyebrow={mission.type === 'checkpoint' ? 'Tahap 2' : 'Tahap 3'}
         title="Uji pengenalan"
         description={`Kenali ${questions.length} tanda tanpa label. Nilai minimum ${RECOGNITION_PASS_SCORE}.`}
         meta={`${learning.recognitionScore}/100 skor terbaik`}
@@ -375,10 +373,10 @@ export function MissionAssessment({
       />
       <ModeCard
         icon={Brain}
-        eyebrow="Tahap 4"
-        title="Ingat & peragakan"
-        description="Peragakan beberapa tanda tanpa contoh, lalu bandingkan. Penggunaan bantuan dicatat untuk menentukan review berikutnya."
-        meta="Maksimal 3 tanda · tanpa syarat skor"
+        eyebrow={mission.type === 'checkpoint' ? 'Tahap 3' : 'Tahap 4'}
+        title="Uji peragaan"
+        description="Lihat kata, lalu peragakan dengan kamera tanpa contoh. Setiap tanda perlu melewati checker; progres tersimpan per tanda."
+        meta={`${learning.productionPassedCount}/${learning.productionSignCount} tanda lulus`}
         href={`/missions/test?mission=${mission.id}&mode=recall`}
         locked={!learning.recognitionComplete}
       />

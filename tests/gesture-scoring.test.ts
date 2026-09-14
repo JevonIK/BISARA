@@ -649,5 +649,6 @@ void test('insufficient visibility cannot pass', () => {
   const result = scoreGesture(sequence(), attempt);
   assert.equal(result.passed, false);
   assert.equal(result.overall, 0);
+  assert.equal(result.assessable, false);
   assert.ok(result.detectionQuality < 20);
 });

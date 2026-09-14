@@ -32,6 +32,7 @@ export default async function PracticePage({
     mission?: string;
     sign?: string;
     source?: string;
+    returnMission?: string;
     replay?: string;
   }>;
 }) {
@@ -48,6 +49,12 @@ export default async function PracticePage({
   const referenceVideoId = `${mission.id}-${sign.id}-reference-video`;
   const referenceVideoUrl = versionedSignVideo(sign.videoSrc);
   const reviewMode = params.source === 'review';
+  const productionReturn =
+    params.source === 'production' &&
+    params.returnMission &&
+    getMission(params.returnMission).id === params.returnMission
+      ? `/missions/test?mission=${params.returnMission}&mode=recall`
+      : null;
   const replayMode = params.replay === '1';
 
   return (
@@ -57,11 +64,15 @@ export default async function PracticePage({
         <div className="mb-7 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <Link
-              href={reviewMode ? '/review' : mission.href}
+              href={productionReturn ?? (reviewMode ? '/review' : mission.href)}
               className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-signal-navy"
             >
               <ArrowLeft className="size-4" />{' '}
-              {reviewMode ? 'Kembali ke review' : 'Kembali ke detail misi'}
+              {productionReturn
+                ? 'Kembali ke Uji peragaan'
+                : reviewMode
+                  ? 'Kembali ke review'
+                  : 'Kembali ke detail misi'}
             </Link>
             <div className="mt-6 flex flex-wrap gap-2">
               <Badge className="bg-signal-teal text-signal-navy">

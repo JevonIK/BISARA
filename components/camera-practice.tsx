@@ -94,6 +94,8 @@ type CameraPracticeProps = {
   missionId?: string;
   missionSignIds?: SignId[];
   reviewMode?: boolean;
+  productionMode?: boolean;
+  onProductionResult?: (result: GestureScore) => void;
 };
 
 type NextAction = {
@@ -111,6 +113,8 @@ export function CameraPractice({
   missionId = 'berkenalan',
   missionSignIds = ['saya', 'siapa', 'teman', 'terima-kasih', 'maaf'],
   reviewMode = false,
+  productionMode = false,
+  onProductionResult,
 }: CameraPracticeProps) {
   const userProgress = useProgress();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -393,8 +397,7 @@ export function CameraPractice({
                   y: landmark.y,
                   z: landmark.z,
                 })),
-                handedness:
-                  results.handedness[i]?.[0]?.categoryName ?? 'Right',
+                handedness: results.handedness[i]?.[0]?.categoryName ?? 'Right',
                 confidence: results.handedness[i]?.[0]?.score ?? 0,
               }),
             );
@@ -505,50 +508,55 @@ export function CameraPractice({
         frameBufferRef.current,
       );
       setGestureScore(result);
-      const updatedProgress = recordGestureAssessment(
-        signId,
-        result.overall,
-        result.passed,
-        {
-          recordingDurationMs: recordingDurationRef.current,
-          review: reviewMode,
-        },
-      );
+      if (productionMode) {
+        onProductionResult?.(result);
+        setNextAction(null);
+      } else {
+        const updatedProgress = recordGestureAssessment(
+          signId,
+          result.overall,
+          result.passed,
+          {
+            recordingDurationMs: recordingDurationRef.current,
+            review: reviewMode,
+          },
+        );
 
-      if (result.passed) {
-        const learningState = getMissionLearningState(
-          missionId,
-          updatedProgress,
-        );
-        const missionSigns = getSigns(missionSignIds);
-        const nextUnmasteredSign = missionSigns.find(
-          (sign) => !updatedProgress.signMastery[sign.id].passed,
-        );
-        setNextAction(
-          reviewMode
-            ? {
-                href: '/review',
-                label: 'Kembali ke review',
-                description: `Review tanda ${signLabel} sudah tercatat untuk hari ini.`,
-                practiceComplete: false,
-              }
-            : nextUnmasteredSign
+        if (result.passed) {
+          const learningState = getMissionLearningState(
+            missionId,
+            updatedProgress,
+          );
+          const missionSigns = getSigns(missionSignIds);
+          const nextUnmasteredSign = missionSigns.find(
+            (sign) => !updatedProgress.signMastery[sign.id].passed,
+          );
+          setNextAction(
+            reviewMode
               ? {
-                  href: `/missions/practice?mission=${missionId}&sign=${nextUnmasteredSign.id}`,
-                  label: `Latih tanda ${nextUnmasteredSign.label}`,
-                  description: `${learningState.masteredSignCount} dari ${missionSigns.length} tanda sudah lulus. Lanjutkan ke tanda berikutnya.`,
+                  href: '/review',
+                  label: 'Kembali ke review',
+                  description: `Review tanda ${signLabel} sudah tercatat untuk hari ini.`,
                   practiceComplete: false,
                 }
-              : {
-                  href: `/missions/test?mission=${missionId}&mode=recognition`,
-                  label: 'Mulai tes pengenalan',
-                  description:
-                    'Semua tanda misi sudah lulus latihan kamera. Sekarang cek apakah kamu dapat mengenalinya tanpa label.',
-                  practiceComplete: true,
-                },
-        );
-      } else {
-        setNextAction(null);
+              : nextUnmasteredSign
+                ? {
+                    href: `/missions/practice?mission=${missionId}&sign=${nextUnmasteredSign.id}`,
+                    label: `Latih tanda ${nextUnmasteredSign.label}`,
+                    description: `${learningState.masteredSignCount} dari ${missionSigns.length} tanda sudah lulus. Lanjutkan ke tanda berikutnya.`,
+                    practiceComplete: false,
+                  }
+                : {
+                    href: `/missions/test?mission=${missionId}&mode=recognition`,
+                    label: 'Mulai tes pengenalan',
+                    description:
+                      'Semua tanda misi sudah lulus latihan kamera. Sekarang cek apakah kamu dapat mengenalinya tanpa label.',
+                    practiceComplete: true,
+                  },
+          );
+        } else {
+          setNextAction(null);
+        }
       }
       practicePhaseRef.current = 'result';
       setPracticePhase('result');
@@ -557,6 +565,8 @@ export function CameraPractice({
     getReferenceVideo,
     missionId,
     missionSignIds,
+    onProductionResult,
+    productionMode,
     reviewMode,
     signId,
     signLabel,
@@ -777,7 +787,9 @@ export function CameraPractice({
                   )}
                 </span>
                 <h2 className="mt-6 text-2xl font-black tracking-[-0.035em] text-white">
-                  Siapkan kamera latihan
+                  {productionMode
+                    ? 'Siapkan kamera uji'
+                    : 'Siapkan kamera latihan'}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-white/55">
                   Video diproses langsung di browser. BISARA tidak merekam atau
@@ -854,7 +866,9 @@ export function CameraPractice({
                   {countdown}
                 </span>
                 <p className="mt-4 text-sm font-bold text-white">
-                  Bersiap — contoh diputar perlahan setelah hitungan
+                  {productionMode
+                    ? 'Bersiap — peragakan kata dari ingatan setelah hitungan'
+                    : 'Bersiap — contoh diputar perlahan setelah hitungan'}
                 </p>
                 <p className="mt-2 text-xs text-white/70">
                   Pastikan tangan masuk bingkai saat “Mulai!”
@@ -884,7 +898,10 @@ export function CameraPractice({
                   </div>
                 </div>
                 <span className="shrink-0 text-xs font-bold text-white">
-                  Ikuti contoh, lalu tahan ·{' '}
+                  {productionMode
+                    ? 'Peragakan lalu tahan'
+                    : 'Ikuti contoh, lalu tahan'}{' '}
+                  ·{' '}
                   {Math.max(
                     0,
                     Math.ceil(
@@ -933,7 +950,8 @@ export function CameraPractice({
                 disabled={!canStartPractice}
                 className="bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90"
               >
-                <Play className="size-4" /> Mulai latihan
+                <Play className="size-4" />{' '}
+                {productionMode ? 'Mulai uji' : 'Mulai latihan'}
               </Button>
             )}
             {isReady &&
@@ -977,32 +995,39 @@ export function CameraPractice({
         <aside className="self-start border-t-4 border-signal-coral bg-card p-6">
           <div className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-coral">
-              Hasil latihan
+              {productionMode ? 'Hasil uji peragaan' : 'Hasil latihan'}
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-signal-navy">
-              {practiceResultLabel(gestureScore)}
+              {gestureScore.assessable
+                ? practiceResultLabel(gestureScore)
+                : 'Belum bisa dinilai'}
             </h2>
           </div>
 
-          <div className="space-y-3">
-            <QualitativeMetric
-              label="Bentuk tangan"
-              value={gestureScore.handshape}
-            />
-            <QualitativeMetric label="Gerakan" value={gestureScore.movement} />
-            <QualitativeMetric
-              label="Arah telapak"
-              value={gestureScore.orientation}
-            />
-            <QualitativeMetric
-              label="Dalam bingkai"
-              value={gestureScore.position}
-            />
-            <QualitativeMetric
-              label="Koordinasi"
-              value={gestureScore.coordination}
-            />
-          </div>
+          {gestureScore.assessable ? (
+            <div className="space-y-3">
+              <QualitativeMetric
+                label="Bentuk tangan"
+                value={gestureScore.handshape}
+              />
+              <QualitativeMetric
+                label="Gerakan"
+                value={gestureScore.movement}
+              />
+              <QualitativeMetric
+                label="Arah telapak"
+                value={gestureScore.orientation}
+              />
+              <QualitativeMetric
+                label="Dalam bingkai"
+                value={gestureScore.position}
+              />
+              <QualitativeMetric
+                label="Koordinasi"
+                value={gestureScore.coordination}
+              />
+            </div>
+          ) : null}
 
           <div className="mt-5 border-t border-signal-navy/10 pt-4">
             <QualitativeMetric
@@ -1015,6 +1040,12 @@ export function CameraPractice({
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
             {gestureScore.feedback}
           </p>
+          {productionMode && !gestureScore.assessable ? (
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              Percobaan ini tidak dihitung sebagai gerakan salah. Perbaiki
+              posisi kamera lalu ambil ulang.
+            </p>
+          ) : null}
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             “Dalam bingkai” membandingkan letak tangan pada gambar kamera.
             Checker belum melacak wajah, bahu, ekspresi, atau tata bahasa

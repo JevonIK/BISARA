@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
+import { useSyncExternalStore } from 'react';
 
 import { useProgress } from '@/hooks/use-progress';
 import {
@@ -13,6 +14,9 @@ import { getMissionLearningState } from '@/lib/learning-progress';
 import { cn } from '@/lib/utils';
 
 export type MissionSection = 'amati' | 'tirukan' | 'recognition' | 'recall';
+const subscribeHydration = () => () => undefined;
+const clientReady = () => true;
+const serverReady = () => false;
 
 export function MissionSectionNavigation({
   missionId,
@@ -22,6 +26,11 @@ export function MissionSectionNavigation({
   section: MissionSection;
 }) {
   const progress = useProgress();
+  const ready = useSyncExternalStore(
+    subscribeHydration,
+    clientReady,
+    serverReady,
+  );
   const mission = getMission(missionId);
   const learning = getMissionLearningState(mission, progress);
   const stages: Array<{
@@ -58,7 +67,7 @@ export function MissionSectionNavigation({
     },
     {
       id: 'recall',
-      label: 'Ingat & peragakan',
+      label: 'Uji peragaan',
       href: `/missions/test?mission=${mission.id}&mode=recall`,
       complete: learning.missionComplete,
       available: learning.unlocked && learning.recognitionComplete,
@@ -80,6 +89,17 @@ export function MissionSectionNavigation({
           available: true,
         }
       : null;
+
+  if (!ready) {
+    return (
+      <nav
+        aria-label={`Navigasi bagian misi ${mission.title}`}
+        className="mb-6 border border-signal-navy/10 bg-card p-4 text-sm text-muted-foreground sm:p-5"
+      >
+        Memuat progres misi…
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -156,7 +176,7 @@ export function MissionSectionNavigation({
           )
         ) : (
           <span className="text-sm text-muted-foreground">
-            Selesaikan Ingat & peragakan untuk membuka misi berikutnya.
+            Selesaikan Uji peragaan untuk membuka misi berikutnya.
           </span>
         )}
       </div>

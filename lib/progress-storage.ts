@@ -1,6 +1,11 @@
 import type { StarRating } from '@/lib/scoring';
+import type { GestureScore } from '@/lib/gesture-scoring';
 import { signIds, signs, type SignId } from '@/lib/curriculum-data';
-import { allMissions, getMission } from '@/lib/learning-data';
+import {
+  allMissions,
+  buildRecognitionQuestions,
+  getMission,
+} from '@/lib/learning-data';
 import {
   PROGRESS_EVENT,
   scopedProgressKey,
@@ -22,6 +27,7 @@ export type RecallHistory = {
 
 export type SignMastery = {
   recall?: RecallHistory;
+  productionPassedMissionIds?: string[];
   bestScore: number;
   passed: boolean;
   attempts: number;
@@ -196,6 +202,26 @@ export function getRecallSignIds(
   return previous ? [...current.slice(0, 2), previous] : current.slice(0, 3);
 }
 
+/** A lesson tests each taught sign; large chapter checkpoints sample a fixed set. */
+export function getProductionTestSignIds(missionId: string): SignId[] {
+  const mission = getMission(missionId);
+  return mission.type === 'checkpoint'
+    ? buildRecognitionQuestions(mission, 0).map((question) => question.signId)
+    : mission.signIds;
+}
+
+export function hasPassedProductionTest(
+  progress: UserProgress,
+  missionId: string,
+  signId: SignId,
+) {
+  return (
+    progress.signMastery[signId]?.productionPassedMissionIds?.includes(
+      missionId,
+    ) === true
+  );
+}
+
 export function nextRecallHistory(
   previous: RecallHistory | undefined,
   outcome: RecallOutcome,
@@ -273,6 +299,22 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
         if (!entry || typeof entry !== 'object') continue;
         signMastery[signId] = {
           recall: cleanRecallHistory(entry.recall),
+          productionPassedMissionIds: Array.isArray(
+            entry.productionPassedMissionIds,
+          )
+            ? [
+                ...new Set(
+                  entry.productionPassedMissionIds.filter(
+                    (id): id is string =>
+                      typeof id === 'string' &&
+                      allMissions.some(
+                        (mission) =>
+                          mission.id === id && mission.signIds.includes(signId),
+                      ),
+                  ),
+                ),
+              ]
+            : [],
           bestScore: clampScore(entry.bestScore),
           passed: entry.passed === true,
           attempts: Number.isFinite(entry.attempts)
@@ -427,7 +469,10 @@ function completeEligibleMission(
     progress.completedMissionIds.includes(missionId) ||
     (progress.missionScores[missionId] ?? 0) < 70 ||
     (mission.type !== 'checkpoint' &&
-      !mission.signIds.every((id) => progress.signMastery[id]?.passed))
+      !mission.signIds.every((id) => progress.signMastery[id]?.passed)) ||
+    !getProductionTestSignIds(missionId).every((id) =>
+      hasPassedProductionTest(progress, missionId, id),
+    )
   )
     return progress;
   const completedMissionIds = [...progress.completedMissionIds, missionId];
@@ -445,6 +490,47 @@ export function recordMissionCompletion(missionId: string) {
   return updateProgress((progress) =>
     completeEligibleMission(progress, missionId),
   );
+}
+
+export function recordProductionAssessment(
+  missionId: string,
+  signId: SignId,
+  result: GestureScore,
+) {
+  if (
+    !getProductionTestSignIds(missionId).includes(signId) ||
+    !result.assessable
+  )
+    return parseProgressSnapshot(getProgressSnapshot());
+  return updateProgress((progress) => {
+    const previous = progress.signMastery[signId];
+    const previouslyPassed = hasPassedProductionTest(
+      progress,
+      missionId,
+      signId,
+    );
+    const nextPassedMissionIds =
+      result.passed && !previouslyPassed
+        ? [...(previous.productionPassedMissionIds ?? []), missionId]
+        : (previous.productionPassedMissionIds ?? []);
+    const updated: UserProgress = markActive({
+      ...progress,
+      signMastery: {
+        ...progress.signMastery,
+        [signId]: {
+          ...previous,
+          productionPassedMissionIds: nextPassedMissionIds,
+          recall: nextRecallHistory(
+            previous.recall,
+            result.passed ? 'independent' : 'needs-practice',
+          ),
+        },
+      },
+      totalPracticeMinutes: progress.totalPracticeMinutes + 1,
+      weeklyActivity: addMinutesToToday(progress.weeklyActivity, 1),
+    });
+    return completeEligibleMission(updated, missionId);
+  });
 }
 
 export function recordConversationCompletion() {

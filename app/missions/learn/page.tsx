@@ -139,7 +139,7 @@ export default async function MissionLearningPage({
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {mission.type === 'checkpoint'
-                ? 'Checkpoint menguji pengenalan tanda dari bab ini tanpa mengulang seluruh latihan kamera. Setelah lulus, selesaikan Ingat & peragakan untuk membuka misi berikutnya.'
+                ? 'Checkpoint menguji pengenalan tanda dari bab ini. Setelah lulus, peragakan sampel kata tanpa contoh lewat kamera untuk membuka misi berikutnya.'
                 : 'Checker membandingkan landmark tanganmu dengan satu demonstrasi referensi. Skor menunjukkan kemiripan gerak tangan pada kamera, bukan penilaian bahasa oleh manusia.'}
             </p>
             <div className="mt-6 flex gap-3 border-t border-signal-navy/10 pt-5 text-xs leading-5 text-muted-foreground">
@@ -219,8 +219,8 @@ export default async function MissionLearningPage({
             </div>
             <p className="text-sm font-bold text-muted-foreground">
               {mission.type === 'checkpoint'
-                ? 'Amati → Kenali → Ingat & peragakan'
-                : 'Amati → Tirukan → Kenali → Ingat & peragakan'}
+                ? 'Amati → Kenali → Uji peragaan'
+                : 'Amati → Tirukan → Kenali → Uji peragaan'}
             </p>
           </div>
           <MissionStageList missionId={mission.id} />
