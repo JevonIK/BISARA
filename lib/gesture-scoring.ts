@@ -40,6 +40,14 @@ type Components = Pick<
 
 const PASS_THRESHOLD = 75;
 const MIN_COMPONENT_SCORE = 50;
+const MIN_HANDSHAPE_SCORE = PASS_THRESHOLD;
+const MIN_HANDSHAPE_MATCH_RATIO = 0.6;
+const MIN_MOVEMENT_SCORE = 70;
+const MIN_TWO_HAND_SHAPE_SCORE = 85;
+const MIN_TWO_HAND_JOINT_MOVEMENT_SCORE = 85;
+const MIN_TWO_HAND_ORIENTATION_SCORE = 85;
+const MIN_TWO_HAND_COORDINATION_SCORE = 90;
+const MIN_ALTERNATIVE_MARGIN = 5;
 const SEQUENCE_SAMPLES = 32;
 const MIN_VISIBLE_FRAMES = 6;
 const MIN_COVERAGE = 0.6;
@@ -47,7 +55,7 @@ const MIN_TWO_HAND_COVERAGE = 0.35;
 const MIN_VISIBLE_DURATION_MS = 400;
 const POSE_DOMINANT_CENTRAL_EXTENT = 0.2;
 const TWO_HAND_REFERENCE_RATIO = 0.6;
-const MIN_ATTEMPT_WINDOW_RATIO = 0.55;
+const MIN_ATTEMPT_WINDOW_RATIO = 0.65;
 const MAX_ATTEMPT_BOUNDARY_TRIM_RATIO = 0.3;
 const MAX_BOUNDARY_CANDIDATES = 20;
 const MAX_REFERENCE_BOUNDARY_SCAN_RATIO = 0.35;
@@ -55,6 +63,9 @@ const MIN_REFERENCE_CORE_RATIO = 0.55;
 const REFERENCE_SETTLED_STEP_SCALE = 0.8;
 const REFERENCE_SETTLED_STEPS = 2;
 const MIN_REFERENCE_BOUNDARY_TRAVEL_SCALE = 1.5;
+const MIN_EXTRA_HAND_FRAME_RATIO = 0.35;
+const EXTRA_HAND_SIGNING_REGION_SCALE = 3.5;
+const EXTRA_HAND_MOTION_SCALE = 0.8;
 
 export function smoothLiveHandObservations(
   currentHands: HandObservation[],
@@ -219,7 +230,17 @@ export function scoreGesture(
   );
   // A change of dominant hand swaps the roles of BOTH hands together. Choose
   // one assignment for the entire gesture, never a different swap per frame.
-  if (requiredHandCount === 1) return direct;
+  if (requiredHandCount === 1) {
+    return hasSustainedExtraHand(rawAttempt, directAttempt)
+      ? {
+          ...direct,
+          overall: Math.min(PASS_THRESHOLD - 1, direct.overall),
+          passed: false,
+          feedback:
+            'Tangan kedua ikut aktif saat contoh memakai satu tangan. Ulangi dengan tangan yang digunakan pada contoh.',
+        }
+      : direct;
+  }
   const swapped = scoreAttemptWindows(
     sampledReference,
     selectRequiredHands(
@@ -230,6 +251,35 @@ export function scoreGesture(
     detectionQuality,
   );
   return swapped.overall > direct.overall ? swapped : direct;
+}
+
+export function scoreGestureWithAlternatives(
+  referenceFrames: GestureFrame[],
+  attemptFrames: GestureFrame[],
+  alternatives: Array<{ label: string; frames: GestureFrame[] }>,
+): GestureScore {
+  const target = scoreGesture(referenceFrames, attemptFrames);
+  if (!target.passed) return target;
+
+  const closestAlternative = alternatives
+    .map(({ label, frames }) => ({
+      label,
+      score: scoreGesture(frames, attemptFrames),
+    }))
+    .filter(({ score }) => score.assessable && score.passed)
+    .sort((a, b) => b.score.overall - a.score.overall)[0];
+  if (
+    !closestAlternative ||
+    target.overall - closestAlternative.score.overall >= MIN_ALTERNATIVE_MARGIN
+  )
+    return target;
+
+  return {
+    ...target,
+    overall: Math.min(PASS_THRESHOLD - 1, target.overall),
+    passed: false,
+    feedback: `Gerakan juga mirip tanda “${closestAlternative.label}”. Coba lagi dan perjelas ciri pembeda dari tanda yang diminta.`,
+  };
 }
 
 function scoreAttemptWindows(
@@ -300,13 +350,13 @@ function scorePrepared(
   const attemptMovement = movementSequence(attempt);
   const comparePosition = (a: PreparedFrame, b: PreparedFrame) =>
     compareHands(a, b, (hand) => hand.position);
+  const handshapeMatch = robustPoseMetrics(
+    reference,
+    attempt,
+    compareHandshape,
+  );
   const components: Components = {
-    handshape: errorToScore(
-      robustPoseError(reference, attempt, (a, b) =>
-        compareHands(a, b, (hand) => hand.shape),
-      ),
-      0.7,
-    ),
+    handshape: errorToScore(handshapeMatch.error, 0.7),
     position: errorToScore(
       poseDominant
         ? robustPoseError(reference, attempt, comparePosition)
@@ -347,10 +397,37 @@ function scorePrepared(
   // A severe mismatch must not be hidden by perfect unrelated components.
   // Screen position alone cannot establish incorrect placement relative to the
   // body: we only have hand landmarks, not a tracked shoulder/torso anchor.
-  const overall =
-    components[weakestCore] < MIN_COMPONENT_SCORE
-      ? Math.min(PASS_THRESHOLD - 1, weightedScore)
-      : weightedScore;
+  const handshapeMismatch =
+    components.handshape < MIN_HANDSHAPE_SCORE ||
+    handshapeMatch.nearestErrors.filter(
+      (error) => errorToScore(error, 0.7) >= MIN_HANDSHAPE_SCORE,
+    ).length /
+      handshapeMatch.nearestErrors.length <
+      MIN_HANDSHAPE_MATCH_RATIO;
+  const twoHandSign = reference.some((frame) => frame.hands.length === 2);
+  const twoHandWeakness = twoHandSign
+    ? components.handshape < MIN_TWO_HAND_SHAPE_SCORE
+      ? 'handshape'
+      : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
+          components.movement < MIN_TWO_HAND_JOINT_MOVEMENT_SCORE
+        ? 'movement'
+        : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
+            components.orientation < MIN_TWO_HAND_ORIENTATION_SCORE
+          ? 'coordination'
+          : null
+    : null;
+  const criticalWeakness = handshapeMismatch
+    ? 'handshape'
+    : twoHandWeakness
+      ? twoHandWeakness
+      : components.movement < MIN_MOVEMENT_SCORE
+        ? 'movement'
+        : components[weakestCore] < MIN_COMPONENT_SCORE
+          ? weakestCore
+          : null;
+  const overall = criticalWeakness
+    ? Math.min(PASS_THRESHOLD - 1, weightedScore)
+    : weightedScore;
 
   return {
     overall,
@@ -358,11 +435,63 @@ function scorePrepared(
     detectionQuality,
     assessable: true,
     passed: overall >= PASS_THRESHOLD,
-    feedback: feedbackFor(
-      overall,
-      components[weakestCore] < MIN_COMPONENT_SCORE ? weakestCore : weakest,
-    ),
+    feedback: feedbackFor(overall, criticalWeakness ?? weakest),
   };
+}
+
+function hasSustainedExtraHand(
+  rawAttempt: PreparedFrame[],
+  selectedAttempt: PreparedFrame[],
+) {
+  const extraFrames = rawAttempt.flatMap((frame, index) => {
+    const primary = selectedAttempt[index]?.hands[0];
+    if (!primary || frame.hands.length !== 2) return [];
+    const extra = frame.hands.find(
+      (hand) => hand.handedness !== primary.handedness,
+    );
+    return extra ? [{ timeMs: frame.timeMs, primary, extra }] : [];
+  });
+  if (
+    extraFrames.length < MIN_VISIBLE_FRAMES ||
+    extraFrames.length / rawAttempt.length < MIN_EXTRA_HAND_FRAME_RATIO ||
+    extraFrames.at(-1)!.timeMs - extraFrames[0].timeMs < MIN_VISIBLE_DURATION_MS
+  )
+    return false;
+
+  const scales = extraFrames.map(({ extra }) => extra.screenScale);
+  const scale = Math.max(0.001, median(scales));
+  const closeToSigningHand =
+    extraFrames.filter(
+      ({ primary, extra }) =>
+        distanceArrays(primary.physicalWrist, extra.physicalWrist) <=
+        EXTRA_HAND_SIGNING_REGION_SCALE *
+          average([primary.screenScale, extra.screenScale]),
+    ).length /
+      extraFrames.length >=
+    0.5;
+  const wrists = extraFrames.map(({ extra }) => extra.physicalWrist);
+  const wristMotion =
+    Math.hypot(
+      percentile(
+        wrists.map(([x]) => x),
+        0.9,
+      ) -
+        percentile(
+          wrists.map(([x]) => x),
+          0.1,
+        ),
+      percentile(
+        wrists.map(([, y]) => y),
+        0.9,
+      ) -
+        percentile(
+          wrists.map(([, y]) => y),
+          0.1,
+        ),
+    ) /
+      scale >=
+    EXTRA_HAND_MOTION_SCALE;
+  return closeToSigningHand || wristMotion;
 }
 
 function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
@@ -412,6 +541,7 @@ function prepareSequence(frames: GestureFrame[]): PreparedFrame[] {
   while (!prepared[last].hands.length) last -= 1;
   return prepared.slice(first, last + 1);
 }
+
 
 function stabilizeHandIdentities(frames: GestureFrame[]): GestureFrame[] {
   const twoHandStabilized = stabilizeTwoHandIdentities(frames);
@@ -888,6 +1018,38 @@ function compareHands(
   return average(errors) + Math.abs(a.hands.length - b.hands.length) * 0.5;
 }
 
+function compareHandshape(a: PreparedFrame, b: PreparedFrame) {
+  if (a.hands.length < 2) {
+    const source = a.hands[0];
+    const matched = b.hands[0];
+    return source && matched
+      ? handshapeDistance(source.shape, matched.shape)
+      : 4;
+  }
+  // One incorrect hand must not be concealed by a perfect other hand.
+  return Math.max(
+    ...a.hands.map((hand) => {
+      const matched = b.hands.find(
+        (candidate) => candidate.handedness === hand.handedness,
+      );
+      return matched ? handshapeDistance(hand.shape, matched.shape) : 4;
+    }),
+  );
+}
+
+function handshapeDistance(reference: number[], attempt: number[]) {
+  if (reference.length !== 30 || attempt.length !== 30) return 4;
+  const perFinger = Array.from({ length: 5 }, (_, index) =>
+    vectorRms(
+      reference.slice(index * 6, index * 6 + 6),
+      attempt.slice(index * 6, index * 6 + 6),
+    ),
+  );
+  // Global RMS diluted one clearly wrong finger among the five fingers.
+  // Keep mild tracker noise tolerant, but let a bent/extended wrong finger count.
+  return Math.max(vectorRms(reference, attempt), Math.max(...perFinger) * 0.7);
+}
+
 function compareOrientation(a: PreparedFrame, b: PreparedFrame) {
   return compareHands(a, b, (hand) => hand.orientation);
 }
@@ -897,22 +1059,30 @@ function robustPoseError(
   attempt: PreparedFrame[],
   distance: (left: PreparedFrame, right: PreparedFrame) => number,
 ) {
+  return robustPoseMetrics(reference, attempt, distance).error;
+}
+
+function robustPoseMetrics(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+  distance: (left: PreparedFrame, right: PreparedFrame) => number,
+) {
   const sequenceError = dtwError(reference, attempt, distance);
   // A learner can start with a relaxed hand and then hold the correct sign.
   // Require a sustained matching portion instead of grading preparation frames
   // as if they were part of the sign's handshape or orientation.
-  const nearestErrors = attempt
-    .map((frame) =>
-      Math.min(
-        ...reference.map((referenceFrame) => distance(referenceFrame, frame)),
-      ),
-    )
-    .sort((a, b) => a - b);
-  const sustainedFrames = Math.max(4, Math.ceil(nearestErrors.length * 0.25));
-  return Math.min(
-    sequenceError,
-    average(nearestErrors.slice(0, sustainedFrames)),
+  const nearestErrors = attempt.map((frame) =>
+    Math.min(
+      ...reference.map((referenceFrame) => distance(referenceFrame, frame)),
+    ),
   );
+  // A short accidental match must not certify an otherwise different sign.
+  // Boundary trimming already handles reaction and rest time; require the
+  // selected gesture as a whole to retain the expected pose.
+  return {
+    error: Math.min(sequenceError, average(nearestErrors)),
+    nearestErrors,
+  };
 }
 
 function coordinationSequenceError(
@@ -1285,6 +1455,16 @@ function median(values: number[]) {
   return sorted.length % 2
     ? sorted[middle]
     : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+function percentile(values: number[], fraction: number) {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (!sorted.length) return 0;
+  const position = (sorted.length - 1) * fraction;
+  const lower = Math.floor(position);
+  return (
+    sorted[lower] +
+    (sorted[Math.ceil(position)] - sorted[lower]) * (position - lower)
+  );
 }
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));

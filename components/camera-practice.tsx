@@ -20,11 +20,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { useProgress } from '@/hooks/use-progress';
-import { getSigns, type SignId } from '@/lib/curriculum-data';
+import {
+  getSigns,
+  signIds as allSignIds,
+  versionedSignVideo,
+  type SignId,
+} from '@/lib/curriculum-data';
 import {
   getRequiredHandCount,
   getReferenceGestureWindow,
   scoreGesture,
+  scoreGestureWithAlternatives,
   smoothLiveHandObservations,
   type GestureFrame,
   type GestureScore,
@@ -32,7 +38,10 @@ import {
 } from '@/lib/gesture-scoring';
 import { getMissionLearningState } from '@/lib/learning-progress';
 import { recordGestureAssessment } from '@/lib/progress-storage';
-import { getReferenceFrames } from '@/lib/reference-extractor';
+import {
+  getReferenceFrames,
+  getStoredReferenceFrames,
+} from '@/lib/reference-extractor';
 import { cn } from '@/lib/utils';
 
 type CameraStatus =
@@ -105,6 +114,23 @@ type NextAction = {
   practiceComplete: boolean;
 };
 
+async function loadVocabularyAlternatives(targetSignId: SignId) {
+  const signs = getSigns(allSignIds).filter((sign) => sign.id !== targetSignId);
+  const loaded = await Promise.allSettled(
+    signs.map((sign) =>
+      getStoredReferenceFrames(versionedSignVideo(sign.videoSrc)),
+    ),
+  );
+  if (loaded.some((result) => result.status === 'rejected')) {
+    return null;
+  }
+  return loaded.flatMap((result, index) =>
+    result.status === 'fulfilled'
+      ? [{ label: signs[index].label, frames: result.value }]
+      : [],
+  );
+}
+
 export function CameraPractice({
   signId,
   signLabel,
@@ -131,6 +157,9 @@ export function CameraPractice({
 
   // Scoring refs
   const referenceFramesRef = useRef<GestureFrame[]>([]);
+  const alternativeFramesPromiseRef = useRef<
+    Promise<Array<{ label: string; frames: GestureFrame[] }> | null> | undefined
+  >(undefined);
   const frameBufferRef = useRef<GestureFrame[]>([]);
   const smoothedHandsRef = useRef<HandObservation[]>([]);
   const recordingStartRef = useRef(0);
@@ -211,6 +240,7 @@ export function CameraPractice({
     const canvas = canvasRef.current;
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
     smoothedHandsRef.current = [];
+    alternativeFramesPromiseRef.current = undefined;
   }, []);
 
   const stopCamera = useCallback(() => {
@@ -263,6 +293,9 @@ export function CameraPractice({
     resumeReferencePreview();
 
     setReferenceReady(false);
+    alternativeFramesPromiseRef.current = streamRef.current
+      ? loadVocabularyAlternatives(signId)
+      : undefined;
     let isCancelled = false;
 
     void getReferenceFrames(referenceVideoUrl)
@@ -322,6 +355,9 @@ export function CameraPractice({
       }
 
       streamRef.current = stream;
+      // Comparison begins only after camera permission, in parallel with
+      // camera/model setup and the learner's countdown and recording.
+      alternativeFramesPromiseRef.current = loadVocabularyAlternatives(signId);
       const video = videoRef.current;
       if (!video) return;
 
@@ -484,6 +520,7 @@ export function CameraPractice({
     releaseResources,
     referenceVideoUrl,
     resumeReferencePreview,
+    signId,
     updatePhase,
   ]);
 
@@ -500,16 +537,43 @@ export function CameraPractice({
     getReferenceVideo()?.pause();
 
     // Yield once so the scoring overlay is visible before doing synchronous work.
-    scoringTimerRef.current = setTimeout(() => {
+    scoringTimerRef.current = setTimeout(async () => {
       scoringTimerRef.current = null;
       if (!mountedRef.current || practicePhaseRef.current !== 'scoring') return;
-      const result = scoreGesture(
-        referenceFramesRef.current,
-        frameBufferRef.current,
-      );
+      const referenceFrames = referenceFramesRef.current;
+      const attemptFrames = frameBufferRef.current;
+      let result = scoreGesture(referenceFrames, attemptFrames);
+      if (result.passed) {
+        const loading =
+          alternativeFramesPromiseRef.current ??
+          loadVocabularyAlternatives(signId);
+        alternativeFramesPromiseRef.current = loading;
+        try {
+          const alternatives = await loading;
+          if (!alternatives) throw new Error('Contoh pembanding gagal dimuat.');
+          result = scoreGestureWithAlternatives(
+            referenceFrames,
+            attemptFrames,
+            alternatives,
+          );
+        } catch {
+          result = {
+            ...result,
+            overall: 0,
+            assessable: false,
+            passed: false,
+            feedback:
+              'Contoh pembanding belum dapat diproses. Muat ulang kamera lalu coba lagi.',
+          };
+        }
+        if (!mountedRef.current || practicePhaseRef.current !== 'scoring')
+          return;
+      }
       setGestureScore(result);
       if (productionMode) {
         onProductionResult?.(result);
+        setNextAction(null);
+      } else if (!result.assessable) {
         setNextAction(null);
       } else {
         const updatedProgress = recordGestureAssessment(

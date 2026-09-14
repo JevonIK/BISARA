@@ -264,6 +264,8 @@ export function getSigns(ids: readonly SignId[]) {
   return ids.map((id) => signs.find((sign) => sign.id === id)!).filter(Boolean);
 }
 
+export const SIGN_VIDEO_VERSION = '20260914-h264';
+
 export function versionedSignVideo(src: string) {
-  return `${src}?v=20260909-curriculum`;
+  return `${src}?v=${SIGN_VIDEO_VERSION}`;
 }
