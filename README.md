@@ -108,15 +108,19 @@ corrective feedback remain planned work.
 
 ### Camera similarity checker
 
-Camera practice now compares a recorded attempt with the “Saya” demonstration
-using hand landmarks and DTW. It matches stable left/right hand identities,
+Camera practice compares a recorded attempt with the selected sign's
+demonstration using hand landmarks and DTW. The 32 reference templates are
+precomputed from the 32 local videos and fetched once, so passing attempts can
+also be compared against every other curriculum sign without decoding 32
+videos during practice. It matches stable left/right hand identities,
 normalizes mirrored hand geometry, and resamples both sequences on normalized
 time so sampling rate and overall speed do not determine the movement score.
 Movement compares the ordered, centered wrist path instead of noisy
 frame-to-frame derivatives. Handshape and orientation use the visible 2D hand
 skeleton so MediaPipe depth errors caused by camera angle or torso occlusion do
-not dominate the result. A sustained matching pose is enough to exclude relaxed
-preparation frames. Two-hand distances remain in shared image coordinates.
+not dominate the result. The selected gesture window excludes relaxed
+preparation frames but requires a sustained matching handshape. Two-hand
+distances remain in shared image coordinates.
 
 The practice flow pauses the demonstration on its first detected hand frame
 during a monotonic three-second countdown. Recording and the demonstration then
@@ -133,20 +137,26 @@ not become the sign's required movement. Continuously moving instead of holding
 the target pose is still penalized. Dynamic signs continue to use ordered-path
 matching.
 
-The pass threshold is 75, with a minimum score of 50 for handshape, movement,
-orientation, and coordination. A severe mismatch in one of these components
-caps the total below the pass threshold. At least six usable frames spanning
-400 ms and 60% hand visibility during the active gesture are required. Setup
+The pass threshold is 75. Handshape must reach 75, movement 70, and a two-hand
+sign has additional checks for the second hand's shape and combined motion,
+orientation, and coordination. A sufficiently severe mismatch caps the total
+below the pass threshold even if other components are strong. A one-hand sign
+also rejects a second hand that remains active near the sign. At least six
+usable frames spanning 400 ms are required, with 60% hand visibility for
+one-hand signs or 35% for overlapping two-hand signs. Setup
 and rest frames at the beginning/end are trimmed; gaps inside the gesture are
 retained. “Detection quality” measures usable visibility;
 MediaPipe's left/right classification confidence is not landmark accuracy.
-Unusable reference videos disable assessment instead of grading the learner.
+Unusable references or missing vocabulary templates disable assessment instead
+of grading the learner.
 
-This remains a prototype similarity checker against one sample, not a trained
-BISINDO classifier. Position uses image coordinates rather than a body anchor;
-camera framing can still affect that component. Thresholds need validation
-with Deaf language experts and recordings from multiple learners.
-`pnpm test:sync` includes regression tests for the checker as well as account sync.
+This remains a prototype similarity checker based on one exemplar per gloss,
+not a trained or validated BISINDO classifier. Position uses image coordinates
+rather than a body anchor; camera framing can still affect that component.
+Thresholds need validation with Deaf language experts and recordings from
+multiple learners. Run `npm run audit:checker` for the full 32×32 exemplar
+comparison and altered-handshape checks; the score unit tests live in
+`tests/gesture-scoring.test.ts` and `tests/reference-templates.test.ts`.
 
 ## Tech stack
 

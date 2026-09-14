@@ -163,8 +163,9 @@ export default async function PracticePage({
               <div className="flex gap-3">
                 <Info className="mt-0.5 size-5 shrink-0 text-emerald-700" />
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Skor adalah kemiripan terhadap satu contoh, bukan klasifikasi
-                  kata atau sertifikasi kemampuan.
+                  Skor membandingkan gerakanmu dengan satu contoh per tanda
+                  serta kosakata lain dalam kurikulum. Hasilnya belum merupakan
+                  sertifikasi kemampuan BISINDO.
                 </p>
               </div>
             </div>

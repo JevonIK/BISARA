@@ -6,6 +6,7 @@ import {
   getReferenceGestureWindow,
   hasUsableReference,
   scoreGesture,
+  scoreGestureWithAlternatives,
   smoothLiveHandObservations,
   type GestureFrame,
   type Point3,
@@ -422,6 +423,42 @@ void test('one-hand checker ignores occasional extra-hand detections', () => {
   assert.equal(scoreGesture(noisyReference, sequence()).overall, 100);
 });
 
+void test('a sustained second hand near a one-hand sign cannot pass', () => {
+  const attempt = sequence().map((item) => ({
+    ...item,
+    hands: [
+      item.hands[0],
+      {
+        ...structuredClone(item.hands[0]),
+        handedness: 'Left',
+        landmarks: item.hands[0].landmarks.map((point) => ({
+          ...point,
+          x: point.x + 0.2,
+        })),
+      },
+    ],
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.equal(result.passed, false, JSON.stringify(result));
+  assert.match(result.feedback, /tangan kedua/i);
+});
+
+void test('a resting second hand away from the signing area is allowed', () => {
+  const resting = structuredClone(frame(0).hands[0]);
+  resting.handedness = 'Left';
+  resting.landmarks = resting.landmarks.map((point) => ({
+    ...point,
+    x: point.x - 0.36,
+    y: point.y + 0.28,
+  }));
+  const attempt = sequence().map((item) => ({
+    ...item,
+    hands: [item.hands[0], resting],
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
 void test('reaction time and final hold can surround a complete gesture', () => {
   const core = sampledSequence(30).map((item) => ({
     ...item,
@@ -597,11 +634,86 @@ void test('a moderate camera angle does not reject the same hand pose', () => {
 
 void test('a sustained matching pose is not rejected by preparation frames', () => {
   const attempt = sequence().map((item, index) =>
-    index < 16 ? frame(item.timeMs, index * 0.004, 0.2) : item,
+    index < 6 ? frame(item.timeMs, index * 0.004, 0.2) : item,
   );
   const result = scoreGesture(sequence(), attempt);
-  assert.ok(result.handshape >= 90);
+  assert.ok(result.handshape >= 70, JSON.stringify(result));
   assert.equal(result.passed, true);
+});
+
+void test('a brief correct pose cannot excuse mostly incorrect handshape', () => {
+  const attempt = sequence().map((item, index) => {
+    if (index >= 16) return item;
+    return {
+      ...item,
+      hands: item.hands.map((hand) => {
+        const landmarks = structuredClone(hand.landmarks);
+        for (const tip of [4, 8, 12, 16, 20]) {
+          const base = landmarks[tip - 3];
+          landmarks[tip - 1] = { ...base };
+          landmarks[tip] = { ...base };
+        }
+        return { ...hand, landmarks };
+      }),
+    };
+  });
+  const result = scoreGesture(sequence(), attempt);
+  assert.equal(result.passed, false, JSON.stringify(result));
+  assert.ok(result.handshape < 75, JSON.stringify(result));
+});
+
+void test('a rock-like finger pose cannot pass by copying the correct wrist path', () => {
+  const attempt = sequence().map((item) => ({
+    ...item,
+    hands: item.hands.map((hand) => {
+      const landmarks = structuredClone(hand.landmarks);
+      for (const tip of [4, 12, 16]) {
+        const base = landmarks[tip - 3];
+        landmarks[tip - 1] = { ...base };
+        landmarks[tip] = { ...base };
+      }
+      return { ...hand, landmarks };
+    }),
+  }));
+  const result = scoreGesture(sequence(), attempt);
+  assert.equal(result.passed, false, JSON.stringify(result));
+});
+
+void test('a wrong second hand cannot hide behind a correct first hand', () => {
+  const reference = twoHandSequence();
+  const attempt = structuredClone(reference).map((item) => ({
+    ...item,
+    hands: item.hands.map((hand, index) => {
+      if (index === 0) return hand;
+      const landmarks = structuredClone(hand.landmarks);
+      for (const tip of [4, 8, 12, 16, 20]) {
+        const base = landmarks[tip - 3];
+        landmarks[tip - 1] = { ...base };
+        landmarks[tip] = { ...base };
+      }
+      return { ...hand, landmarks };
+    }),
+  }));
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.passed, false, JSON.stringify(result));
+});
+
+void test('a gesture closer to another sign cannot pass the target sign', () => {
+  const attempt = sequence();
+  const targetReference = sequence(0.04);
+  assert.equal(scoreGesture(targetReference, attempt).passed, true);
+  const result = scoreGestureWithAlternatives(targetReference, attempt, [
+    { label: 'Tanda lain', frames: sequence() },
+  ]);
+  assert.equal(result.passed, false, JSON.stringify(result));
+  assert.match(result.feedback, /Tanda lain/);
+});
+
+void test('an unambiguous matching sign still passes comparison', () => {
+  const result = scoreGestureWithAlternatives(sequence(), sequence(), [
+    { label: 'Tanda lain', frames: sequence(0.2) },
+  ]);
+  assert.equal(result.passed, true, JSON.stringify(result));
 });
 
 void test('wrong visible hand direction still fails orientation', () => {

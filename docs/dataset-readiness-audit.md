@@ -1,6 +1,6 @@
 # WL-BISINDO dataset readiness audit
 
-Audit date: 10 September 2026
+Audit updated: 14 September 2026
 
 ## Decision
 
@@ -24,7 +24,8 @@ processed each clip with the same MediaPipe Hand Landmarker used by the app.
 | Files expected / found / decoded      | 32 / 32 / 32                            |
 | Label coverage                        | Labels 0–31 exactly once                |
 | Duplicate SHA-256 hashes              | 0                                       |
-| Total size                            | 44.45 MiB                               |
+| Total size after H.264 conversion     | 37.21 MiB                               |
+| Browser-compatible video codec        | H.264 in all 32 local MP4s              |
 | Duration                              | 1.798–3.233 s; mean 2.413 s             |
 | Resolution                            | 13 at 1280×720; 19 at 1920×1080         |
 | Local signer distribution             | signer 0: 12; signer 1: 14; signer 2: 6 |
@@ -43,6 +44,22 @@ The reference detector consistently identifies four two-hand examples:
 former curriculum copy for `Belajar`, `Keluarga`, and `Malam` incorrectly told
 learners to coordinate two hands. Those instructions were changed to match the
 one-hand videos and observable checker features.
+
+The 18 HEVC examples were converted to H.264 after Chromium failed to decode
+them during checker testing. Their precomputed hand landmarks are stored in
+`public/data/gesture-templates-v1.json`; SHA-256 checks in the test suite detect
+when a source video changes without regenerating its template. The checker
+loads these 32 references with one request and compares a passing attempt
+against every other gloss in the active curriculum.
+
+An exhaustive exemplar-against-exemplar audit covered all 1,024 target/attempt
+pairs. Single-reference scoring falsely accepted 61 different-gloss pairs;
+whole-vocabulary comparison rejected all 61, while all 32 exact matches passed.
+Another 96 artificial finger-shape alterations were rejected. This audit is
+repeatable with `npm run audit:checker`. Because the same local exemplars serve
+as both references and attempts, these figures are regression checks, **not**
+real-user accuracy, signer-independent validation, or a measured false-accept
+rate in deployment.
 
 ## Representation risks
 
