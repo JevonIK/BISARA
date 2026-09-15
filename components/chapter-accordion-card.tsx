@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, LockKeyhole, Play, Star } from 'lucide-react';
+import { Check, ChevronDown, LockKeyhole, Play, Star } from 'lucide-react';
 import Link from 'next/link';
 
 import {
@@ -44,7 +44,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#E8F8F9]',
     cardBorder: 'border-[#7CE0E7]',
     pillBg: 'bg-[#00BDCD]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#00BDCD]',
     drawerBg: 'bg-[#DCF5F7]',
     drawerBorder: 'border-[#A2E7EC]',
@@ -56,7 +56,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#FFF9E6]',
     cardBorder: 'border-[#FCD561]',
     pillBg: 'bg-[#F8A51D]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#F8A51D]',
     drawerBg: 'bg-[#FFF2D0]',
     drawerBorder: 'border-[#FDE08E]',
@@ -68,7 +68,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#FEF0EB]',
     cardBorder: 'border-[#F9B7A0]',
     pillBg: 'bg-[#F06543]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#F06543]',
     drawerBg: 'bg-[#FDE2D8]',
     drawerBorder: 'border-[#FABFAC]',
@@ -80,7 +80,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#EEF4FF]',
     cardBorder: 'border-[#BACFFE]',
     pillBg: 'bg-[#5E87F5]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#5E87F5]',
     drawerBg: 'bg-[#DFECFF]',
     drawerBorder: 'border-[#BFD5FF]',
@@ -117,63 +117,33 @@ export function ChapterAccordionCard({
   return (
     <article
       className={cn(
-        'relative overflow-hidden rounded-[2rem] border p-6 sm:p-8 transition-all shadow-xs',
+        'relative overflow-hidden rounded-[2.25rem] sm:rounded-[2.5rem] border-2 p-6 sm:p-8 lg:p-10 transition-all shadow-xs',
         theme.cardBg,
         theme.cardBorder,
       )}
     >
-      <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-xl flex-1">
-          <span
-            className={cn(
-              'inline-block px-3.5 py-1 rounded-full text-xs font-black text-white tracking-wide shadow-xs',
-              theme.pillBg,
-            )}
-          >
-            Bab {chapterIndex + 1}
-          </span>
-          <h3 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            {chapter.title}
-          </h3>
-          <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-2">
-            {chapter.description}
-          </p>
-
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
-              <span>
-                {completedCount} dari {chapter.missions.length} misi
-              </span>
-              <span className="font-black text-slate-900">{chapterProgress}%</span>
-            </div>
-            <div
+      <div className="relative z-10 flex flex-col gap-6 sm:gap-8">
+        {/* Top row: Chapter info (left) & Big Stars (right) */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="max-w-xl flex-1">
+            <span
               className={cn(
-                'h-2.5 w-full overflow-hidden rounded-full',
-                theme.progressBg,
+                'inline-block px-4 py-1 rounded-full text-xs sm:text-sm font-black text-white tracking-wide shadow-xs',
+                theme.pillBg,
               )}
             >
-              <div
-                className={cn('h-full rounded-full transition-all duration-500', theme.progressFill)}
-                style={{ width: `${chapterProgress}%` }}
-              />
-            </div>
+              Bab {chapterIndex + 1}
+            </span>
+            <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">
+              {chapter.title}
+            </h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm lg:text-base text-slate-600 font-medium leading-relaxed line-clamp-2">
+              {chapter.description}
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={onToggle}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
-            aria-expanded={isExpanded}
-          >
-            <span>
-              {isUnlocked ? 'Lihat semua misi' : 'Selesaikan Bab sebelumnya'}
-            </span>
-            <span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-6 self-start lg:self-center">
-          <div className="flex items-center gap-1">
+          {/* 3 Large Stars - positioned in upper right, aligned with the button width below */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 self-end sm:self-start pt-1 min-w-[120px] sm:min-w-[140px]">
             {[1, 2, 3].map((starIndex) => {
               const isStarFilled =
                 isUnlocked && (chapterProgress >= starIndex * 33 || chapterProgress === 100);
@@ -181,122 +151,181 @@ export function ChapterAccordionCard({
                 <Star
                   key={starIndex}
                   className={cn(
-                    'size-6 sm:size-7 transition-colors',
+                    'size-8 sm:size-9 lg:size-10 transition-colors',
                     isStarFilled
-                      ? 'text-amber-400 fill-amber-400'
-                      : 'text-slate-300 fill-slate-300',
+                      ? 'text-[#FFAE00] fill-[#FFAE00]'
+                      : 'text-slate-300/80 fill-slate-300/50',
                   )}
                 />
               );
             })}
           </div>
+        </div>
 
-          {isUnlocked ? (
-            <Link
-              href={startHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-6 py-2.5 text-sm font-black text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
+        {/* Bottom row: Progress Bar + Percentage + Mulai Button (directly below stars) */}
+        <div>
+          <div className="text-xs sm:text-sm font-bold text-slate-700 mb-2">
+            {completedCount} dari {chapter.missions.length} misi
+          </div>
+
+          <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
+            <div
+              className={cn(
+                'h-3 sm:h-3.5 flex-1 overflow-hidden rounded-full shadow-inner',
+                theme.progressBg,
+              )}
             >
-              <Play className="size-4 fill-slate-900" />
-              Mulai
-            </Link>
-          ) : (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#9EABB2] px-5 py-2.5 text-xs font-bold text-white shadow-xs cursor-not-allowed">
-              <LockKeyhole className="size-3.5" />
-              Terkunci
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  theme.progressFill,
+                )}
+                style={{ width: `${chapterProgress}%` }}
+              />
             </div>
-          )}
+
+            <span className="text-base sm:text-lg lg:text-xl font-black text-slate-800 shrink-0">
+              {chapterProgress}%
+            </span>
+
+            {isUnlocked ? (
+              <Link
+                href={startHref}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 text-sm sm:text-base font-black text-slate-950 shadow-sm transition-all hover:bg-[#F2A300] hover:scale-105 active:scale-95 shrink-0 min-w-[120px] sm:min-w-[140px]"
+              >
+                <Play className="size-4 sm:size-4.5 fill-slate-950" />
+                <span>Mulai</span>
+              </Link>
+            ) : (
+              <div className="inline-flex items-center justify-center gap-2 rounded-full bg-[#9EABB2] px-6 sm:px-7 py-3 text-xs sm:text-sm font-bold text-white shadow-xs cursor-not-allowed shrink-0 min-w-[120px] sm:min-w-[140px]">
+                <LockKeyhole className="size-4" />
+                <span>Terkunci</span>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onToggle}
+            className="group mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
+            aria-expanded={isExpanded}
+          >
+            <span>
+              {isUnlocked ? 'Lihat semua misi' : 'Selesaikan Bab sebelumnya'}
+            </span>
+            <ChevronDown
+              className={cn(
+                'size-4 transition-transform duration-300 ease-out text-slate-700 group-hover:text-slate-950',
+                isExpanded && 'rotate-180',
+              )}
+            />
+          </button>
         </div>
       </div>
 
+      {/* Stationary Top Illustration */}
       <div
-        className="pointer-events-none absolute -bottom-4 right-10 hidden sm:block opacity-35 lg:opacity-60"
+        className="pointer-events-none absolute top-0 right-28 sm:right-36 md:right-48 lg:right-56 hidden sm:block opacity-85 lg:opacity-95 z-0"
         aria-hidden="true"
       >
         <ChapterIllustration type={chapter.id} />
       </div>
 
-      {isExpanded ? (
-        <div
-          className={cn(
-            'relative z-10 mt-6 rounded-[1.75rem] border p-4 sm:p-6 transition-all duration-300',
-            theme.drawerBg,
-            theme.drawerBorder,
-          )}
-        >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 sm:gap-4">
-            {chapter.missions.map((mission, missionIdx) => {
-              const missionUnlocked = isMissionUnlocked(mission.id, progress);
-              const isCompleted = progress.completedMissionIds.includes(
-                mission.id,
-              );
-              const isCurrent = currentMission.id === mission.id;
-              const replay = isCompleted ? getMissionReplayAction(mission) : null;
-              const targetHref = isCompleted
-                ? replay?.href ?? mission.href
-                : getMissionLearningState(mission, progress).next.href;
+      {/* Animated Collapsible Mission Drawer */}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out',
+          isExpanded
+            ? 'grid-rows-[1fr] opacity-100 mt-6'
+            : 'grid-rows-[0fr] opacity-0 mt-0 pointer-events-none',
+        )}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={cn(
+              'relative z-10 rounded-[1.75rem] border p-4 sm:p-6 transition-all duration-500 ease-out',
+              theme.drawerBg,
+              theme.drawerBorder,
+              isExpanded
+                ? 'translate-y-0 scale-100'
+                : '-translate-y-3 scale-[0.98]',
+            )}
+          >
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 sm:gap-4">
+              {chapter.missions.map((mission, missionIdx) => {
+                const missionUnlocked = isMissionUnlocked(mission.id, progress);
+                const isCompleted = progress.completedMissionIds.includes(
+                  mission.id,
+                );
+                const isCurrent = currentMission.id === mission.id;
+                const replay = isCompleted ? getMissionReplayAction(mission) : null;
+                const targetHref = isCompleted
+                  ? replay?.href ?? mission.href
+                  : getMissionLearningState(mission, progress).next.href;
 
-              return (
-                <div
-                  key={mission.id}
-                  className="flex flex-col items-center text-center"
-                >
-                  {missionUnlocked ? (
-                    <Link
-                      href={targetHref}
-                      className={cn(
-                        'group flex aspect-square w-full flex-col items-center justify-between rounded-2xl border p-3.5 transition-all shadow-xs hover:-translate-y-1 hover:shadow-md sm:rounded-3xl sm:p-4',
-                        theme.missionCardBg,
-                        theme.missionCardBorder,
-                        theme.missionCardHover,
-                        isCurrent && 'ring-2 ring-slate-900/40',
-                      )}
-                    >
-                      <div className="flex flex-1 items-center justify-center">
-                        <MissionVisualIcon
-                          index={missionIdx}
-                          isCheckpoint={mission.type === 'checkpoint'}
-                          isLocked={false}
-                        />
+                return (
+                  <div
+                    key={mission.id}
+                    className="flex flex-col items-center text-center"
+                  >
+                    {missionUnlocked ? (
+                      <Link
+                        href={targetHref}
+                        className={cn(
+                          'group flex aspect-square w-full flex-col items-center justify-between rounded-2xl border p-3.5 transition-all shadow-xs hover:-translate-y-1 hover:shadow-md sm:rounded-3xl sm:p-4',
+                          theme.missionCardBg,
+                          theme.missionCardBorder,
+                          theme.missionCardHover,
+                          isCurrent && 'ring-2 ring-slate-900/40',
+                        )}
+                      >
+                        <div className="flex flex-1 items-center justify-center">
+                          <MissionVisualIcon
+                            index={missionIdx}
+                            isCheckpoint={mission.type === 'checkpoint'}
+                            isLocked={false}
+                          />
+                        </div>
+                        <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
+                          {mission.type === 'checkpoint'
+                            ? `TES BAB ${chapterIndex + 1}`
+                            : `MISI ${mission.number}`}
+                        </span>
+                      </Link>
+                    ) : (
+                      <div
+                        className={cn(
+                          'flex aspect-square w-full cursor-not-allowed flex-col items-center justify-between rounded-2xl border p-3.5 opacity-70 shadow-xs sm:rounded-3xl sm:p-4',
+                          theme.missionCardBg,
+                          theme.missionCardBorder,
+                        )}
+                      >
+                        <div className="flex flex-1 items-center justify-center">
+                          <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />
+                        </div>
+                        <span className="flex items-center gap-1 rounded-full bg-slate-900/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-800 sm:text-[11px]">
+                          <LockKeyhole className="size-2.5" />
+                          {mission.type === 'checkpoint'
+                            ? `TES BAB ${chapterIndex + 1}`
+                            : `MISI ${mission.number}`}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
-                        {mission.type === 'checkpoint'
-                          ? `TES BAB ${chapterIndex + 1}`
-                          : `MISI ${mission.number}`}
+                    )}
+                    <p className="mt-2 line-clamp-2 max-w-[125px] text-[11px] font-bold leading-tight text-slate-800 sm:text-xs">
+                      {mission.title}
+                    </p>
+                    {isCompleted ? (
+                      <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-emerald-700">
+                        <Check className="size-3" strokeWidth={3} /> Selesai
                       </span>
-                    </Link>
-                  ) : (
-                    <div
-                      className={cn(
-                        'flex aspect-square w-full cursor-not-allowed flex-col items-center justify-between rounded-2xl border p-3.5 opacity-70 shadow-xs sm:rounded-3xl sm:p-4',
-                        theme.missionCardBg,
-                        theme.missionCardBorder,
-                      )}
-                    >
-                      <div className="flex flex-1 items-center justify-center">
-                        <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />
-                      </div>
-                      <span className="flex items-center gap-1 rounded-full bg-slate-900/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-800 sm:text-[11px]">
-                        <LockKeyhole className="size-2.5" />
-                        {mission.type === 'checkpoint'
-                          ? `TES BAB ${chapterIndex + 1}`
-                          : `MISI ${mission.number}`}
-                      </span>
-                    </div>
-                  )}
-                  <p className="mt-2 line-clamp-2 max-w-[125px] text-[11px] font-bold leading-tight text-slate-800 sm:text-xs">
-                    {mission.title}
-                  </p>
-                  {isCompleted ? (
-                    <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-emerald-700">
-                      <Check className="size-3" strokeWidth={3} /> Selesai
-                    </span>
-                  ) : null}
-                </div>
-              );
-            })}
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      ) : null}
+      </div>
     </article>
   );
 }
@@ -429,36 +458,28 @@ function MissionVisualIcon({
 
 function ChapterIllustration({ type }: { type: string }) {
   if (type === 'chapter-1') {
-    // Open hand waving graphic
+    // Open hand waving graphic matching user's Figma vector
     return (
       <svg
-        className="h-36 w-48"
-        viewBox="0 0 200 150"
+        className="h-52 w-64 sm:h-60 sm:w-72 lg:h-64 lg:w-80"
+        viewBox="0 0 240 180"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M80 150L75 105C74 95 81 87 91 87C99 87 106 93 107 101L110 120"
-          stroke="#D79E89"
-          strokeWidth="6"
+          d="M65 180C75 145 92 110 102 78C105 70 106 50 102 30C99 18 112 12 118 24C124 38 125 58 126 72C130 58 137 34 146 14C151 3 162 8 159 20C154 40 148 62 146 76C151 64 163 38 173 24C180 14 190 20 185 32C177 52 168 76 164 88C171 76 184 60 193 48C200 40 209 46 204 56C192 84 173 118 162 136C146 160 128 176 112 180H65Z"
+          fill="#E6C2BA"
+        />
+        <path
+          d="M125 60C128 78 131 98 129 116"
+          stroke="#4A4545"
+          strokeWidth="3.5"
           strokeLinecap="round"
         />
         <path
-          d="M95 90L102 45C104 35 113 28 123 30C132 32 138 41 136 50L130 95"
-          stroke="#D79E89"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M125 70L140 35C144 26 154 22 163 26C171 31 174 41 170 50L150 110"
-          stroke="#D79E89"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M145 90L165 65C171 58 181 57 188 63C194 70 194 80 187 87L160 135C150 150 130 150 110 150H80"
-          stroke="#D79E89"
-          strokeWidth="6"
+          d="M144 86C149 98 156 108 165 115"
+          stroke="#4A4545"
+          strokeWidth="3"
           strokeLinecap="round"
         />
       </svg>
