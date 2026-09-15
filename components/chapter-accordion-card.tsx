@@ -44,7 +44,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#E8F8F9]',
     cardBorder: 'border-[#7CE0E7]',
     pillBg: 'bg-[#00BDCD]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#00BDCD]',
     drawerBg: 'bg-[#DCF5F7]',
     drawerBorder: 'border-[#A2E7EC]',
@@ -56,7 +56,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#FFF9E6]',
     cardBorder: 'border-[#FCD561]',
     pillBg: 'bg-[#F8A51D]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#F8A51D]',
     drawerBg: 'bg-[#FFF2D0]',
     drawerBorder: 'border-[#FDE08E]',
@@ -68,7 +68,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#FEF0EB]',
     cardBorder: 'border-[#F9B7A0]',
     pillBg: 'bg-[#F06543]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#F06543]',
     drawerBg: 'bg-[#FDE2D8]',
     drawerBorder: 'border-[#FABFAC]',
@@ -80,7 +80,7 @@ const chapterThemes: Record<string, ChapterTheme> = {
     cardBg: 'bg-[#EEF4FF]',
     cardBorder: 'border-[#BACFFE]',
     pillBg: 'bg-[#5E87F5]',
-    progressBg: 'bg-white/80',
+    progressBg: 'bg-white',
     progressFill: 'bg-[#5E87F5]',
     drawerBg: 'bg-[#DFECFF]',
     drawerBorder: 'border-[#BFD5FF]',
@@ -117,68 +117,33 @@ export function ChapterAccordionCard({
   return (
     <article
       className={cn(
-        'relative overflow-hidden rounded-[2rem] border p-6 sm:p-8 transition-all shadow-xs',
+        'relative overflow-hidden rounded-[2.25rem] sm:rounded-[2.5rem] border-2 p-6 sm:p-8 lg:p-10 transition-all shadow-xs',
         theme.cardBg,
         theme.cardBorder,
       )}
     >
-      <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-xl flex-1">
-          <span
-            className={cn(
-              'inline-block px-3.5 py-1 rounded-full text-xs font-black text-white tracking-wide shadow-xs',
-              theme.pillBg,
-            )}
-          >
-            Bab {chapterIndex + 1}
-          </span>
-          <h3 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            {chapter.title}
-          </h3>
-          <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-2">
-            {chapter.description}
-          </p>
-
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
-              <span>
-                {completedCount} dari {chapter.missions.length} misi
-              </span>
-              <span className="font-black text-slate-900">{chapterProgress}%</span>
-            </div>
-            <div
+      <div className="relative z-10 flex flex-col gap-6 sm:gap-8">
+        {/* Top row: Chapter info (left) & Big Stars (right) */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="max-w-xl flex-1">
+            <span
               className={cn(
-                'h-2.5 w-full overflow-hidden rounded-full',
-                theme.progressBg,
+                'inline-block px-4 py-1 rounded-full text-xs sm:text-sm font-black text-white tracking-wide shadow-xs',
+                theme.pillBg,
               )}
             >
-              <div
-                className={cn('h-full rounded-full transition-all duration-500', theme.progressFill)}
-                style={{ width: `${chapterProgress}%` }}
-              />
-            </div>
+              Bab {chapterIndex + 1}
+            </span>
+            <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">
+              {chapter.title}
+            </h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm lg:text-base text-slate-600 font-medium leading-relaxed line-clamp-2">
+              {chapter.description}
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={onToggle}
-            className="group mt-4 inline-flex items-center gap-1.5 text-xs font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
-            aria-expanded={isExpanded}
-          >
-            <span>
-              {isUnlocked ? 'Lihat semua misi' : 'Selesaikan Bab sebelumnya'}
-            </span>
-            <ChevronDown
-              className={cn(
-                'size-3.5 transition-transform duration-300 ease-out text-slate-700 group-hover:text-slate-950',
-                isExpanded && 'rotate-180',
-              )}
-            />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-6 self-start lg:self-center">
-          <div className="flex items-center gap-1">
+          {/* 3 Large Stars - positioned in upper right, aligned with the button width below */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 self-end sm:self-start pt-1 min-w-[120px] sm:min-w-[140px]">
             {[1, 2, 3].map((starIndex) => {
               const isStarFilled =
                 isUnlocked && (chapterProgress >= starIndex * 33 || chapterProgress === 100);
@@ -186,36 +151,81 @@ export function ChapterAccordionCard({
                 <Star
                   key={starIndex}
                   className={cn(
-                    'size-6 sm:size-7 transition-colors',
+                    'size-8 sm:size-9 lg:size-10 transition-colors',
                     isStarFilled
-                      ? 'text-amber-400 fill-amber-400'
-                      : 'text-slate-300 fill-slate-300',
+                      ? 'text-[#FFAE00] fill-[#FFAE00]'
+                      : 'text-slate-300/80 fill-slate-300/50',
                   )}
                 />
               );
             })}
           </div>
+        </div>
 
-          {isUnlocked ? (
-            <Link
-              href={startHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-6 py-2.5 text-sm font-black text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
+        {/* Bottom row: Progress Bar + Percentage + Mulai Button (directly below stars) */}
+        <div>
+          <div className="text-xs sm:text-sm font-bold text-slate-700 mb-2">
+            {completedCount} dari {chapter.missions.length} misi
+          </div>
+
+          <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
+            <div
+              className={cn(
+                'h-3 sm:h-3.5 flex-1 overflow-hidden rounded-full shadow-inner',
+                theme.progressBg,
+              )}
             >
-              <Play className="size-4 fill-slate-900" />
-              Mulai
-            </Link>
-          ) : (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#9EABB2] px-5 py-2.5 text-xs font-bold text-white shadow-xs cursor-not-allowed">
-              <LockKeyhole className="size-3.5" />
-              Terkunci
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  theme.progressFill,
+                )}
+                style={{ width: `${chapterProgress}%` }}
+              />
             </div>
-          )}
+
+            <span className="text-base sm:text-lg lg:text-xl font-black text-slate-800 shrink-0">
+              {chapterProgress}%
+            </span>
+
+            {isUnlocked ? (
+              <Link
+                href={startHref}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 text-sm sm:text-base font-black text-slate-950 shadow-sm transition-all hover:bg-[#F2A300] hover:scale-105 active:scale-95 shrink-0 min-w-[120px] sm:min-w-[140px]"
+              >
+                <Play className="size-4 sm:size-4.5 fill-slate-950" />
+                <span>Mulai</span>
+              </Link>
+            ) : (
+              <div className="inline-flex items-center justify-center gap-2 rounded-full bg-[#9EABB2] px-6 sm:px-7 py-3 text-xs sm:text-sm font-bold text-white shadow-xs cursor-not-allowed shrink-0 min-w-[120px] sm:min-w-[140px]">
+                <LockKeyhole className="size-4" />
+                <span>Terkunci</span>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onToggle}
+            className="group mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
+            aria-expanded={isExpanded}
+          >
+            <span>
+              {isUnlocked ? 'Lihat semua misi' : 'Selesaikan Bab sebelumnya'}
+            </span>
+            <ChevronDown
+              className={cn(
+                'size-4 transition-transform duration-300 ease-out text-slate-700 group-hover:text-slate-950',
+                isExpanded && 'rotate-180',
+              )}
+            />
+          </button>
         </div>
       </div>
 
       {/* Stationary Top Illustration */}
       <div
-        className="pointer-events-none absolute top-0 right-0 sm:right-6 lg:right-16 hidden sm:block opacity-75 lg:opacity-90 z-0"
+        className="pointer-events-none absolute top-0 right-28 sm:right-36 md:right-48 lg:right-56 hidden sm:block opacity-85 lg:opacity-95 z-0"
         aria-hidden="true"
       >
         <ChapterIllustration type={chapter.id} />
@@ -451,7 +461,7 @@ function ChapterIllustration({ type }: { type: string }) {
     // Open hand waving graphic matching user's Figma vector
     return (
       <svg
-        className="h-44 w-60 sm:h-52 sm:w-72"
+        className="h-52 w-64 sm:h-60 sm:w-72 lg:h-64 lg:w-80"
         viewBox="0 0 240 180"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
