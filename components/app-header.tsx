@@ -1,6 +1,6 @@
 'use client';
 
-import { Flame, Hand, Sparkles } from 'lucide-react';
+import { Flame, Hand, Star } from 'lucide-react';
 import Link from 'next/link';
 
 import { useProgress } from '@/hooks/use-progress';
@@ -78,7 +78,7 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-2xs">
-            <Sparkles className="size-3.5 text-amber-500" fill="currentColor" />
+            <Star className="size-3.5 text-amber-500 fill-amber-500" />
             <span>20</span>
           </div>
           <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-2xs">
