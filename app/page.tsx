@@ -41,9 +41,7 @@ export default function Home() {
 
   const [expandedChapterIds, setExpandedChapterIds] = useState<
     Record<string, boolean>
-  >({
-    'chapter-1': true,
-  });
+  >({});
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapterIds((prev) => ({
