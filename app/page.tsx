@@ -156,12 +156,12 @@ export default function Home() {
         <section className="mt-8 rounded-[2.5rem] border border-amber-200/50 bg-white p-6 shadow-xs sm:p-8">
           <div className="grid gap-6 md:grid-cols-[1fr_1.35fr]">
             <div className="flex min-h-[220px] flex-col justify-between rounded-2xl bg-[#F25C3B] p-7 text-white sm:p-8">
-              <Headphones className="size-8 text-white/90" />
+              <Headphones className="size-8 text-black/90" />
               <div className="mt-8">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/80">
+                <p className="text-[10px] font-black uppercase tracking-widest text-black/80">
                   CARA BELAJAR BISARA
                 </p>
-                <h2 className="mt-2 text-2xl font-black leading-snug tracking-tight text-white sm:text-3xl">
+                <h2 className="mt-2 text-2xl font-black leading-snug tracking-tight text-black sm:text-3xl">
                   Bukan hanya tahu. Kamu berlatih sampai siap merespons.
                 </h2>
               </div>
