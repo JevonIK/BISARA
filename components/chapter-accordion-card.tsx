@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, LockKeyhole, Play, Star } from 'lucide-react';
+import { Check, ChevronDown, LockKeyhole, Play, Star } from 'lucide-react';
 import Link from 'next/link';
 
 import {
@@ -162,13 +162,18 @@ export function ChapterAccordionCard({
           <button
             type="button"
             onClick={onToggle}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
+            className="group mt-4 inline-flex items-center gap-1.5 text-xs font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
             aria-expanded={isExpanded}
           >
             <span>
               {isUnlocked ? 'Lihat semua misi' : 'Selesaikan Bab sebelumnya'}
             </span>
-            <span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+            <ChevronDown
+              className={cn(
+                'size-3.5 transition-transform duration-300 ease-out text-slate-700 group-hover:text-slate-950',
+                isExpanded && 'rotate-180',
+              )}
+            />
           </button>
         </div>
 
@@ -208,95 +213,109 @@ export function ChapterAccordionCard({
         </div>
       </div>
 
+      {/* Stationary Top Illustration */}
       <div
-        className="pointer-events-none absolute -bottom-4 right-10 hidden sm:block opacity-35 lg:opacity-60"
+        className="pointer-events-none absolute top-0 right-0 sm:right-6 lg:right-16 hidden sm:block opacity-75 lg:opacity-90 z-0"
         aria-hidden="true"
       >
         <ChapterIllustration type={chapter.id} />
       </div>
 
-      {isExpanded ? (
-        <div
-          className={cn(
-            'relative z-10 mt-6 rounded-[1.75rem] border p-4 sm:p-6 transition-all duration-300',
-            theme.drawerBg,
-            theme.drawerBorder,
-          )}
-        >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 sm:gap-4">
-            {chapter.missions.map((mission, missionIdx) => {
-              const missionUnlocked = isMissionUnlocked(mission.id, progress);
-              const isCompleted = progress.completedMissionIds.includes(
-                mission.id,
-              );
-              const isCurrent = currentMission.id === mission.id;
-              const replay = isCompleted ? getMissionReplayAction(mission) : null;
-              const targetHref = isCompleted
-                ? replay?.href ?? mission.href
-                : getMissionLearningState(mission, progress).next.href;
+      {/* Animated Collapsible Mission Drawer */}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out',
+          isExpanded
+            ? 'grid-rows-[1fr] opacity-100 mt-6'
+            : 'grid-rows-[0fr] opacity-0 mt-0 pointer-events-none',
+        )}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={cn(
+              'relative z-10 rounded-[1.75rem] border p-4 sm:p-6 transition-all duration-500 ease-out',
+              theme.drawerBg,
+              theme.drawerBorder,
+              isExpanded
+                ? 'translate-y-0 scale-100'
+                : '-translate-y-3 scale-[0.98]',
+            )}
+          >
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 sm:gap-4">
+              {chapter.missions.map((mission, missionIdx) => {
+                const missionUnlocked = isMissionUnlocked(mission.id, progress);
+                const isCompleted = progress.completedMissionIds.includes(
+                  mission.id,
+                );
+                const isCurrent = currentMission.id === mission.id;
+                const replay = isCompleted ? getMissionReplayAction(mission) : null;
+                const targetHref = isCompleted
+                  ? replay?.href ?? mission.href
+                  : getMissionLearningState(mission, progress).next.href;
 
-              return (
-                <div
-                  key={mission.id}
-                  className="flex flex-col items-center text-center"
-                >
-                  {missionUnlocked ? (
-                    <Link
-                      href={targetHref}
-                      className={cn(
-                        'group flex aspect-square w-full flex-col items-center justify-between rounded-2xl border p-3.5 transition-all shadow-xs hover:-translate-y-1 hover:shadow-md sm:rounded-3xl sm:p-4',
-                        theme.missionCardBg,
-                        theme.missionCardBorder,
-                        theme.missionCardHover,
-                        isCurrent && 'ring-2 ring-slate-900/40',
-                      )}
-                    >
-                      <div className="flex flex-1 items-center justify-center">
-                        <MissionVisualIcon
-                          index={missionIdx}
-                          isCheckpoint={mission.type === 'checkpoint'}
-                          isLocked={false}
-                        />
+                return (
+                  <div
+                    key={mission.id}
+                    className="flex flex-col items-center text-center"
+                  >
+                    {missionUnlocked ? (
+                      <Link
+                        href={targetHref}
+                        className={cn(
+                          'group flex aspect-square w-full flex-col items-center justify-between rounded-2xl border p-3.5 transition-all shadow-xs hover:-translate-y-1 hover:shadow-md sm:rounded-3xl sm:p-4',
+                          theme.missionCardBg,
+                          theme.missionCardBorder,
+                          theme.missionCardHover,
+                          isCurrent && 'ring-2 ring-slate-900/40',
+                        )}
+                      >
+                        <div className="flex flex-1 items-center justify-center">
+                          <MissionVisualIcon
+                            index={missionIdx}
+                            isCheckpoint={mission.type === 'checkpoint'}
+                            isLocked={false}
+                          />
+                        </div>
+                        <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
+                          {mission.type === 'checkpoint'
+                            ? `TES BAB ${chapterIndex + 1}`
+                            : `MISI ${mission.number}`}
+                        </span>
+                      </Link>
+                    ) : (
+                      <div
+                        className={cn(
+                          'flex aspect-square w-full cursor-not-allowed flex-col items-center justify-between rounded-2xl border p-3.5 opacity-70 shadow-xs sm:rounded-3xl sm:p-4',
+                          theme.missionCardBg,
+                          theme.missionCardBorder,
+                        )}
+                      >
+                        <div className="flex flex-1 items-center justify-center">
+                          <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />
+                        </div>
+                        <span className="flex items-center gap-1 rounded-full bg-slate-900/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-800 sm:text-[11px]">
+                          <LockKeyhole className="size-2.5" />
+                          {mission.type === 'checkpoint'
+                            ? `TES BAB ${chapterIndex + 1}`
+                            : `MISI ${mission.number}`}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
-                        {mission.type === 'checkpoint'
-                          ? `TES BAB ${chapterIndex + 1}`
-                          : `MISI ${mission.number}`}
+                    )}
+                    <p className="mt-2 line-clamp-2 max-w-[125px] text-[11px] font-bold leading-tight text-slate-800 sm:text-xs">
+                      {mission.title}
+                    </p>
+                    {isCompleted ? (
+                      <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-emerald-700">
+                        <Check className="size-3" strokeWidth={3} /> Selesai
                       </span>
-                    </Link>
-                  ) : (
-                    <div
-                      className={cn(
-                        'flex aspect-square w-full cursor-not-allowed flex-col items-center justify-between rounded-2xl border p-3.5 opacity-70 shadow-xs sm:rounded-3xl sm:p-4',
-                        theme.missionCardBg,
-                        theme.missionCardBorder,
-                      )}
-                    >
-                      <div className="flex flex-1 items-center justify-center">
-                        <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />
-                      </div>
-                      <span className="flex items-center gap-1 rounded-full bg-slate-900/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-800 sm:text-[11px]">
-                        <LockKeyhole className="size-2.5" />
-                        {mission.type === 'checkpoint'
-                          ? `TES BAB ${chapterIndex + 1}`
-                          : `MISI ${mission.number}`}
-                      </span>
-                    </div>
-                  )}
-                  <p className="mt-2 line-clamp-2 max-w-[125px] text-[11px] font-bold leading-tight text-slate-800 sm:text-xs">
-                    {mission.title}
-                  </p>
-                  {isCompleted ? (
-                    <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-emerald-700">
-                      <Check className="size-3" strokeWidth={3} /> Selesai
-                    </span>
-                  ) : null}
-                </div>
-              );
-            })}
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      ) : null}
+      </div>
     </article>
   );
 }
@@ -429,36 +448,28 @@ function MissionVisualIcon({
 
 function ChapterIllustration({ type }: { type: string }) {
   if (type === 'chapter-1') {
-    // Open hand waving graphic
+    // Open hand waving graphic matching user's Figma vector
     return (
       <svg
-        className="h-36 w-48"
-        viewBox="0 0 200 150"
+        className="h-44 w-60 sm:h-52 sm:w-72"
+        viewBox="0 0 240 180"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M80 150L75 105C74 95 81 87 91 87C99 87 106 93 107 101L110 120"
-          stroke="#D79E89"
-          strokeWidth="6"
+          d="M65 180C75 145 92 110 102 78C105 70 106 50 102 30C99 18 112 12 118 24C124 38 125 58 126 72C130 58 137 34 146 14C151 3 162 8 159 20C154 40 148 62 146 76C151 64 163 38 173 24C180 14 190 20 185 32C177 52 168 76 164 88C171 76 184 60 193 48C200 40 209 46 204 56C192 84 173 118 162 136C146 160 128 176 112 180H65Z"
+          fill="#E6C2BA"
+        />
+        <path
+          d="M125 60C128 78 131 98 129 116"
+          stroke="#4A4545"
+          strokeWidth="3.5"
           strokeLinecap="round"
         />
         <path
-          d="M95 90L102 45C104 35 113 28 123 30C132 32 138 41 136 50L130 95"
-          stroke="#D79E89"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M125 70L140 35C144 26 154 22 163 26C171 31 174 41 170 50L150 110"
-          stroke="#D79E89"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M145 90L165 65C171 58 181 57 188 63C194 70 194 80 187 87L160 135C150 150 130 150 110 150H80"
-          stroke="#D79E89"
-          strokeWidth="6"
+          d="M144 86C149 98 156 108 165 115"
+          stroke="#4A4545"
+          strokeWidth="3"
           strokeLinecap="round"
         />
       </svg>
