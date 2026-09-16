@@ -377,6 +377,11 @@ void test('only finishing all mission sections unlocks the next mission and pays
       assessable: true,
       passed: true,
       feedback: 'Gerakan sesuai.',
+      gestureKind: 'motion',
+      requiredHandCount: 1,
+      positionRelativeToBody: true,
+      criticalMismatch: null,
+      confusableWith: null,
     };
     const invalid = recordProductionAssessment('berkenalan', 'saya', {
       ...scored,

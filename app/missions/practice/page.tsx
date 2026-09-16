@@ -172,6 +172,7 @@ export default async function PracticePage({
           </aside>
           <div className="order-1 lg:order-2">
             <CameraPractice
+              key={sign.id}
               signId={sign.id}
               signLabel={sign.label}
               referenceVideoUrl={referenceVideoUrl}

@@ -1,6 +1,6 @@
 'use client';
 
-import type { HandLandmarker } from '@mediapipe/tasks-vision';
+import type { HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 import {
   ArrowRight,
   Camera,
@@ -31,6 +31,7 @@ import {
   getReferenceGestureWindow,
   scoreGesture,
   scoreGestureWithAlternatives,
+  selectBodyPoseLandmarks,
   smoothLiveHandObservations,
   type GestureFrame,
   type GestureScore,
@@ -39,6 +40,7 @@ import {
 import { getMissionLearningState } from '@/lib/learning-progress';
 import { recordGestureAssessment } from '@/lib/progress-storage';
 import {
+  getBodyAnchoredReferenceFrames,
   getReferenceFrames,
   getStoredReferenceFrames,
 } from '@/lib/reference-extractor';
@@ -62,6 +64,8 @@ const WASM_ROOT =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
 const HAND_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+const POSE_MODEL_URL =
+  'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 
 const COUNTDOWN_SECONDS = 3;
 const PRACTICE_PLAYBACK_RATE = 0.75;
@@ -70,6 +74,8 @@ const REACTION_AND_FINAL_HOLD_MS = 600;
 const MIN_RECORDING_DURATION_MS = 3000;
 const MAX_RECORDING_DURATION_MS = 10000;
 const REFERENCE_SAMPLE_INTERVAL_MS = 66;
+const POSE_INFERENCE_INTERVAL_MS = 132;
+const MAX_POSE_AGE_MS = 300;
 
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -148,10 +154,16 @@ export function CameraPractice({
   const brightnessCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<HandLandmarker | null>(null);
+  const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const renderFrameRef = useRef<FrameRequestCallback | null>(null);
   const lastVideoTimeRef = useRef(-1);
   const lastInferenceRef = useRef(0);
+  const lastPoseInferenceRef = useRef(0);
+  const poseTimestampOffsetRef = useRef(0);
+  const latestPoseAtRef = useRef(0);
+  const latestPoseLandmarksRef =
+    useRef<GestureFrame['poseLandmarks']>(undefined);
   const lastBrightnessCheckRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -232,6 +244,11 @@ export function CameraPractice({
     streamRef.current = null;
     landmarkerRef.current?.close();
     landmarkerRef.current = null;
+    poseLandmarkerRef.current?.close();
+    poseLandmarkerRef.current = null;
+    latestPoseLandmarksRef.current = undefined;
+    latestPoseAtRef.current = 0;
+    poseTimestampOffsetRef.current = 0;
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -365,29 +382,51 @@ export function CameraPractice({
       await video.play();
 
       setStatus('loading-model');
-      const { FilesetResolver, HandLandmarker } =
+      const { FilesetResolver, HandLandmarker, PoseLandmarker } =
         await import('@mediapipe/tasks-vision');
       const vision = await FilesetResolver.forVisionTasks(WASM_ROOT);
-      const landmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: HAND_MODEL_URL },
-        runningMode: 'VIDEO',
-        numHands: 2,
-        minHandDetectionConfidence: 0.55,
-        minHandPresenceConfidence: 0.55,
-        minTrackingConfidence: 0.5,
-      });
+      const [landmarker, poseLandmarker] = await Promise.all([
+        HandLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: HAND_MODEL_URL },
+          runningMode: 'VIDEO',
+          numHands: 2,
+          minHandDetectionConfidence: 0.55,
+          minHandPresenceConfidence: 0.55,
+          minTrackingConfidence: 0.5,
+        }),
+        PoseLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: POSE_MODEL_URL },
+          runningMode: 'VIDEO',
+          numPoses: 2,
+          minPoseDetectionConfidence: 0.5,
+          minPosePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+          outputSegmentationMasks: false,
+        }).catch(() => null),
+      ]);
 
       if (!mountedRef.current) {
         landmarker.close();
+        poseLandmarker?.close();
         return;
       }
 
       landmarkerRef.current = landmarker;
+      poseLandmarkerRef.current = poseLandmarker;
 
       // Extract reference frames from the demo video
       setStatus('loading-reference');
       try {
-        const refFrames = await getReferenceFrames(referenceVideoUrl);
+        const baseReferenceFrames = await getReferenceFrames(referenceVideoUrl);
+        const refFrames = poseLandmarker
+          ? await getBodyAnchoredReferenceFrames(
+              referenceVideoUrl,
+              baseReferenceFrames,
+              poseLandmarker,
+            )
+          : baseReferenceFrames;
+        poseTimestampOffsetRef.current =
+          (refFrames.at(-1)?.timeMs ?? 0) + REFERENCE_SAMPLE_INTERVAL_MS;
         referenceFramesRef.current = refFrames;
         const timing = getReferenceTiming(refFrames);
         recordingDurationRef.current = timing.durationMs;
@@ -407,6 +446,7 @@ export function CameraPractice({
       const renderFrame: FrameRequestCallback = () => {
         const currentVideo = videoRef.current;
         const currentLandmarker = landmarkerRef.current;
+        const currentPoseLandmarker = poseLandmarkerRef.current;
 
         if (!currentVideo || !currentLandmarker || currentVideo.paused) return;
 
@@ -442,6 +482,39 @@ export function CameraPractice({
               smoothedHandsRef.current,
             );
             smoothedHandsRef.current = hands;
+
+            if (
+              currentPoseLandmarker &&
+              now - lastPoseInferenceRef.current >= POSE_INFERENCE_INTERVAL_MS
+            ) {
+              lastPoseInferenceRef.current = now;
+              try {
+                const poseResult = currentPoseLandmarker.detectForVideo(
+                  currentVideo,
+                  now + poseTimestampOffsetRef.current,
+                );
+                const poseLandmarks = selectBodyPoseLandmarks(
+                  poseResult.landmarks.map((pose) =>
+                    pose.map((landmark) => ({
+                      x: landmark.x,
+                      y: landmark.y,
+                      z: landmark.z,
+                    })),
+                  ),
+                  hands,
+                );
+                latestPoseLandmarksRef.current = poseLandmarks?.length
+                  ? poseLandmarks
+                  : undefined;
+                latestPoseAtRef.current = poseLandmarks?.length ? now : 0;
+              } catch (poseError) {
+                console.warn('Pose inference error:', poseError);
+                poseLandmarkerRef.current?.close();
+                poseLandmarkerRef.current = null;
+                latestPoseLandmarksRef.current = undefined;
+                latestPoseAtRef.current = 0;
+              }
+            }
             const overlay = canvasRef.current;
             if (overlay) {
               drawHandLandmarks(overlay, currentVideo, hands);
@@ -459,6 +532,10 @@ export function CameraPractice({
                 frameBufferRef.current.push({
                   timeMs: Math.round(elapsed),
                   hands,
+                  poseLandmarks:
+                    now - latestPoseAtRef.current <= MAX_POSE_AGE_MS
+                      ? latestPoseLandmarksRef.current
+                      : undefined,
                 });
 
                 const progress = Math.min(
@@ -884,7 +961,7 @@ export function CameraPractice({
               <div>
                 <LoaderCircle className="mx-auto size-8 animate-spin text-signal-teal" />
                 <p className="mt-4 text-sm font-bold text-white">
-                  Menyiapkan 21 titik landmark per tangan…
+                  Menyiapkan landmark tangan dan posisi tubuh…
                 </p>
               </div>
             </div>
@@ -1075,7 +1152,11 @@ export function CameraPractice({
                 value={gestureScore.handshape}
               />
               <QualitativeMetric
-                label="Gerakan"
+                label={
+                  gestureScore.gestureKind === 'pose'
+                    ? 'Stabilitas pose'
+                    : 'Gerakan'
+                }
                 value={gestureScore.movement}
               />
               <QualitativeMetric
@@ -1083,19 +1164,37 @@ export function CameraPractice({
                 value={gestureScore.orientation}
               />
               <QualitativeMetric
-                label="Dalam bingkai"
+                label={
+                  gestureScore.positionRelativeToBody
+                    ? 'Posisi terhadap tubuh'
+                    : 'Posisi di kamera'
+                }
                 value={gestureScore.position}
               />
-              <QualitativeMetric
-                label="Koordinasi"
-                value={gestureScore.coordination}
-              />
+              {gestureScore.requiredHandCount === 2 ? (
+                <QualitativeMetric
+                  label="Koordinasi dua tangan"
+                  value={gestureScore.coordination}
+                />
+              ) : null}
+              {gestureScore.confusableWith ? (
+                <div className="flex items-center justify-between gap-3 text-xs font-bold">
+                  <span className="text-signal-navy">Pembeda kosakata</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-signal-coral/10 px-2.5 py-1 text-signal-coral">
+                    <span className="size-1.5 rounded-full bg-signal-coral" />
+                    Mirip “{gestureScore.confusableWith}”
+                  </span>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           <div className="mt-5 border-t border-signal-navy/10 pt-4">
+            <p className="mb-3 text-[0.65rem] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Kualitas rekaman
+            </p>
             <QualitativeMetric
-              label="Kualitas deteksi"
+              label="Deteksi landmark"
               value={gestureScore.detectionQuality}
               detection
             />
@@ -1111,9 +1210,10 @@ export function CameraPractice({
             </p>
           ) : null}
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
-            “Dalam bingkai” membandingkan letak tangan pada gambar kamera.
-            Checker belum melacak wajah, bahu, ekspresi, atau tata bahasa
-            BISINDO.
+            {gestureScore.positionRelativeToBody
+              ? '“Posisi terhadap tubuh” membandingkan letak tangan dari bahu dan torso, sehingga tanda di kepala dan dada dapat dibedakan.'
+              : 'Jangkar bahu belum stabil pada rekaman ini; posisi hanya dibandingkan terhadap gambar kamera dan tidak menjadi syarat kelulusan.'}{' '}
+            Checker belum menilai ekspresi wajah atau tata bahasa BISINDO.
           </p>
 
           {gestureScore.passed && nextAction ? (
@@ -1225,8 +1325,10 @@ export function CameraPractice({
 
 function cameraStatusLabel(status: CameraStatus, handCount: number) {
   if (status === 'requesting') return 'Menunggu keputusan izin kamera…';
-  if (status === 'loading-model') return 'Memuat model landmark tangan…';
-  if (status === 'loading-reference') return 'Menyiapkan referensi gerakan…';
+  if (status === 'loading-model')
+    return 'Memuat model landmark tangan dan tubuh…';
+  if (status === 'loading-reference')
+    return 'Menyiapkan referensi gerakan dan posisi tubuh…';
   if (status === 'ready' && handCount > 0) return 'Landmark tangan aktif';
   if (status === 'ready') return 'Kamera siap — angkat tangan ke dalam bingkai';
   if (status === 'denied') return 'Akses kamera belum diberikan';
@@ -1351,7 +1453,7 @@ function getReferenceTiming(frames: GestureFrame[]) {
 
 function practiceResultLabel(score: GestureScore) {
   if (score.passed) return 'Sudah sesuai';
-  return score.overall >= 50 ? 'Hampir sesuai' : 'Coba lagi';
+  return 'Belum sesuai';
 }
 
 function QualitativeMetric({

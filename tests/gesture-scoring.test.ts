@@ -7,6 +7,7 @@ import {
   hasUsableReference,
   scoreGesture,
   scoreGestureWithAlternatives,
+  selectBodyPoseLandmarks,
   smoothLiveHandObservations,
   type GestureFrame,
   type Point3,
@@ -39,6 +40,45 @@ function sequence(deformation = 0, direction = 1) {
   return Array.from({ length: 24 }, (_, index) =>
     frame(index * 80, direction * index * 0.004, deformation),
   );
+}
+
+function withBodyPose(frames: GestureFrame[]): GestureFrame[] {
+  return frames.map((item) => {
+    const poseLandmarks: Point3[] = Array.from({ length: 33 }, () => ({
+      x: 0.5,
+      y: 0.5,
+      z: 0,
+    }));
+    poseLandmarks[0] = { x: 0.5, y: 0.18, z: 0 };
+    poseLandmarks[11] = { x: 0.35, y: 0.36, z: 0 };
+    poseLandmarks[12] = { x: 0.65, y: 0.36, z: 0 };
+    poseLandmarks[23] = { x: 0.4, y: 0.76, z: 0 };
+    poseLandmarks[24] = { x: 0.6, y: 0.76, z: 0 };
+    return { ...item, poseLandmarks };
+  });
+}
+
+function shiftRecording(
+  frames: GestureFrame[],
+  deltaX: number,
+  deltaY: number,
+): GestureFrame[] {
+  return frames.map((item) => ({
+    ...item,
+    hands: item.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point) => ({
+        ...point,
+        x: point.x + deltaX,
+        y: point.y + deltaY,
+      })),
+    })),
+    poseLandmarks: item.poseLandmarks?.map((point) => ({
+      ...point,
+      x: point.x + deltaX,
+      y: point.y + deltaY,
+    })),
+  }));
 }
 
 function moveVertically(item: GestureFrame, deltaY: number, timeMs: number) {
@@ -81,6 +121,8 @@ void test('identical temporal gestures receive a near-perfect score', () => {
   const result = scoreGesture(sequence(), sequence());
   assert.ok(result.overall >= 99);
   assert.equal(result.passed, true);
+  assert.equal(result.requiredHandCount, 1);
+  assert.equal(result.gestureKind, 'motion');
 });
 
 void test('finger deformation lowers handshape and total score', () => {
@@ -244,6 +286,24 @@ void test('live landmark smoothing suppresses an overlap spike but follows hand 
   assert.ok(retainedMotion > 0.075, String(retainedMotion));
 });
 
+void test('live landmark smoothing keeps hand identity through an overlap label flip', () => {
+  const previous = twoHandSequence()[0].hands;
+  const current = structuredClone(previous).map((hand) => ({
+    ...hand,
+    handedness: hand.handedness === 'Right' ? 'Left' : 'Right',
+  }));
+  current[0].landmarks[8].x += 0.2;
+
+  const smoothed = smoothLiveHandObservations(current, previous);
+  assert.deepEqual(
+    smoothed.map((hand) => hand.handedness),
+    previous.map((hand) => hand.handedness),
+  );
+  assert.ok(
+    Math.abs(smoothed[0].landmarks[8].x - previous[0].landmarks[8].x) < 0.04,
+  );
+});
+
 void test('same path has the same score across frame rates and durations', () => {
   for (const samples of [8, 24, 45, 90]) {
     for (const duration of [1800, 3000, 4500]) {
@@ -280,6 +340,94 @@ void test('mirrored gesture still passes when the person shifts in the camera', 
   const result = scoreGesture(sequence(), attempt);
   assert.ok(result.overall >= 90);
   assert.equal(result.passed, true);
+});
+
+void test('body-relative position ignores a whole-person camera shift', () => {
+  const reference = withBodyPose(sequence());
+  const result = scoreGesture(reference, shiftRecording(reference, 0.12, 0.1));
+  assert.equal(result.positionRelativeToBody, true);
+  assert.equal(result.position, 100);
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('body-relative scoring accepts the opposite dominant hand', () => {
+  const reference = withBodyPose(sequence());
+  const attempt = mirror(reference).map((item) => ({
+    ...item,
+    poseLandmarks: item.poseLandmarks?.map((point) => ({
+      ...point,
+      x: 1 - point.x,
+    })),
+  }));
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.positionRelativeToBody, true);
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('a correct hand gesture at the wrong body location cannot pass', () => {
+  const reference = withBodyPose(sequence());
+  const attempt = shiftRecording(reference, 0, -0.34).map((item, index) => ({
+    ...item,
+    // Keep the body in place while moving only the signing hand toward the head.
+    poseLandmarks: reference[index].poseLandmarks,
+  }));
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.positionRelativeToBody, true);
+  assert.ok(result.position < 60, JSON.stringify(result));
+  assert.equal(result.criticalMismatch, 'position');
+  assert.equal(result.passed, false, JSON.stringify(result));
+});
+
+void test('two-hand body position tolerates modest pose variance but rejects a large shift', () => {
+  const reference = withBodyPose(twoHandSequence());
+  const attemptAt = (deltaY: number) =>
+    shiftRecording(reference, 0, deltaY).map((item, index) => ({
+      ...item,
+      poseLandmarks: reference[index].poseLandmarks,
+    }));
+
+  const modest = scoreGesture(reference, attemptAt(-0.06));
+  assert.ok(modest.position >= 60, JSON.stringify(modest));
+  assert.equal(modest.passed, true, JSON.stringify(modest));
+
+  const misplaced = scoreGesture(reference, attemptAt(-0.2));
+  assert.ok(misplaced.position < 60, JSON.stringify(misplaced));
+  assert.equal(misplaced.criticalMismatch, 'position');
+  assert.equal(misplaced.passed, false, JSON.stringify(misplaced));
+});
+
+void test('unreliable body-pose coverage does not create a hard position failure', () => {
+  const reference = withBodyPose(sequence());
+  const attempt = shiftRecording(reference, 0, -0.34).map((item, index) => ({
+    ...item,
+    poseLandmarks: index < 16 ? reference[index].poseLandmarks : undefined,
+  }));
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.positionRelativeToBody, false);
+  assert.equal(result.criticalMismatch, null, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('body pose is assigned to the person whose wrists match the signing hand', () => {
+  const hands = frame(0).hands;
+  const pose = (centerX: number, wristX: number) => {
+    const landmarks: Point3[] = Array.from({ length: 33 }, () => ({
+      x: centerX,
+      y: 0.5,
+      z: 0,
+    }));
+    landmarks[11] = { x: centerX - 0.15, y: 0.36, z: 0 };
+    landmarks[12] = { x: centerX + 0.15, y: 0.36, z: 0 };
+    landmarks[23] = { x: centerX - 0.1, y: 0.76, z: 0 };
+    landmarks[24] = { x: centerX + 0.1, y: 0.76, z: 0 };
+    landmarks[15] = { x: wristX, y: 0.72, z: 0 };
+    landmarks[16] = { x: wristX, y: 0.72, z: 0 };
+    return landmarks;
+  };
+  const bystander = pose(0.2, 0.2);
+  const signer = pose(0.5, 0.5);
+  assert.equal(selectBodyPoseLandmarks([bystander, signer], hands), signer);
+  assert.equal(selectBodyPoseLandmarks([bystander], hands), undefined);
 });
 
 void test('wrong palm orientation cannot be compensated by other components', () => {
@@ -706,12 +854,21 @@ void test('a gesture closer to another sign cannot pass the target sign', () => 
     { label: 'Tanda lain', frames: sequence() },
   ]);
   assert.equal(result.passed, false, JSON.stringify(result));
+  assert.equal(result.confusableWith, 'Tanda lain');
   assert.match(result.feedback, /Tanda lain/);
 });
 
 void test('an unambiguous matching sign still passes comparison', () => {
   const result = scoreGestureWithAlternatives(sequence(), sequence(), [
     { label: 'Tanda lain', frames: sequence(0.2) },
+  ]);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.equal(result.confusableWith, null);
+});
+
+void test('an equally close alternative does not override a passing target', () => {
+  const result = scoreGestureWithAlternatives(sequence(), sequence(), [
+    { label: 'Tanda duplikat', frames: sequence() },
   ]);
   assert.equal(result.passed, true, JSON.stringify(result));
 });

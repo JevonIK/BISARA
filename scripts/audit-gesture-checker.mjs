@@ -56,9 +56,10 @@ for (const [target, targetSign] of definitions.entries()) {
         .filter((score) => score.assessable && score.passed)
         .map((score) => score.overall),
     );
-    // Same five-point margin as scoreGestureWithAlternatives. Scores are
+    // A wrong target survives only if the actual sign lacks the same decisive
+    // three-point advantage used by scoreGestureWithAlternatives. Scores are
     // computed once here so the exhaustive audit stays fast enough to rerun.
-    if (result.overall - bestAlternative >= 5) {
+    if (bestAlternative - result.overall < 3) {
       finalWrong.push(`${targetSign.label} ← ${actualSign.label}`);
     }
   }

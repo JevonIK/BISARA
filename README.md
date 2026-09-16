@@ -64,6 +64,7 @@ supersedes their scenario-completion and review requirements.
 - real browser camera permission flow
 - clear idle, loading, ready, denied, unavailable, and error states
 - live MediaPipe Hand Landmarker inference for up to two hands
+- live MediaPipe Pose Landmarker inference for shoulder and torso anchors
 - 21-point landmark overlay for each detected hand
 - camera, lighting, and hand-visibility calibration checks
 - local video-frame processing with explicit privacy messaging
@@ -118,15 +119,23 @@ time so sampling rate and overall speed do not determine the movement score.
 Movement compares the ordered, centered wrist path instead of noisy
 frame-to-frame derivatives. Handshape and orientation use the visible 2D hand
 skeleton so MediaPipe depth errors caused by camera angle or torso occlusion do
-not dominate the result. The selected gesture window excludes relaxed
+not dominate the result. After camera activation, the selected reference video
+also receives shoulder and torso landmarks. Hand position is then normalized
+against the same body anchors in the learner recording, which distinguishes
+head-level and chest-level signs without penalizing a whole-person shift in the
+camera. Up to two detected people are considered, and the pose whose wrists
+match the signing hands is selected so a bystander cannot become the body
+anchor. The selected gesture window excludes relaxed
 preparation frames but requires a sustained matching handshape. Two-hand
-distances remain in shared image coordinates.
+distances remain in shared image coordinates. A bounded extension-pattern
+fallback absorbs unstable inner-finger landmarks when hands overlap, while a
+changed or copied second hand still fails the detailed two-hand checks.
 
 The practice flow pauses the demonstration on its first detected hand frame
 during a monotonic three-second countdown. Recording and the demonstration then
 start together, with the guide played at 0.75× speed. The capture window follows
 the detected reference duration, allows extra reaction and final-hold time, and
-runs for at least four seconds. Hand visibility remains a live readiness hint;
+runs for at least three seconds. Hand visibility remains a live readiness hint;
 learners can start the countdown before raising their hands, while visibility
 during the recorded gesture still affects detection quality. Timer cleanup
 prevents an abandoned or restarted attempt from saving a late score.
@@ -139,9 +148,11 @@ matching.
 
 The pass threshold is 75. Handshape must reach 75, movement 70, and a two-hand
 sign has additional checks for the second hand's shape and combined motion,
-orientation, and coordination. A sufficiently severe mismatch caps the total
-below the pass threshold even if other components are strong. A one-hand sign
-also rejects a second hand that remains active near the sign. At least six
+orientation, and coordination. Body-relative position must reach 60 whenever
+owned pose anchors cover at least 80% of the gesture. A sufficiently severe mismatch caps the
+total below the pass threshold even if other components are strong. Coordination
+is excluded from one-hand totals, and a one-hand sign rejects a second hand that
+remains active near the sign. At least six
 usable frames spanning 400 ms are required, with 60% hand visibility for
 one-hand signs or 35% for overlapping two-hand signs. Setup
 and rest frames at the beginning/end are trimmed; gaps inside the gesture are
@@ -150,13 +161,19 @@ MediaPipe's left/right classification confidence is not landmark accuracy.
 Unusable references or missing vocabulary templates disable assessment instead
 of grading the learner.
 
+Vocabulary alternatives act as negative examples after the prompted sign has
+passed. An alternative rejects the result only when it beats the prompted sign
+by at least three points; tiny frame-to-frame score changes no longer contradict
+an otherwise passing component panel.
+
 This remains a prototype similarity checker based on one exemplar per gloss,
-not a trained or validated BISINDO classifier. Position uses image coordinates
-rather than a body anchor; camera framing can still affect that component.
-Thresholds need validation with Deaf language experts and recordings from
-multiple learners. Run `npm run audit:checker` for the full 32×32 exemplar
-comparison and altered-handshape checks; the score unit tests live in
-`tests/gesture-scoring.test.ts` and `tests/reference-templates.test.ts`.
+not a trained or validated BISINDO classifier. If stable body landmarks are not
+available, position falls back to image coordinates and is removed from the
+critical pass gates. Thresholds need validation with Deaf language experts and
+recordings from multiple learners. Run `npm run audit:checker` for the full
+32×32 exemplar comparison and altered-handshape checks; the score unit tests
+live in `tests/gesture-scoring.test.ts` and
+`tests/reference-templates.test.ts`.
 
 ## Tech stack
 
@@ -301,16 +318,18 @@ and deployment requirements.
 ## Camera privacy note
 
 Camera frames are processed in the browser and are not uploaded or stored by
-BISARA. The MediaPipe runtime and hand model are downloaded when the camera is
+BISARA. The MediaPipe runtime, hand model, and pose model are downloaded when the camera is
 first activated. MediaPipe may send performance and usage metrics as described
 in its vendor privacy notice, but camera input remains on the device.
 
 ## Third-party attribution
 
-Hand landmark detection uses
+Hand and body landmark detection use
 [`@mediapipe/tasks-vision`](https://www.npmjs.com/package/@mediapipe/tasks-vision)
 by Google under the Apache License 2.0. Implementation guidance follows the
-[official MediaPipe Hand Landmarker documentation](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js).
+[official MediaPipe Hand Landmarker documentation](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js)
+and
+[Pose Landmarker documentation](https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/web_js).
 
 Selected BISINDO demonstration videos come from
 [WL-BISINDO](https://www.kaggle.com/datasets/glennleonali/wl-bisindo) by Grace
