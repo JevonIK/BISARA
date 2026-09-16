@@ -1129,7 +1129,12 @@ export function CameraPractice({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={startCamera}
+                  // Keep the camera session warm and start the next attempt
+                  // immediately instead of returning to the setup screen.
+                  onClick={retryPractice}
+                  disabled={
+                    practicePhase !== 'idle' && practicePhase !== 'result'
+                  }
                   className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                 >
                   <RefreshCw className="size-4" /> Muat ulang
