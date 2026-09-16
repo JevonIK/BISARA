@@ -81,10 +81,10 @@ export default function KamusPage() {
     <main className="min-h-screen bg-[#FFE8A3] pb-16">
       <AppHeader active="kamus" />
 
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8 lg:px-8 flex flex-col gap-6 sm:gap-8">
+      <div className="mx-auto max-w-7xl px-5 py-6 sm:py-8 lg:px-8 lg:py-10 flex flex-col gap-6 sm:gap-8">
         {/* Search Bar matching mockup */}
         <div className="relative w-full">
-          <div className="flex items-center gap-3 rounded-full bg-white px-5 py-3.5 sm:py-4 shadow-xs border border-amber-200/40">
+          <div className="flex items-center gap-3 rounded-full bg-white px-6 py-4 shadow-xs border border-amber-200/50">
             <Search className="size-5 text-slate-400 shrink-0" />
             <input
               type="text"
@@ -110,18 +110,18 @@ export default function KamusPage() {
         {Object.entries(letterGroups).map(([letter, items]) => (
           <section
             key={letter}
-            className="overflow-hidden rounded-[2rem] sm:rounded-[2.25rem] bg-white shadow-xs border border-amber-300/40"
+            className="overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-white shadow-xs border border-amber-300/40"
           >
             {/* Yellow Header with Circular Letter Badge */}
-            <div className="bg-[#FFCF52] px-5 py-3.5 sm:px-7 sm:py-4 flex items-center">
+            <div className="bg-[#FFCF52] px-6 py-3.5 sm:px-8 sm:py-4 flex items-center">
               <div className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-[#FFAE00] text-slate-950 font-black text-xs sm:text-sm shadow-xs">
                 {letter}
               </div>
             </div>
 
             {/* Word Cards Grid */}
-            <div className="p-4 sm:p-6 lg:p-7">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+            <div className="p-5 sm:p-7 lg:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
                 {items.map((sign) => {
                   const unlocked = isSignUnlocked(sign.id as SignId, progress);
 
@@ -131,7 +131,7 @@ export default function KamusPage() {
                         key={sign.id}
                         type="button"
                         onClick={() => setSelectedSign(sign)}
-                        className="group flex items-center justify-between rounded-2xl border border-[#FCD561] bg-white px-5 py-3.5 sm:px-6 sm:py-4 text-left shadow-2xs transition-all hover:border-[#F8A51D] hover:shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                        className="group flex items-center justify-between rounded-2xl border border-[#FCD561] bg-white px-5 py-4 sm:px-6 sm:py-4.5 text-left shadow-2xs transition-all hover:border-[#F8A51D] hover:shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                       >
                         <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors">
                           {sign.label}
@@ -146,7 +146,7 @@ export default function KamusPage() {
                   return (
                     <div
                       key={sign.id}
-                      className="flex items-center justify-between rounded-2xl border border-[#CBD5E1] bg-[#EEF2F6] px-5 py-3.5 sm:px-6 sm:py-4 cursor-not-allowed opacity-90 select-none"
+                      className="flex items-center justify-between rounded-2xl border border-[#CBD5E1] bg-[#EEF2F6] px-5 py-4 sm:px-6 sm:py-4.5 cursor-not-allowed opacity-90 select-none"
                       title="Kosakata ini belum dipelajari"
                     >
                       <span className="text-base sm:text-lg font-bold tracking-tight text-slate-500">
