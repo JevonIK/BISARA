@@ -849,10 +849,19 @@ void test('a wrong second hand cannot hide behind a correct first hand', () => {
 void test('a gesture closer to another sign cannot pass the target sign', () => {
   const attempt = sequence();
   const targetReference = sequence(0.04);
-  assert.equal(scoreGesture(targetReference, attempt).passed, true);
-  const result = scoreGestureWithAlternatives(targetReference, attempt, [
-    { label: 'Tanda lain', frames: sequence() },
-  ]);
+  const targetScore = scoreGesture(targetReference, attempt);
+  assert.equal(targetScore.passed, true);
+  const alternatives = [{ label: 'Tanda lain', frames: sequence() }];
+  const result = scoreGestureWithAlternatives(
+    targetReference,
+    attempt,
+    alternatives,
+    targetScore,
+  );
+  assert.deepEqual(
+    result,
+    scoreGestureWithAlternatives(targetReference, attempt, alternatives),
+  );
   assert.equal(result.passed, false, JSON.stringify(result));
   assert.equal(result.confusableWith, 'Tanda lain');
   assert.match(result.feedback, /Tanda lain/);

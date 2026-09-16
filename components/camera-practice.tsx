@@ -27,6 +27,7 @@ import {
   type SignId,
 } from '@/lib/curriculum-data';
 import {
+  canAlternativeOutscore,
   getRequiredHandCount,
   getReferenceGestureWindow,
   scoreGesture,
@@ -132,7 +133,13 @@ async function loadVocabularyAlternatives(targetSignId: SignId) {
   }
   return loaded.flatMap((result, index) =>
     result.status === 'fulfilled'
-      ? [{ label: signs[index].label, frames: result.value }]
+      ? [
+          {
+            label: signs[index].label,
+            frames: result.value,
+            requiredHandCount: getRequiredHandCount(result.value),
+          },
+        ]
       : [],
   );
 }
@@ -170,7 +177,12 @@ export function CameraPractice({
   // Scoring refs
   const referenceFramesRef = useRef<GestureFrame[]>([]);
   const alternativeFramesPromiseRef = useRef<
-    Promise<Array<{ label: string; frames: GestureFrame[] }> | null> | undefined
+    | Promise<Array<{
+        label: string;
+        frames: GestureFrame[];
+        requiredHandCount: 1 | 2;
+      }> | null>
+    | undefined
   >(undefined);
   const frameBufferRef = useRef<GestureFrame[]>([]);
   const smoothedHandsRef = useRef<HandObservation[]>([]);
@@ -620,7 +632,7 @@ export function CameraPractice({
       const referenceFrames = referenceFramesRef.current;
       const attemptFrames = frameBufferRef.current;
       let result = scoreGesture(referenceFrames, attemptFrames);
-      if (result.passed) {
+      if (canAlternativeOutscore(result)) {
         const loading =
           alternativeFramesPromiseRef.current ??
           loadVocabularyAlternatives(signId);
@@ -632,6 +644,7 @@ export function CameraPractice({
             referenceFrames,
             attemptFrames,
             alternatives,
+            result,
           );
         } catch {
           result = {

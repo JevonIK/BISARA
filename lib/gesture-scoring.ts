@@ -331,18 +331,38 @@ export function scoreGesture(
 export function scoreGestureWithAlternatives(
   referenceFrames: GestureFrame[],
   attemptFrames: GestureFrame[],
-  alternatives: Array<{ label: string; frames: GestureFrame[] }>,
+  alternatives: Array<{
+    label: string;
+    frames: GestureFrame[];
+    requiredHandCount?: 1 | 2;
+  }>,
+  targetScore?: GestureScore,
 ): GestureScore {
-  const target = scoreGesture(referenceFrames, attemptFrames);
+  const target = targetScore ?? scoreGesture(referenceFrames, attemptFrames);
   if (!target.passed) return target;
 
-  const closestAlternative = alternatives
-    .map(({ label, frames }) => ({
-      label,
-      score: scoreGesture(frames, attemptFrames),
-    }))
-    .filter(({ score }) => score.assessable && score.passed)
-    .sort((a, b) => b.score.overall - a.score.overall)[0];
+  // Scores are capped at 100, so no alternative can clear the required margin.
+  if (!canAlternativeOutscore(target)) return target;
+
+  let closestAlternative: { label: string; score: GestureScore } | undefined;
+  for (const { label, frames, requiredHandCount } of alternatives) {
+    // A passing attempt for a one-hand sign rejects an active extra hand;
+    // a two-hand sign requires both. Compare signs with the same hand count.
+    if (
+      (requiredHandCount ?? getRequiredHandCount(frames)) !==
+      target.requiredHandCount
+    )
+      continue;
+    const score = scoreGesture(frames, attemptFrames);
+    if (
+      score.assessable &&
+      score.passed &&
+      (!closestAlternative || score.overall > closestAlternative.score.overall)
+    ) {
+      closestAlternative = { label, score };
+      if (score.overall === 100) break;
+    }
+  }
   if (
     !closestAlternative ||
     closestAlternative.score.overall - target.overall <
@@ -358,6 +378,10 @@ export function scoreGestureWithAlternatives(
     confusableWith: closestAlternative.label,
     feedback: `Gerakan juga mirip tanda “${closestAlternative.label}”. Coba lagi dan perjelas ciri pembeda dari tanda yang diminta.`,
   };
+}
+
+export function canAlternativeOutscore(target: GestureScore): boolean {
+  return target.passed && target.overall <= 100 - MIN_ALTERNATIVE_ADVANTAGE;
 }
 
 function scoreAttemptWindows(
@@ -856,7 +880,7 @@ export function hasUsableReference(frames: GestureFrame[]): boolean {
   );
 }
 
-export function getRequiredHandCount(frames: GestureFrame[]) {
+export function getRequiredHandCount(frames: GestureFrame[]): 1 | 2 {
   return getRequiredHandCountFromPrepared(prepareSequence(frames));
 }
 
@@ -877,7 +901,7 @@ export function getReferenceGestureWindow(frames: GestureFrame[]) {
   };
 }
 
-function getRequiredHandCountFromPrepared(frames: PreparedFrame[]) {
+function getRequiredHandCountFromPrepared(frames: PreparedFrame[]): 1 | 2 {
   const visibleFrames = frames.filter((frame) => frame.hands.length > 0);
   if (!visibleFrames.length) return 1;
   const twoHandFrames = visibleFrames.filter(
