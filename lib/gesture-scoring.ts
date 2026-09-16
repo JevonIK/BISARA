@@ -69,6 +69,7 @@ const MIN_TWO_HAND_HANDSHAPE_MATCH_RATIO = 0.4;
 const MIN_MOVEMENT_SCORE = 70;
 const MIN_BODY_POSITION_SCORE = 60;
 const MIN_TWO_HAND_SHAPE_SCORE = 85;
+const MIN_CONTACT_HANDSHAPE_SCORE = 70;
 const MIN_TWO_HAND_JOINT_MOVEMENT_SCORE = 85;
 const MIN_TWO_HAND_ORIENTATION_SCORE = 85;
 const MIN_TWO_HAND_COORDINATION_SCORE = 90;
@@ -93,11 +94,14 @@ const MIN_REFERENCE_BOUNDARY_TRAVEL_SCALE = 1.5;
 const MIN_EXTRA_HAND_FRAME_RATIO = 0.35;
 const EXTRA_HAND_SIGNING_REGION_SCALE = 3.5;
 const EXTRA_HAND_MOTION_SCALE = 0.8;
-const HANDSHAPE_FEATURES_PER_FINGER = 7;
+const HANDSHAPE_FEATURES_PER_FINGER = 8;
 const HANDSHAPE_FEATURE_COUNT = HANDSHAPE_FEATURES_PER_FINGER * 5;
 const INTER_HAND_CONTACT_DISTANCE = 0.75;
 const MIN_REFERENCE_CONTACT_RATIO = 0.55;
 const MIN_ATTEMPT_CONTACT_RATIO = 0.4;
+const CONTACT_SIGN_BODY_POSITION_DEAD_ZONE = 0.22;
+const MAX_CONTACT_FINGER_SPAN_ERROR = 0.18;
+const MIN_CONTACT_FINGER_SPAN_MATCH_RATIO = 0.3;
 
 export function smoothLiveHandObservations(
   currentHands: HandObservation[],
@@ -430,16 +434,27 @@ function scorePrepared(
   const poseDominant = isPoseDominantGesture(reference);
   const gestureKind: GestureKind = poseDominant ? 'pose' : 'motion';
   const requiredHandCount = getRequiredHandCountFromPrepared(reference);
+  const contactDominant = hasSustainedInterHandContact(reference);
+  const indexApproachDominant =
+    contactDominant && hasIndexFingerApproach(reference);
   const positionRelativeToBody =
     hasBodyPositionCoverage(reference) && hasBodyPositionCoverage(attempt);
   const referenceMovement = movementSequence(reference);
   const attemptMovement = movementSequence(attempt);
   const comparePosition = (a: PreparedFrame, b: PreparedFrame) =>
-    compareHandPositions(a, b, positionRelativeToBody);
+    compareHandPositions(
+      a,
+      b,
+      positionRelativeToBody,
+      positionRelativeToBody && requiredHandCount === 2 && contactDominant
+        ? CONTACT_SIGN_BODY_POSITION_DEAD_ZONE
+        : 0,
+    );
   const handshapeMatch = robustHandshapeMetrics(
     reference,
     attempt,
     requiredHandCount,
+    contactDominant,
   );
   const rawHandshapeScore = errorToScore(handshapeMatch.error, 0.7);
   const minimumHandshapeMatchRatio = handshapeMatch.minimumMatchRatio;
@@ -465,11 +480,13 @@ function scorePrepared(
     movement: errorToScore(
       poseDominant
         ? poseHoldError(reference, rawAttempt)
-        : Math.max(
-            dtwError(referenceMovement, attemptMovement, compareMovement),
-            movementDirectionError(referenceMovement, attemptMovement),
-            movementExtentError(referenceMovement, attemptMovement),
-          ),
+        : indexApproachDominant
+          ? contactApproachError(reference, attempt)
+          : Math.max(
+              dtwError(referenceMovement, attemptMovement, compareMovement),
+              movementDirectionError(referenceMovement, attemptMovement),
+              movementExtentError(referenceMovement, attemptMovement),
+            ),
       0.35,
     ),
     coordination: errorToScore(
@@ -495,11 +512,17 @@ function scorePrepared(
   // Position becomes a required semantic component only when both recordings
   // have a stable shoulder/torso anchor from Pose Landmarker.
   const handshapeMismatch =
-    components.handshape < MIN_HANDSHAPE_SCORE ||
+    components.handshape <
+      (requiredHandCount === 2 && contactDominant
+        ? MIN_CONTACT_HANDSHAPE_SCORE
+        : MIN_HANDSHAPE_SCORE) ||
     handshapeFrameMatchRatio < minimumHandshapeMatchRatio;
   const twoHandWeakness =
     requiredHandCount === 2
-      ? components.handshape < MIN_TWO_HAND_SHAPE_SCORE
+      ? components.handshape <
+        (contactDominant
+          ? MIN_CONTACT_HANDSHAPE_SCORE
+          : MIN_TWO_HAND_SHAPE_SCORE)
         ? 'handshape'
         : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
             components.movement < MIN_TWO_HAND_JOINT_MOVEMENT_SCORE
@@ -509,17 +532,23 @@ function scorePrepared(
             ? 'coordination'
             : null
       : null;
-  const criticalWeakness = handshapeMismatch
-    ? 'handshape'
-    : twoHandWeakness
-      ? twoHandWeakness
-      : positionRelativeToBody && components.position < MIN_BODY_POSITION_SCORE
-        ? 'position'
-        : components.movement < MIN_MOVEMENT_SCORE
-          ? 'movement'
-          : components[weakestCore] < MIN_COMPONENT_SCORE
-            ? weakestCore
-            : null;
+  const contactMismatch =
+    contactDominant &&
+    components.coordination < MIN_TWO_HAND_COORDINATION_SCORE;
+  const criticalWeakness = contactMismatch
+    ? 'coordination'
+    : handshapeMismatch
+      ? 'handshape'
+      : twoHandWeakness
+        ? twoHandWeakness
+        : positionRelativeToBody &&
+            components.position < MIN_BODY_POSITION_SCORE
+          ? 'position'
+          : components.movement < MIN_MOVEMENT_SCORE
+            ? 'movement'
+            : components[weakestCore] < MIN_COMPONENT_SCORE
+              ? weakestCore
+              : null;
   const overall = criticalWeakness
     ? Math.min(PASS_THRESHOLD - 1, weightedScore)
     : weightedScore;
@@ -535,6 +564,8 @@ function scorePrepared(
       criticalWeakness ?? weakest,
       gestureKind,
       positionRelativeToBody,
+      contactDominant,
+      indexApproachDominant,
     ),
     gestureKind,
     requiredHandCount,
@@ -1228,6 +1259,7 @@ function handshapeFeatures(localCoordinates: number[]) {
       extension,
       ...tipDirection,
       Math.hypot(tip[0], tip[1]),
+      Math.hypot(tip[0] - base[0], tip[1] - base[1]),
     ];
   });
 }
@@ -1246,6 +1278,7 @@ function compareHandPositions(
   a: PreparedFrame,
   b: PreparedFrame,
   relativeToBody: boolean,
+  deadZone = 0,
 ) {
   return compareMatchedHands(a, b, (hand, matched) => {
     const referencePosition =
@@ -1254,7 +1287,10 @@ function compareHandPositions(
       relativeToBody && matched.bodyPosition
         ? matched.bodyPosition
         : matched.position;
-    return vectorRms(referencePosition, attemptPosition);
+    return Math.max(
+      0,
+      vectorRms(referencePosition, attemptPosition) - deadZone,
+    );
   });
 }
 
@@ -1290,13 +1326,40 @@ function robustHandshapeMetrics(
   reference: PreparedFrame[],
   attempt: PreparedFrame[],
   requiredHandCount: 1 | 2,
+  contactDominant: boolean,
 ) {
+  // The meaningful handshape of a contact sign is the shape at contact. Setup
+  // frames often contain a relaxed/closed hand and previously allowed a wrong
+  // final shape to match that unrelated phase. Restrict both sides to sustained
+  // contact before applying the overlap recovery below.
+  const shapeReference = contactDominant
+    ? reference.filter(hasInterHandContact)
+    : reference;
+  const shapeAttempt = contactDominant
+    ? attempt.filter(hasInterHandContact)
+    : attempt;
+  if (!shapeReference.length || !shapeAttempt.length) {
+    return {
+      error: 4,
+      matchRatio: 0,
+      minimumMatchRatio:
+        requiredHandCount === 2
+          ? contactDominant
+            ? MIN_CONTACT_FINGER_SPAN_MATCH_RATIO
+            : MIN_TWO_HAND_HANDSHAPE_MATCH_RATIO
+          : MIN_HANDSHAPE_MATCH_RATIO,
+    };
+  }
   const allowIndependentFrameRecovery =
     requiredHandCount === 2 &&
-    hasSustainedHandOverlap(reference) &&
-    hasSustainedHandOverlap(attempt);
+    hasSustainedHandOverlap(shapeReference) &&
+    hasSustainedHandOverlap(shapeAttempt);
   if (requiredHandCount === 1 || !allowIndependentFrameRecovery) {
-    const metrics = robustPoseMetrics(reference, attempt, compareHandshape);
+    const metrics = robustPoseMetrics(
+      shapeReference,
+      shapeAttempt,
+      compareHandshape,
+    );
     return {
       error: metrics.error,
       matchRatio:
@@ -1314,13 +1377,13 @@ function robustHandshapeMetrics(
   // portion of the recording, so one correct hand cannot hide a consistently
   // different second hand.
   const perHand = (['left', 'right'] as const).map((handedness) => {
-    const referenceHands = reference.flatMap((frame) => {
+    const referenceHands = shapeReference.flatMap((frame) => {
       const hand = frame.hands.find(
         (candidate) => candidate.handedness === handedness,
       );
       return hand ? [hand] : [];
     });
-    const nearestErrors = attempt.flatMap((frame) => {
+    const nearestErrors = shapeAttempt.flatMap((frame) => {
       const hand = frame.hands.find(
         (candidate) => candidate.handedness === handedness,
       );
@@ -1334,6 +1397,19 @@ function robustHandshapeMetrics(
       ];
     });
     if (!nearestErrors.length) return { error: 4, matchRatio: 0 };
+    const nearestSpanErrors = shapeAttempt.flatMap((frame) => {
+      const hand = frame.hands.find(
+        (candidate) => candidate.handedness === handedness,
+      );
+      if (!hand || !referenceHands.length) return [];
+      return [
+        Math.min(
+          ...referenceHands.map((referenceHand) =>
+            fingerSpanDistance(referenceHand.shape, hand.shape),
+          ),
+        ),
+      ];
+    });
     const reliableCount = Math.max(
       1,
       Math.ceil(nearestErrors.length * MIN_TWO_HAND_HANDSHAPE_MATCH_RATIO),
@@ -1343,18 +1419,48 @@ function robustHandshapeMetrics(
       .slice(0, reliableCount);
     return {
       error: average(reliableErrors),
-      matchRatio:
+      matchRatio: Math.min(
         nearestErrors.filter(
-          (error) => errorToScore(error, 0.7) >= MIN_TWO_HAND_SHAPE_SCORE,
+          (error) =>
+            errorToScore(error, 0.7) >=
+            (contactDominant
+              ? MIN_CONTACT_HANDSHAPE_SCORE
+              : MIN_TWO_HAND_SHAPE_SCORE),
         ).length / nearestErrors.length,
+        contactDominant
+          ? nearestSpanErrors.filter(
+              (error) => error <= MAX_CONTACT_FINGER_SPAN_ERROR,
+            ).length / nearestSpanErrors.length
+          : 1,
+      ),
     };
   });
 
   return {
     error: Math.max(...perHand.map((metrics) => metrics.error)),
     matchRatio: Math.min(...perHand.map((metrics) => metrics.matchRatio)),
-    minimumMatchRatio: MIN_TWO_HAND_HANDSHAPE_MATCH_RATIO,
+    minimumMatchRatio: contactDominant
+      ? MIN_CONTACT_FINGER_SPAN_MATCH_RATIO
+      : MIN_TWO_HAND_HANDSHAPE_MATCH_RATIO,
   };
+}
+
+function fingerSpanDistance(reference: number[], attempt: number[]) {
+  if (
+    reference.length !== HANDSHAPE_FEATURE_COUNT ||
+    attempt.length !== HANDSHAPE_FEATURE_COUNT
+  )
+    return 4;
+  const differences = Array.from({ length: 5 }, (_, index) =>
+    Math.abs(
+      reference[index * HANDSHAPE_FEATURES_PER_FINGER + 7] -
+        attempt[index * HANDSHAPE_FEATURES_PER_FINGER + 7],
+    ),
+  );
+  return Math.max(
+    Math.sqrt(average(differences.map((difference) => difference ** 2))),
+    Math.max(...differences) * 0.6,
+  );
 }
 
 function hasSustainedHandOverlap(sequence: PreparedFrame[]) {
@@ -1447,6 +1553,12 @@ function handshapeDistance(
         attempt[index * HANDSHAPE_FEATURES_PER_FINGER + 6],
     ),
   );
+  const baseToTipSpanDifferences = Array.from({ length: 5 }, (_, index) =>
+    Math.abs(
+      reference[index * HANDSHAPE_FEATURES_PER_FINGER + 7] -
+        attempt[index * HANDSHAPE_FEATURES_PER_FINGER + 7],
+    ),
+  );
   const extensionPatternDistance = Math.max(
     Math.sqrt(
       average(extensionDifferences.map((difference) => difference ** 2)),
@@ -1458,9 +1570,31 @@ function handshapeDistance(
     ) * 0.65,
     Math.max(...tipRadiusDifferences) * 0.5,
   );
+  // When two hands touch, MediaPipe can keep every fingertip in the right
+  // place while inventing the hidden PIP/DIP joints between the palm and tip.
+  // In that case the extension ratio above is no longer observable evidence:
+  // it changes because the fabricated inner-joint path becomes longer. The
+  // fingertip polar layout still captures which fingers are folded/extended
+  // and therefore provides a safer recovery signal. This branch is available
+  // only to the overlap-aware two-hand matcher (non-zero recovery penalty), so
+  // a one-hand sign cannot pass by matching only a few endpoints.
+  const fingertipPatternDistance = Math.max(
+    tipDirectionDistance * 0.35,
+    Math.sqrt(
+      average(tipRadiusDifferences.map((difference) => difference ** 2)),
+    ) * 0.75,
+    Math.max(...tipRadiusDifferences) * 0.6,
+    Math.sqrt(
+      average(baseToTipSpanDifferences.map((difference) => difference ** 2)),
+    ) * 0.9,
+    Math.max(...baseToTipSpanDifferences) * 0.8,
+  );
   return Math.min(
     detailedDistance,
     extensionPatternDistance + occlusionRecoveryPenalty,
+    occlusionRecoveryPenalty > 0
+      ? fingertipPatternDistance + occlusionRecoveryPenalty
+      : Number.POSITIVE_INFINITY,
   );
 }
 
@@ -1504,22 +1638,12 @@ function coordinationSequenceError(
   attempt: PreparedFrame[],
 ) {
   if (reference.every((frame) => frame.hands.length < 2)) return 0;
-  const contactRatio = (sequence: PreparedFrame[]) => {
-    const distances = sequence.flatMap((frame) => {
-      const distance = interHandContactDistance(frame);
-      return distance === null ? [] : [distance];
-    });
-    return distances.length
-      ? distances.filter((distance) => distance < INTER_HAND_CONTACT_DISTANCE)
-          .length / distances.length
-      : 0;
-  };
-  const referenceContactRatio = contactRatio(reference);
+  const referenceContactRatio = interHandContactRatio(reference);
   if (referenceContactRatio >= MIN_REFERENCE_CONTACT_RATIO) {
     // For contact signs such as Teman, exact wrist spacing is signer-specific.
     // What matters is that the expected fingertip/hand contact is sustained;
     // each hand's trajectory and orientation are graded separately.
-    const attemptContactRatio = contactRatio(attempt);
+    const attemptContactRatio = interHandContactRatio(attempt);
     const requiredContactRatio = Math.max(
       MIN_ATTEMPT_CONTACT_RATIO,
       referenceContactRatio - 0.25,
@@ -1564,6 +1688,21 @@ function coordinationSequenceError(
     : nearestStateError;
 }
 
+function hasSustainedInterHandContact(sequence: PreparedFrame[]) {
+  return interHandContactRatio(sequence) >= MIN_REFERENCE_CONTACT_RATIO;
+}
+
+function interHandContactRatio(sequence: PreparedFrame[]) {
+  const distances = sequence.flatMap((frame) => {
+    const distance = interHandContactDistance(frame);
+    return distance === null ? [] : [distance];
+  });
+  return distances.length
+    ? distances.filter((distance) => distance < INTER_HAND_CONTACT_DISTANCE)
+        .length / distances.length
+    : 0;
+}
+
 function interHandContactDistance(frame: PreparedFrame) {
   if (frame.hands.length < 2) return null;
   const [first, second] = frame.hands;
@@ -1575,6 +1714,80 @@ function interHandContactDistance(frame: PreparedFrame) {
     }
   }
   return closest / scale;
+}
+
+function hasInterHandContact(frame: PreparedFrame) {
+  const distance = interHandContactDistance(frame);
+  return distance !== null && distance < INTER_HAND_CONTACT_DISTANCE;
+}
+
+function contactApproachError(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+) {
+  const referenceGap = reference.map(indexFingerGap);
+  const attemptGap = attempt.map(indexFingerGap);
+  if (
+    referenceGap.some((gap) => gap === null) ||
+    attemptGap.some((gap) => gap === null)
+  )
+    return 4;
+
+  const referenceDistances = referenceGap as number[];
+  const attemptDistances = attemptGap as number[];
+  const earlyGap = (distances: number[]) =>
+    median(distances.slice(0, Math.max(3, Math.ceil(distances.length * 0.25))));
+  const lateGap = (distances: number[]) =>
+    median(distances.slice(Math.floor(distances.length * 0.5)));
+  const referenceClosure =
+    earlyGap(referenceDistances) - lateGap(referenceDistances);
+  const attemptClosure = earlyGap(attemptDistances) - lateGap(attemptDistances);
+  // A contact sign is made by bringing the active fingers together. Absolute
+  // wrist paths vary with arm length and signing height; the change in distance
+  // between the two index fingers captures the action shown by Teman. Require
+  // an actual approach so a static held pose cannot pass as the full sign.
+  const minimumClosure = Math.max(0.65, Math.min(1.1, referenceClosure * 0.4));
+  const closureError = Math.max(0, minimumClosure - attemptClosure) * 0.3;
+  const normalizeGap = (distances: number[]) => {
+    const start = Math.max(0.8, earlyGap(distances));
+    return distances.map((gap) => Math.min(1.5, gap / start));
+  };
+  const profileError =
+    dtwError(
+      normalizeGap(referenceDistances),
+      normalizeGap(attemptDistances),
+      (left, right) => Math.abs(left - right),
+    ) * 0.16;
+  return Math.max(closureError, profileError);
+}
+
+function hasIndexFingerApproach(sequence: PreparedFrame[]) {
+  const gaps = sequence.map(indexFingerGap);
+  if (gaps.some((gap) => gap === null)) return false;
+  const distances = gaps as number[];
+  const early = median(
+    distances.slice(0, Math.max(3, Math.ceil(distances.length * 0.25))),
+  );
+  const late = median(distances.slice(Math.floor(distances.length * 0.5)));
+  return early - late >= 0.8;
+}
+
+function indexFingerGap(frame: PreparedFrame) {
+  if (frame.hands.length !== 2) return null;
+  const [first, second] = frame.hands;
+  const scale = average([first.screenScale, second.screenScale]);
+  return (
+    Math.min(
+      ...[7, 8].flatMap((firstIndex) =>
+        [7, 8].map((secondIndex) =>
+          distanceArrays(
+            first.physicalLandmarks[firstIndex],
+            second.physicalLandmarks[secondIndex],
+          ),
+        ),
+      ),
+    ) / scale
+  );
 }
 
 function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
@@ -1843,16 +2056,21 @@ function feedbackFor(
   weakest: keyof Components,
   gestureKind: GestureKind,
   positionRelativeToBody: boolean,
+  contactDominant: boolean,
+  indexApproachDominant: boolean,
 ) {
   const advice = {
-    handshape: 'Periksa kembali bentuk dan jarak antarruas jari.',
+    handshape: contactDominant
+      ? 'Bentuk kedua telunjuk seperti contoh dan pastikan ujungnya terlihat saat bertemu.'
+      : 'Periksa kembali bentuk dan jarak antarruas jari.',
     position: positionRelativeToBody
       ? 'Sesuaikan letak tangan terhadap kepala, bahu, dan dada dengan contoh.'
       : 'Sesuaikan posisi tangan di dalam bingkai dengan video contoh.',
     orientation:
       'Putar telapak dan pergelangan lebih dekat ke orientasi contoh.',
-    movement:
-      gestureKind === 'pose'
+    movement: indexApproachDominant
+      ? 'Mulai dengan kedua telunjuk terpisah, lalu dekatkan sampai bertemu dan tahan sesaat.'
+      : gestureKind === 'pose'
         ? 'Pertahankan bentuk dan posisi akhir tanda selama rekaman.'
         : 'Ikuti arah serta lintasan gerakan dari awal sampai akhir.',
     coordination: 'Samakan waktu dan jarak gerak kedua tangan.',

@@ -830,6 +830,10 @@ export function CameraPractice({
   ).includes(status);
   const canStartPractice =
     isReady && referenceReady && practicePhase === 'idle';
+  const previouslyMastered = userProgress.signMastery[signId].passed;
+  const practiceComplete = missionSignIds.every(
+    (id) => userProgress.signMastery[id].passed,
+  );
 
   const calibrationChecks = [
     {
@@ -1140,7 +1144,7 @@ export function CameraPractice({
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-signal-navy">
               {gestureScore.assessable
-                ? practiceResultLabel(gestureScore)
+                ? practiceResultLabel(gestureScore, previouslyMastered)
                 : 'Belum bisa dinilai'}
             </h2>
           </div>
@@ -1203,6 +1207,12 @@ export function CameraPractice({
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
             {gestureScore.feedback}
           </p>
+          {!productionMode && !gestureScore.passed && previouslyMastered ? (
+            <p className="mt-3 text-xs leading-5 text-emerald-800">
+              Tanda {signLabel} sudah pernah lulus. Percobaan ulang ini tidak
+              menghapus progresmu.
+            </p>
+          ) : null}
           {productionMode && !gestureScore.assessable ? (
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
               Percobaan ini tidak dihitung sebagai gerakan salah. Perbaiki
@@ -1240,6 +1250,20 @@ export function CameraPractice({
                 )}
               >
                 {nextAction.label} <ArrowRight className="size-4" />
+              </Link>
+            ) : null}
+            {!productionMode &&
+            !reviewMode &&
+            !gestureScore.passed &&
+            practiceComplete ? (
+              <Link
+                href={`/missions/test?mission=${missionId}&mode=recognition`}
+                className={cn(
+                  buttonVariants({ variant: 'outline' }),
+                  'h-10 w-full border-signal-teal font-extrabold text-signal-navy',
+                )}
+              >
+                Lanjut ke Uji pengenalan <ArrowRight className="size-4" />
               </Link>
             ) : null}
 
@@ -1451,8 +1475,9 @@ function getReferenceTiming(frames: GestureFrame[]) {
   };
 }
 
-function practiceResultLabel(score: GestureScore) {
+function practiceResultLabel(score: GestureScore, previouslyMastered: boolean) {
   if (score.passed) return 'Sudah sesuai';
+  if (previouslyMastered) return 'Percobaan ulang belum sesuai';
   return 'Belum sesuai';
 }
 
