@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 };
 export default function AccountPage() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-[#FFE8A3] pb-16">
       <AppHeader />
-      <div className="px-5 py-10">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12 lg:px-6">
         <AccountPanel />
       </div>
     </main>
