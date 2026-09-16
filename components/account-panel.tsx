@@ -86,35 +86,36 @@ export function AccountPanel() {
   }
 
   return (
-    <section className="grid grid-cols-1 overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] bg-white p-3 sm:p-4 lg:p-5 shadow-sm border border-amber-200/40 lg:grid-cols-[1fr_1.15fr] gap-6 lg:gap-8 items-stretch">
+    <section className="grid grid-cols-1 overflow-hidden rounded-[2.5rem] sm:rounded-[3.5rem] bg-white shadow-sm border border-amber-200/50 lg:grid-cols-[1fr_1.2fr] items-stretch">
       {/* Left Golden Card with Illustration matching mockup */}
-      <div className="relative flex min-h-[480px] lg:min-h-[580px] flex-col justify-between overflow-hidden rounded-[2rem] sm:rounded-[2.25rem] bg-[#FFAE00] p-7 sm:p-10 lg:p-12 shadow-xs">
+      <div className="relative flex min-h-[500px] lg:min-h-[640px] flex-col justify-between overflow-hidden bg-[#FFAE00] p-8 sm:p-12 lg:p-14 shadow-xs">
         {/* Top Text content */}
         <div className="relative z-10">
           <span className="text-xs font-black uppercase tracking-widest text-slate-900/80">
             BISARA
           </span>
-          <h1 className="mt-3 text-3xl sm:text-4xl font-black leading-[1.12] tracking-tight text-slate-900">
+          <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.12] tracking-tight text-slate-900">
             Perjalanan
             <br />
             belajarmu, di
             <br />
             setiap perangkat.
           </h1>
-          <p className="mt-4 text-xs sm:text-sm font-semibold leading-relaxed text-slate-900/85 max-w-sm">
+          <p className="mt-4 text-xs sm:text-sm lg:text-base font-semibold leading-relaxed text-slate-900/85 max-w-md">
             Masuk untuk menyimpan hasil tes, XP, dan review ke akunmu. Progres
             tamu tetap tersedia di browser ini.
           </p>
         </div>
 
         {/* Vector Hands & Ribbon Illustration */}
-        <div className="relative z-0 mt-auto">
+        <div className="relative z-0 mt-auto pt-8">
           <LoginIllustration />
         </div>
       </div>
 
       {/* Right Form Card */}
-      <div className="flex flex-col justify-center p-4 sm:p-8 lg:p-10">
+      <div className="flex flex-col justify-center bg-white p-8 sm:p-12 lg:p-16">
+        <div className="mx-auto w-full max-w-lg">
         {account.status === 'loading' ? (
           <div className="flex items-center gap-3 py-12 text-slate-600 font-bold">
             <LoaderCircle className="size-5 animate-spin text-amber-500" />
@@ -657,6 +658,7 @@ export function AccountPanel() {
             )}
           </div>
         )}
+        </div>
       </div>
     </section>
   );
