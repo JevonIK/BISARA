@@ -4,7 +4,6 @@ import { Flag } from 'lucide-react';
 import Link from 'next/link';
 
 import { getSigns, type SignId } from '@/lib/curriculum-data';
-import { useProgress } from '@/hooks/use-progress';
 import { cn } from '@/lib/utils';
 
 export function PracticeSignProgress({
@@ -16,13 +15,12 @@ export function PracticeSignProgress({
   missionId?: string;
   signIds?: SignId[];
 }) {
-  const progress = useProgress();
   const missionSigns = getSigns(signIds);
 
   return (
-    <div className="my-6 flex flex-wrap items-center gap-4 sm:gap-6 rounded-2xl sm:rounded-full border border-amber-200/50 bg-white px-5 sm:px-8 py-3.5 sm:py-4 shadow-xs">
+    <div className="my-4 flex flex-wrap items-center justify-between gap-4 rounded-3xl border-2 border-[#FFAE00]/60 bg-[#FFFDF7] px-6 sm:px-8 py-3.5 shadow-xs">
       {/* KOSA KATA Icon and Label */}
-      <div className="flex items-center gap-2.5 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
         <span className="grid size-6 place-items-center rounded-full border-2 border-[#E54D2E]">
           <span className="size-2 rounded-full bg-[#E54D2E]" />
         </span>
@@ -31,27 +29,24 @@ export function PracticeSignProgress({
         </span>
       </div>
 
-      {/* Connected Word Pills */}
-      <div className="flex flex-1 items-center min-w-0 overflow-x-auto py-1 scrollbar-none">
-        {missionSigns.map((sign, index) => {
+      {/* Connected Word Track spanning available space */}
+      <div className="relative flex flex-1 items-center justify-between min-w-0 max-w-4xl px-2 sm:px-4 py-1 overflow-x-auto scrollbar-none">
+        {/* Continuous Connecting Line */}
+        <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-slate-300 -z-0" />
+
+        {missionSigns.map((sign) => {
           const active = sign.id === activeSignId;
-          const passed = progress.signMastery[sign.id]?.passed;
 
           return (
-            <div key={sign.id} className="flex items-center shrink-0">
-              {index > 0 && (
-                <div className="h-0.5 w-5 sm:w-8 lg:w-10 bg-slate-300 shrink-0" />
-              )}
+            <div key={sign.id} className="relative z-10 shrink-0 px-1">
               <Link
                 href={`/missions/practice?mission=${missionId}&sign=${sign.id}`}
                 aria-current={active ? 'step' : undefined}
                 className={cn(
-                  'rounded-full px-4 py-1.5 text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                  'inline-block rounded-full px-5 py-1.5 text-xs sm:text-sm font-black transition-all whitespace-nowrap',
                   active
                     ? 'border-2 border-[#00D5D1] bg-white text-emerald-800 shadow-xs ring-2 ring-[#00D5D1]/30'
-                    : passed
-                      ? 'border border-emerald-300 bg-emerald-50/80 text-emerald-800 hover:bg-emerald-100'
-                      : 'border border-slate-200 bg-slate-100/90 text-slate-600 hover:bg-slate-200 hover:text-slate-900',
+                    : 'border border-transparent bg-[#ECEFF3] text-slate-600 hover:bg-slate-200 hover:text-slate-900',
                 )}
               >
                 {sign.label}
@@ -60,14 +55,17 @@ export function PracticeSignProgress({
           );
         })}
 
-        {/* Latihan pill & Flag */}
-        <div className="h-0.5 w-5 sm:w-8 lg:w-10 bg-slate-300 shrink-0" />
-        <span className="rounded-full border-2 border-[#FFAE00] bg-white px-4 py-1.5 text-xs sm:text-sm font-black text-[#E54D2E] shadow-2xs shrink-0 whitespace-nowrap">
-          Latihan
-        </span>
+        {/* Latihan pill */}
+        <div className="relative z-10 shrink-0 px-1">
+          <span className="inline-block rounded-full border-2 border-[#FFAE00] bg-white px-5 py-1.5 text-xs sm:text-sm font-black text-[#E54D2E] shadow-2xs whitespace-nowrap">
+            Latihan
+          </span>
+        </div>
 
-        <div className="h-0.5 w-4 sm:w-6 bg-slate-300 shrink-0" />
-        <Flag className="size-5 text-[#E54D2E] fill-[#E54D2E] shrink-0" />
+        {/* Flag */}
+        <div className="relative z-10 shrink-0 pl-1">
+          <Flag className="size-5 text-[#E54D2E] fill-[#E54D2E]" />
+        </div>
       </div>
     </div>
   );

@@ -95,10 +95,10 @@ export default async function PracticePage({
   );
 
   return (
-    <main className="min-h-screen bg-[#FFE8A3] pb-32">
+    <main className="min-h-screen bg-[#FFE8A3] pb-28">
       <AppHeader active="home" />
 
-      <div className="mx-auto max-w-7xl px-5 py-7 lg:px-8 lg:py-10">
+      <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8 lg:py-5">
         {/* Back link */}
         <Link
           href={productionReturn ?? (reviewMode ? '/review' : '/')}
@@ -113,8 +113,8 @@ export default async function PracticePage({
         </Link>
 
         {/* Chapter / Mission Badge & Replay badge */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1.5 text-xs font-black text-slate-900 shadow-2xs">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
             Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
           </span>
           {replayMode ? (
@@ -125,7 +125,7 @@ export default async function PracticePage({
         </div>
 
         {/* Heading */}
-        <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+        <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
           Latih tanda “{sign.label}”
         </h1>
 

@@ -97,7 +97,7 @@ export function MissionSectionNavigation({
       return (
         <nav
           aria-label={`Navigasi bagian misi ${mission.title}`}
-          className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7]/95 backdrop-blur-md border-t border-amber-200/60 shadow-lg py-3.5 px-6 rounded-t-[2.5rem]"
+          className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FED247]/70 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] py-3.5 px-6 rounded-t-3xl sm:rounded-t-[2rem]"
         >
           <div className="mx-auto max-w-xl flex items-center justify-center text-xs font-bold text-slate-400">
             Memuat tahapan misi…
@@ -109,76 +109,90 @@ export function MissionSectionNavigation({
     return (
       <nav
         aria-label={`Navigasi bagian misi ${mission.title}`}
-        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7]/95 backdrop-blur-md border-t border-amber-200/60 shadow-lg py-3.5 px-6 rounded-t-[2.5rem]"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FED247]/70 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] py-3.5 px-6 rounded-t-3xl sm:rounded-t-[2rem]"
       >
         <div className="mx-auto max-w-xl relative flex items-center justify-between">
-          <div className="absolute top-5 left-10 right-10 h-0.5 bg-slate-200 -z-0" />
+          {/* Continuous center track line */}
+          <div className="absolute top-5 sm:top-5.5 left-8 right-8 h-0.5 bg-slate-300 -z-0" />
 
           {stages.map((stage) => {
             const isCurrent = stage.id === section;
-            const isDone = stage.complete;
-            const isLocked = !stage.available && !isDone;
+            const isDone = !isCurrent && stage.complete;
+            const isAvailable = !isCurrent && !isDone && stage.available;
+            const isLocked = !isCurrent && !isDone && !stage.available;
 
-            const iconElement = isDone ? (
-              <Check className="size-5 font-black stroke-[3]" />
-            ) : isCurrent ? (
-              <Hand className="size-5" />
+            const iconElement = isCurrent ? (
+              <Hand className="size-5 text-white" />
+            ) : isDone ? (
+              <Check className="size-5 font-black stroke-[3] text-white" />
+            ) : isAvailable ? (
+              <ArrowRight className="size-4 text-amber-900" />
             ) : (
-              <LockKeyhole className="size-4.5" />
+              <LockKeyhole className="size-4.5 text-white" />
             );
 
             const circleClass = cn(
-              'grid size-10 place-items-center rounded-full shadow-xs transition-transform',
-              isDone
-                ? 'bg-[#00D5D1] text-slate-950 font-black'
-                : isCurrent
-                  ? 'bg-[#FFAE00] text-slate-950 ring-4 ring-amber-200'
-                  : 'bg-slate-200 text-slate-500',
+              'grid size-10 sm:size-11 place-items-center rounded-full shadow-xs transition-transform',
+              isCurrent
+                ? 'bg-[#FFAE00] text-white ring-4 ring-[#FFE8A3]'
+                : isDone
+                  ? 'bg-[#22C55E] text-white'
+                  : isAvailable
+                    ? 'bg-amber-100 text-amber-900 border-2 border-amber-300'
+                    : 'bg-[#B8BFC6] text-white',
             );
+
+            const subtext = isCurrent
+              ? 'Sedang berlangsung'
+              : isDone
+                ? 'Selesai'
+                : isAvailable
+                  ? 'Tersedia'
+                  : 'Terkunci';
+
+            const subtextClass = isCurrent
+              ? 'text-amber-700'
+              : isDone
+                ? 'text-emerald-700'
+                : isAvailable
+                  ? 'text-amber-600'
+                  : 'text-slate-400';
+
+            const canNavigate = !isCurrent && (isDone || isAvailable);
 
             return (
               <div
                 key={stage.id}
                 className="relative z-10 flex flex-col items-center text-center"
               >
-                {stage.available && !isCurrent ? (
+                {canNavigate ? (
                   <Link
                     href={stage.href}
                     className="group flex flex-col items-center text-center focus:outline-none"
                   >
-                    <span className={cn(circleClass, 'group-hover:scale-110')}>
+                    <span className={cn(circleClass, 'group-hover:scale-105')}>
                       {iconElement}
                     </span>
                     <span className="mt-2 text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors">
                       {stage.label}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500">
-                      {isDone ? 'Selesai' : 'Tersedia'}
+                    <span className={cn('text-[11px] font-bold', subtextClass)}>
+                      {subtext}
                     </span>
                   </Link>
                 ) : (
                   <div className="flex flex-col items-center text-center">
                     <span className={circleClass}>{iconElement}</span>
-                    <span className="mt-2 text-xs font-black text-slate-900">
-                      {stage.label}
-                    </span>
                     <span
                       className={cn(
-                        'text-[10px] font-bold',
-                        isCurrent
-                          ? 'text-amber-700'
-                          : isDone
-                            ? 'text-emerald-700'
-                            : 'text-slate-400',
+                        'mt-2 text-xs font-black',
+                        isLocked ? 'text-slate-500' : 'text-slate-900',
                       )}
                     >
-                      {isDone
-                        ? 'Selesai'
-                        : isCurrent
-                          ? 'Sedang berlangsung'
-                          : isLocked
-                            ? 'Terkunci'
-                            : 'Tersedia'}
+                      {stage.label}
+                    </span>
+                    <span className={cn('text-[11px] font-bold', subtextClass)}>
+                      {subtext}
                     </span>
                   </div>
                 )}

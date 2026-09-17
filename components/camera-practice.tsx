@@ -1096,20 +1096,33 @@ export function CameraPractice({
           )}
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-white/10 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
-          <div aria-live="polite">
-            <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-teal">
-              Status kamera
-            </p>
-            <p className="mt-1 text-sm font-bold">
-              {cameraStatusLabel(status, handCount)}
-            </p>
-            {errorMessage && (
-              <p className="mt-1 max-w-xl text-xs leading-5 text-signal-coral">
+        {(!exampleCard || errorMessage || (isReady && practicePhase !== 'scoring')) && (
+          <div
+            className={cn(
+              'flex flex-col gap-4 border-t border-white/10 px-5 py-4 text-white sm:flex-row sm:items-center',
+              exampleCard ? 'justify-end' : 'justify-between',
+            )}
+          >
+            {!exampleCard && (
+              <div aria-live="polite">
+                <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-teal">
+                  Status kamera
+                </p>
+                <p className="mt-1 text-sm font-bold">
+                  {cameraStatusLabel(status, handCount)}
+                </p>
+                {errorMessage && (
+                  <p className="mt-1 max-w-xl text-xs leading-5 text-signal-coral">
+                    {errorMessage}
+                  </p>
+                )}
+              </div>
+            )}
+            {exampleCard && errorMessage && (
+              <p className="max-w-xl text-xs leading-5 text-signal-coral">
                 {errorMessage}
               </p>
             )}
-          </div>
 
           <div className="flex gap-2">
             {isReady && practicePhase === 'idle' && (
@@ -1162,6 +1175,7 @@ export function CameraPractice({
             )}
           </div>
         </div>
+        )}
 
         {/* Bottom White Status Bar */}
         <div className="bg-white px-6 py-4 border-t border-slate-100">
