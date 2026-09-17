@@ -37,3 +37,68 @@ export const alphabetVideos: readonly AlphabetVideo[] = alphabetMissionGroups.fl
 export function getAlphabetVideosForMission(missionId: string) {
   return alphabetVideos.filter((video) => video.missionId === missionId);
 }
+
+export type AlphabetQuestion = {
+  letter: AlphabetLetter;
+  videoSrc: string;
+  options: AlphabetLetter[];
+};
+
+export const allAlphabetLetters: readonly AlphabetLetter[] = alphabetMissionGroups.flatMap(
+  (group) => group.letters,
+);
+
+export function buildAlphabetRecognitionQuestions(
+  missionId: string,
+  attempt = 0,
+): AlphabetQuestion[] {
+  const mission = alphabetMissionGroups.find((g) => g.id === missionId);
+  if (!mission) return [];
+  const letters = [...mission.letters];
+
+  return letters.map((letter, idx) => {
+    const otherLetters = allAlphabetLetters.filter((l) => l !== letter);
+    const distractors: AlphabetLetter[] = [];
+    const seed = (attempt * 31 + idx * 17 + letter.charCodeAt(0)) % otherLetters.length;
+    for (let i = 0; i < 3; i++) {
+      const pickIndex = (seed + i * 7) % otherLetters.length;
+      const candidate = otherLetters[pickIndex];
+      if (!distractors.includes(candidate)) {
+        distractors.push(candidate);
+      }
+    }
+    // Fallback if duplicate picked
+    for (const other of otherLetters) {
+      if (distractors.length >= 3) break;
+      if (!distractors.includes(other)) distractors.push(other);
+    }
+    const options = [letter, ...distractors].sort();
+    return {
+      letter,
+      videoSrc: `/media/bisindo-alphabet/${letter.toLowerCase()}.mp4`,
+      options,
+    };
+  });
+}
+
+const PRACTICE_STORAGE_KEY = 'bisara_alphabet_practice';
+
+export function isAlphabetPracticeCompleted(missionId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = window.localStorage.getItem(`${PRACTICE_STORAGE_KEY}_${missionId}`);
+    return raw === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setAlphabetPracticeCompleted(missionId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`${PRACTICE_STORAGE_KEY}_${missionId}`, 'true');
+    window.dispatchEvent(new Event('storage'));
+  } catch {
+    // ignore storage error
+  }
+}

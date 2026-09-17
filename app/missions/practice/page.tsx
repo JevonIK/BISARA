@@ -39,7 +39,9 @@ export default async function PracticePage({
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
-  if (mission.type === 'alphabet') redirect(mission.href);
+  if (mission.type === 'alphabet') {
+    redirect(`/missions/learn?mission=${mission.id}&section=tirukan`);
+  }
   const chapter = getChapterForMission(mission.id);
   const requestedSign =
     params.sign &&

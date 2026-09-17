@@ -20,7 +20,15 @@ export default async function MissionTestPage({
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
-  if (mission.type === 'alphabet') redirect(mission.href);
+  if (mission.type === 'alphabet') {
+    const section =
+      params.mode === 'recall' ||
+      params.mode === 'context' ||
+      params.mode === 'conversation'
+        ? 'recall'
+        : 'recognition';
+    redirect(`/missions/learn?mission=${mission.id}&section=${section}`);
+  }
   const chapter = getChapterForMission(mission.id);
   return (
     <main className="min-h-screen bg-background">

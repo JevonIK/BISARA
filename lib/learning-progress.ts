@@ -1,3 +1,4 @@
+import { isAlphabetPracticeCompleted } from '@/lib/alphabet-data';
 import { getSigns } from '@/lib/curriculum-data';
 import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import {
@@ -35,26 +36,61 @@ export function getMissionLearningState(
   if (mission.type === 'alphabet') {
     const missionComplete = progress.completedMissionIds.includes(mission.id);
     const unlocked = isMissionUnlocked(mission.id, progress);
+    const recognitionScore = progress.missionScores[mission.id] ?? 0;
+    const recognitionComplete =
+      missionComplete || recognitionScore >= RECOGNITION_PASS_SCORE;
+    const practiceComplete =
+      missionComplete ||
+      recognitionComplete ||
+      isAlphabetPracticeCompleted(mission.id);
+    const practiceStarted = practiceComplete;
+    const letterCount = mission.alphabetLetters?.length ?? 5;
+    const progressPercent = missionComplete
+      ? 100
+      : recognitionComplete
+        ? 75
+        : practiceComplete
+          ? 50
+          : 0;
+
+    let next = { href: '/missions', label: 'Selesaikan misi sebelumnya' };
+    if (unlocked) {
+      if (missionComplete) {
+        next = getNextMissionAction(mission.id);
+      } else if (recognitionComplete) {
+        next = {
+          href: `/missions/learn?mission=${mission.id}&section=recall`,
+          label: 'Lanjut ke Uji peragaan',
+        };
+      } else if (practiceComplete) {
+        next = {
+          href: `/missions/learn?mission=${mission.id}&section=recognition`,
+          label: 'Mulai uji pengenalan',
+        };
+      } else {
+        next = {
+          href: mission.href,
+          label: `Mulai tahap Amati`,
+        };
+      }
+    }
+
     return {
       mission,
       missionSigns: [],
       masteredSignIds: [],
       masteredSignCount: 0,
-      practiceStarted: false,
-      practiceComplete: false,
-      recognitionScore: 0,
-      recognitionComplete: false,
+      practiceStarted,
+      practiceComplete,
+      recognitionScore,
+      recognitionComplete,
       missionComplete,
       conversationComplete: missionComplete,
-      productionPassedCount: 0,
-      productionSignCount: 0,
-      progressPercent: missionComplete ? 100 : 0,
+      productionPassedCount: missionComplete ? letterCount : 0,
+      productionSignCount: letterCount,
+      progressPercent,
       unlocked,
-      next: !unlocked
-        ? { href: '/missions', label: 'Selesaikan misi sebelumnya' }
-        : missionComplete
-          ? getNextMissionAction(mission.id)
-          : { href: mission.href, label: `Pelajari huruf ${mission.title}` },
+      next,
     };
   }
   const missionSigns = getSigns(mission.signIds);
