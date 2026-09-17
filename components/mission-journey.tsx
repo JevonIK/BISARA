@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import { allMissions, chapters, type Mission } from '@/lib/learning-data';
 import {
   getChapterProgress,
@@ -70,11 +71,17 @@ export function MissionJourney() {
             </ProgressLabel>
           </Progress>
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
-            Misi berikutnya: {currentMission.title}. Seluruh 32 tanda tersedia
-            dalam empat bab berurutan.
+            Misi berikutnya: {currentMission.title}. Pelajari 32 tanda kosakata
+            dan 26 huruf dalam lima bab berurutan.
           </p>
         </aside>
       </header>
+
+      {isCurriculumDebugUnlocked() ? (
+        <p className="mt-6 border border-signal-teal bg-signal-teal-soft px-5 py-3 text-sm font-bold text-signal-navy">
+          Mode debug lokal: semua bab dan misi terbuka. Progres dan hasil checker tetap asli.
+        </p>
+      ) : null}
 
       <div className="space-y-10 py-10 lg:py-14">
         {chapters.map((chapter) => {
@@ -82,10 +89,11 @@ export function MissionJourney() {
             ...mission,
             status: userProgress.completedMissionIds.includes(mission.id)
               ? ('completed' as const)
-              : currentMission.id === mission.id ||
-                  isMissionUnlocked(mission.id, userProgress)
+              : currentMission.id === mission.id
                 ? ('current' as const)
-                : ('locked' as const),
+                : isMissionUnlocked(mission.id, userProgress)
+                  ? ('available' as const)
+                  : ('locked' as const),
           }));
           const chapterProgress = getChapterProgress(chapter.id, userProgress);
           const chapterUnlocked = chapterMissions.some((mission) =>
@@ -167,6 +175,8 @@ function MissionRow({ mission }: { mission: Mission }) {
             'border-signal-teal bg-signal-teal text-signal-navy',
           mission.status === 'current' &&
             'border-signal-yellow bg-signal-yellow text-signal-navy',
+          mission.status === 'available' &&
+            'border-signal-teal/50 bg-signal-teal-soft text-signal-navy',
           mission.status === 'locked' &&
             'border-signal-navy/10 bg-muted text-muted-foreground',
         )}
@@ -174,7 +184,7 @@ function MissionRow({ mission }: { mission: Mission }) {
         {mission.status === 'completed' ? (
           <Check className="size-4" strokeWidth={3} />
         ) : null}
-        {mission.status === 'current' ? (
+        {mission.status === 'current' || mission.status === 'available' ? (
           <Play className="size-4" fill="currentColor" />
         ) : null}
         {mission.status === 'locked' ? (
@@ -193,6 +203,9 @@ function MissionRow({ mission }: { mission: Mission }) {
             >
               <Flag className="size-2.5" /> Tes bab
             </Badge>
+          ) : null}
+          {mission.status === 'available' ? (
+            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-700">Tersedia</span>
           ) : null}
         </span>
         <span className="mt-1 block text-base font-black text-signal-navy">
@@ -221,7 +234,7 @@ function MissionRow({ mission }: { mission: Mission }) {
           </span>
         ) : null}
       </span>
-      {mission.status === 'current' || mission.status === 'completed' ? (
+      {mission.status !== 'locked' ? (
         <ChevronRight className="size-5 shrink-0 text-emerald-700" />
       ) : null}
     </>
@@ -230,7 +243,9 @@ function MissionRow({ mission }: { mission: Mission }) {
     'flex items-center gap-4 border bg-card p-4 text-left transition-all sm:p-5',
     mission.status === 'current'
       ? 'border-signal-teal hover:-translate-y-0.5 hover:border-emerald-600'
-      : 'border-signal-navy/10',
+      : mission.status === 'available'
+        ? 'border-signal-teal/30 hover:-translate-y-0.5 hover:border-signal-teal'
+        : 'border-signal-navy/10',
   );
 
   return (

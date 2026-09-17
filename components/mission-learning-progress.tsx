@@ -205,16 +205,26 @@ export function MissionStageList({
             </h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {index === 1
-                ? `Luluskan checker kamera untuk ${mission.signIds.length} tanda, satu per satu.`
+                ? mission.type === 'alphabet'
+                  ? `Tirukan gerakan ${mission.alphabetLetters?.length ?? 5} huruf satu per satu mengikuti contoh.`
+                  : `Luluskan checker kamera untuk ${mission.signIds.length} tanda, satu per satu.`
                 : index === 2
                   ? mission.type === 'checkpoint'
                     ? 'Kenali sampel tanda dari bab tanpa label dan capai minimal 70 poin.'
-                    : 'Kenali tanda misi tanpa label dan capai minimal 70 poin.'
-                  : stage.description}
+                    : mission.type === 'alphabet'
+                      ? 'Kenali huruf tanpa label dan capai minimal 70 poin.'
+                      : 'Kenali tanda misi tanpa label dan capai minimal 70 poin.'
+                  : index === 3 && mission.type === 'alphabet'
+                    ? 'Peragakan huruf dari ingatan tanpa contoh demonstrasi.'
+                    : stage.description}
             </p>
             {index === 3 && learning.recognitionComplete ? (
               <Link
-                href={`/missions/test?mission=${mission.id}&mode=recall`}
+                href={
+                  mission.type === 'alphabet'
+                    ? `/missions/learn?mission=${mission.id}&section=recall`
+                    : `/missions/test?mission=${mission.id}&mode=recall`
+                }
                 className="mt-4 mb-9 inline-block text-sm font-bold text-emerald-700 underline"
               >
                 Mulai uji peragaan →

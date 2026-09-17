@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { berkenalanSignIds } from '@/lib/berkenalan-data';
+import { alphabetMissionGroups, alphabetVideos, getAlphabetVideosForMission } from '@/lib/alphabet-data';
 import { signIds } from '@/lib/curriculum-data';
 import {
   allMissions,
@@ -11,6 +13,7 @@ import {
 } from '@/lib/learning-data';
 import {
   getBerkenalanLearningState,
+  getChapterProgress,
   getMissionLearningState,
   getMissionReplayAction,
   isMissionUnlocked,
@@ -105,13 +108,66 @@ void test('completed missions replay from their first useful activity without re
   assert.equal(checkpointReplay.href.includes('replay=1'), true);
 });
 
-void test('curriculum covers all 32 dataset labels once and exposes four complete chapters', () => {
+void test('word curriculum and alphabet cover five chapters with distinct missions', () => {
   assert.equal(signIds.length, 32);
   assert.equal(new Set(signIds).size, 32);
-  assert.equal(chapters.length, 4);
-  assert.equal(allMissions.length, 20);
+  assert.equal(chapters.length, 5);
+  assert.equal(allMissions.length, 25);
+  assert.deepEqual(chapters.map((chapter) => chapter.number), ['01', '02', '03', '04', '05']);
+  assert.deepEqual(chapters[4].missions.map((mission) => mission.title), ['A–E', 'F–J', 'K–O', 'P–T', 'U–Z']);
   const covered = new Set(allMissions.flatMap((mission) => mission.signIds));
   assert.deepEqual([...signIds].sort(), [...covered].sort());
+  assert.deepEqual(alphabetVideos.map((video) => video.letter), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+  assert.equal(new Set(alphabetVideos.map((video) => video.letter)).size, 26);
+  assert.equal(new Set(alphabetVideos.map((video) => video.videoSrc)).size, 26);
+  for (const video of alphabetVideos) {
+    assert.equal(existsSync(`public${video.videoSrc}`), true, `Missing video for ${video.letter}`);
+  }
+  for (const group of alphabetMissionGroups) {
+    assert.deepEqual(getAlphabetVideosForMission(group.id).map(({ letter }) => letter), [...group.letters]);
+    assert.deepEqual(getMission(group.id).vocabulary, [...group.letters]);
+    assert.deepEqual(getMission(group.id).signIds, []);
+    assert.deepEqual(buildRecognitionQuestions(getMission(group.id)), []);
+    assert.deepEqual(getProductionTestSignIds(group.id), []);
+  }
+});
+
+void test('alphabet follows Bab 4 and uses existing mission completion without checker rewards', () => {
+  const priorMissions = allMissions.slice(0, 20).map(({ id }) => id);
+  const before = { ...emptyAccountProgress, completedMissionIds: priorMissions.slice(0, -1) };
+  assert.equal(isMissionUnlocked('alfabet-a-e', before), false);
+  const unlocked = { ...before, completedMissionIds: priorMissions };
+  assert.equal(isMissionUnlocked('alfabet-a-e', unlocked), true);
+  assert.equal(isMissionUnlocked('alfabet-f-j', unlocked), false);
+  assert.equal(getMissionLearningState('alfabet-a-e', unlocked).next.href, getMission('alfabet-a-e').href);
+  assert.equal(getMissionReplayAction('alfabet-a-e').href, getMission('alfabet-a-e').href);
+
+  let snapshot = JSON.stringify(unlocked);
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: () => snapshot,
+        setItem: (_key: string, value: string) => { snapshot = value; },
+      },
+      dispatchEvent: () => true,
+    },
+  });
+  try {
+    const completed = recordMissionCompletion('alfabet-a-e');
+    assert.equal(completed.completedMissionIds.includes('alfabet-a-e'), true);
+    assert.equal(completed.xp, unlocked.xp + getMission('alfabet-a-e').xp);
+    assert.equal(completed.totalPracticeMinutes, unlocked.totalPracticeMinutes);
+    assert.equal(getChapterProgress('chapter-5', completed), 20);
+    assert.equal(isMissionUnlocked('alfabet-f-j', completed), true);
+    assert.equal(recordMissionCompletion('alfabet-a-e').xp, completed.xp);
+    assert.equal(parseProgressSnapshot(snapshot).missionScores['alfabet-a-e'], undefined);
+    assert.equal(recordMissionCompletion('alfabet-k-o').completedMissionIds.includes('alfabet-k-o'), false);
+  } finally {
+    if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+    else Reflect.deleteProperty(globalThis, 'window');
+  }
 });
 
 void test('recognition questions use unique options and rotate balanced checkpoints', () => {
@@ -166,6 +222,25 @@ void test('missions unlock in curriculum order', () => {
     }),
     true,
   );
+});
+
+void test('local debug opens every mission without manufacturing completion', () => {
+  const original = Object.getOwnPropertyDescriptor(process.env, 'NODE_ENV');
+  try {
+    Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, enumerable: true, writable: true, value: 'production' });
+    assert.equal(isMissionUnlocked('alfabet-u-z', emptyAccountProgress), false);
+
+    Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, enumerable: true, writable: true, value: 'development' });
+    assert.equal(isMissionUnlocked('alfabet-u-z', emptyAccountProgress), true);
+    const learning = getMissionLearningState('alfabet-u-z', emptyAccountProgress);
+    assert.equal(learning.unlocked, true);
+    assert.equal(learning.missionComplete, false);
+    assert.equal(learning.progressPercent, 0);
+    assert.equal(emptyAccountProgress.completedMissionIds.includes('alfabet-u-z'), false);
+  } finally {
+    if (original) Object.defineProperty(process.env, 'NODE_ENV', original);
+    else Reflect.deleteProperty(process.env, 'NODE_ENV');
+  }
 });
 
 void test('demo completion data agrees with every completed mission stage', () => {

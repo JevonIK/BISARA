@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ArrowLeft, Flag } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { AppHeader } from '@/components/app-header';
 import { MissionAssessment } from '@/components/mission-assessment';
@@ -19,6 +20,15 @@ export default async function MissionTestPage({
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
+  if (mission.type === 'alphabet') {
+    const section =
+      params.mode === 'recall' ||
+      params.mode === 'context' ||
+      params.mode === 'conversation'
+        ? 'recall'
+        : 'recognition';
+    redirect(`/missions/learn?mission=${mission.id}&section=${section}`);
+  }
   const chapter = getChapterForMission(mission.id);
   return (
     <main className="min-h-screen bg-background">

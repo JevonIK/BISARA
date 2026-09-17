@@ -23,7 +23,6 @@ type ChapterAccordionCardProps = {
   onToggle: () => void;
   progress: UserProgress;
   currentMission: Mission;
-  currentChapterIndex: number;
 };
 
 type ChapterTheme = {
@@ -88,6 +87,18 @@ const chapterThemes: Record<string, ChapterTheme> = {
     missionCardBorder: 'border-[#6B9DF8]',
     missionCardHover: 'hover:bg-[#7CAAFB]',
   },
+  'chapter-5': {
+    cardBg: 'bg-[#EFFCFF]',
+    cardBorder: 'border-[#A7C9FF]',
+    pillBg: 'bg-[#00BDCD]',
+    progressBg: 'bg-white',
+    progressFill: 'bg-[#00BDCD]',
+    drawerBg: 'bg-[#DDF9FD]',
+    drawerBorder: 'border-[#A7C9FF]',
+    missionCardBg: 'bg-[#70DAE6]',
+    missionCardBorder: 'border-[#55C8DD]',
+    missionCardHover: 'hover:bg-[#5BD1DF]',
+  },
 };
 
 export function ChapterAccordionCard({
@@ -97,10 +108,9 @@ export function ChapterAccordionCard({
   onToggle,
   progress,
   currentMission,
-  currentChapterIndex,
 }: ChapterAccordionCardProps) {
   const theme = chapterThemes[chapter.id] ?? chapterThemes['chapter-1'];
-  const isUnlocked = chapterIndex <= currentChapterIndex;
+  const isUnlocked = isMissionUnlocked(chapter.missions[0].id, progress);
   const chapterProgress = getChapterProgress(chapter.id, progress);
   const completedCount = chapter.missions.filter((m) =>
     progress.completedMissionIds.includes(m.id),
@@ -207,8 +217,9 @@ export function ChapterAccordionCard({
           <button
             type="button"
             onClick={onToggle}
-            className="group mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-slate-800 hover:text-slate-950 transition-colors focus:outline-none"
+            className="group mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-slate-800 hover:text-slate-950 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
             aria-expanded={isExpanded}
+            aria-controls={`${chapter.id}-missions`}
           >
             <span>
               {isUnlocked ? 'Lihat semua misi' : 'Selesaikan Bab sebelumnya'}
@@ -233,6 +244,8 @@ export function ChapterAccordionCard({
 
       {/* Animated Collapsible Mission Drawer */}
       <div
+        id={`${chapter.id}-missions`}
+        inert={!isExpanded}
         className={cn(
           'grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out',
           isExpanded
@@ -272,7 +285,7 @@ export function ChapterAccordionCard({
                       <Link
                         href={targetHref}
                         className={cn(
-                          'group flex aspect-square w-full flex-col items-center justify-between rounded-2xl border p-3.5 transition-all shadow-xs hover:-translate-y-1 hover:shadow-md sm:rounded-3xl sm:p-4',
+                          'group flex aspect-square w-full flex-col items-center justify-between rounded-2xl border p-3.5 transition-all shadow-xs hover:-translate-y-1 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 sm:rounded-3xl sm:p-4',
                           theme.missionCardBg,
                           theme.missionCardBorder,
                           theme.missionCardHover,
@@ -284,6 +297,7 @@ export function ChapterAccordionCard({
                             index={missionIdx}
                             isCheckpoint={mission.type === 'checkpoint'}
                             isLocked={false}
+                            alphabetRange={mission.type === 'alphabet' ? mission.title : undefined}
                           />
                         </div>
                         <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
@@ -334,13 +348,19 @@ function MissionVisualIcon({
   index,
   isCheckpoint,
   isLocked,
+  alphabetRange,
 }: {
   index: number;
   isCheckpoint: boolean;
   isLocked: boolean;
+  alphabetRange?: string;
 }) {
   if (isLocked) {
     return <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />;
+  }
+
+  if (alphabetRange) {
+    return <span className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{alphabetRange}</span>;
   }
 
   if (isCheckpoint) {
@@ -457,6 +477,15 @@ function MissionVisualIcon({
 }
 
 function ChapterIllustration({ type }: { type: string }) {
+  if (type === 'chapter-5') {
+    return (
+      <svg className="h-40 w-56 sm:h-48 sm:w-64" viewBox="0 0 260 190" aria-hidden="true">
+        <text x="14" y="174" fontFamily="Arial, sans-serif" fontSize="146" fontWeight="900" fill="#F8A07E" stroke="white" strokeWidth="7" paintOrder="stroke" transform="rotate(-8 85 125)">A</text>
+        <text x="115" y="124" fontFamily="Arial, sans-serif" fontSize="146" fontWeight="900" fill="#F9D869" stroke="white" strokeWidth="7" paintOrder="stroke" transform="rotate(9 170 85)">B</text>
+        <text x="134" y="195" fontFamily="Arial, sans-serif" fontSize="128" fontWeight="900" fill="#6BD0DA" stroke="white" strokeWidth="7" paintOrder="stroke" transform="rotate(-8 185 155)">C</text>
+      </svg>
+    );
+  }
   if (type === 'chapter-1') {
     // Open hand waving graphic matching user's Figma vector
     return (
