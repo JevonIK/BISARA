@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Award,
   Bookmark,
@@ -41,7 +41,20 @@ export default function Home() {
 
   const [expandedChapterIds, setExpandedChapterIds] = useState<
     Record<string, boolean>
-  >({});
+  >(() => ({
+    [currentChapter.id]: true,
+  }));
+
+  const hasAutoExpanded = useRef(false);
+  useEffect(() => {
+    if (!hasAutoExpanded.current && currentChapter?.id) {
+      hasAutoExpanded.current = true;
+      setExpandedChapterIds((prev) => ({
+        ...prev,
+        [currentChapter.id]: true,
+      }));
+    }
+  }, [currentChapter?.id]);
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapterIds((prev) => ({
