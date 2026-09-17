@@ -1529,21 +1529,71 @@ function handshapeDistance(
     attempt.length !== HANDSHAPE_FEATURE_COUNT
   )
     return 4;
-  const perFinger = Array.from({ length: 5 }, (_, index) =>
-    vectorRms(
-      reference.slice(
-        index * HANDSHAPE_FEATURES_PER_FINGER,
-        index * HANDSHAPE_FEATURES_PER_FINGER + HANDSHAPE_FEATURES_PER_FINGER,
-      ),
-      attempt.slice(
-        index * HANDSHAPE_FEATURES_PER_FINGER,
-        index * HANDSHAPE_FEATURES_PER_FINGER + HANDSHAPE_FEATURES_PER_FINGER,
-      ),
-    ),
-  );
+
+  // This runs for every pair of sampled frames in every candidate window.
+  // Accumulate the same distances directly instead of allocating sliced and
+  // flattened arrays for each comparison.
+  let totalSquared = 0;
+  let maxFingerDistance = 0;
+  let extensionSquared = 0;
+  let maxExtensionDifference = 0;
+  let tipDirectionSquared = 0;
+  let tipRadiusSquared = 0;
+  let maxTipRadiusDifference = 0;
+  let baseToTipSpanSquared = 0;
+  let maxBaseToTipSpanDifference = 0;
+
+  for (let finger = 0; finger < 5; finger += 1) {
+    const offset = finger * HANDSHAPE_FEATURES_PER_FINGER;
+    let fingerSquared = 0;
+    for (
+      let feature = 0;
+      feature < HANDSHAPE_FEATURES_PER_FINGER;
+      feature += 1
+    ) {
+      const difference =
+        reference[offset + feature] - attempt[offset + feature];
+      const squared = difference ** 2;
+      totalSquared += squared;
+      fingerSquared += squared;
+      if (feature === 4 || feature === 5) tipDirectionSquared += squared;
+    }
+    maxFingerDistance = Math.max(
+      maxFingerDistance,
+      Math.sqrt(fingerSquared / HANDSHAPE_FEATURES_PER_FINGER),
+    );
+
+    const extensionDifference = Math.abs(
+      reference[offset + 3] - attempt[offset + 3],
+    );
+    extensionSquared += extensionDifference ** 2;
+    maxExtensionDifference = Math.max(
+      maxExtensionDifference,
+      extensionDifference,
+    );
+
+    const tipRadiusDifference = Math.abs(
+      reference[offset + 6] - attempt[offset + 6],
+    );
+    tipRadiusSquared += tipRadiusDifference ** 2;
+    maxTipRadiusDifference = Math.max(
+      maxTipRadiusDifference,
+      tipRadiusDifference,
+    );
+
+    const baseToTipSpanDifference = Math.abs(
+      reference[offset + 7] - attempt[offset + 7],
+    );
+    baseToTipSpanSquared += baseToTipSpanDifference ** 2;
+    maxBaseToTipSpanDifference = Math.max(
+      maxBaseToTipSpanDifference,
+      baseToTipSpanDifference,
+    );
+  }
+
   const detailedDistance = Math.max(
-    vectorRms(reference, attempt),
-    Math.max(...perFinger) * 0.7,
+    Math.sqrt(totalSquared / HANDSHAPE_FEATURE_COUNT),
+    maxFingerDistance * 0.7,
   );
 
   // Joint angles become noisy when curled fingers overlap or the camera sees
@@ -1551,48 +1601,13 @@ function handshapeDistance(
   // stable and still distinguishes which fingers are open or closed. Allow a
   // matching extension pattern to recover from noisy inner joints, while the
   // largest per-finger mismatch keeps a missing/extra extended finger strict.
-  const extensionDifferences = Array.from({ length: 5 }, (_, index) =>
-    Math.abs(
-      reference[index * HANDSHAPE_FEATURES_PER_FINGER + 3] -
-        attempt[index * HANDSHAPE_FEATURES_PER_FINGER + 3],
-    ),
-  );
-  const tipDirectionDistance = vectorRms(
-    Array.from({ length: 5 }, (_, index) =>
-      reference.slice(
-        index * HANDSHAPE_FEATURES_PER_FINGER + 4,
-        index * HANDSHAPE_FEATURES_PER_FINGER + 6,
-      ),
-    ).flat(),
-    Array.from({ length: 5 }, (_, index) =>
-      attempt.slice(
-        index * HANDSHAPE_FEATURES_PER_FINGER + 4,
-        index * HANDSHAPE_FEATURES_PER_FINGER + 6,
-      ),
-    ).flat(),
-  );
-  const tipRadiusDifferences = Array.from({ length: 5 }, (_, index) =>
-    Math.abs(
-      reference[index * HANDSHAPE_FEATURES_PER_FINGER + 6] -
-        attempt[index * HANDSHAPE_FEATURES_PER_FINGER + 6],
-    ),
-  );
-  const baseToTipSpanDifferences = Array.from({ length: 5 }, (_, index) =>
-    Math.abs(
-      reference[index * HANDSHAPE_FEATURES_PER_FINGER + 7] -
-        attempt[index * HANDSHAPE_FEATURES_PER_FINGER + 7],
-    ),
-  );
+  const tipDirectionDistance = Math.sqrt(tipDirectionSquared / 10);
   const extensionPatternDistance = Math.max(
-    Math.sqrt(
-      average(extensionDifferences.map((difference) => difference ** 2)),
-    ),
-    Math.max(...extensionDifferences) * 0.8,
+    Math.sqrt(extensionSquared / 5),
+    maxExtensionDifference * 0.8,
     tipDirectionDistance * 0.25,
-    Math.sqrt(
-      average(tipRadiusDifferences.map((difference) => difference ** 2)),
-    ) * 0.65,
-    Math.max(...tipRadiusDifferences) * 0.5,
+    Math.sqrt(tipRadiusSquared / 5) * 0.65,
+    maxTipRadiusDifference * 0.5,
   );
   // When two hands touch, MediaPipe can keep every fingertip in the right
   // place while inventing the hidden PIP/DIP joints between the palm and tip.
@@ -1604,14 +1619,10 @@ function handshapeDistance(
   // a one-hand sign cannot pass by matching only a few endpoints.
   const fingertipPatternDistance = Math.max(
     tipDirectionDistance * 0.35,
-    Math.sqrt(
-      average(tipRadiusDifferences.map((difference) => difference ** 2)),
-    ) * 0.75,
-    Math.max(...tipRadiusDifferences) * 0.6,
-    Math.sqrt(
-      average(baseToTipSpanDifferences.map((difference) => difference ** 2)),
-    ) * 0.9,
-    Math.max(...baseToTipSpanDifferences) * 0.8,
+    Math.sqrt(tipRadiusSquared / 5) * 0.75,
+    maxTipRadiusDifference * 0.6,
+    Math.sqrt(baseToTipSpanSquared / 5) * 0.9,
+    maxBaseToTipSpanDifference * 0.8,
   );
   return Math.min(
     detailedDistance,
