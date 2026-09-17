@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Hand, LockKeyhole } from 'lucide-react';
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 
@@ -21,9 +21,11 @@ const serverReady = () => false;
 export function MissionSectionNavigation({
   missionId,
   section,
+  variant = 'default',
 }: {
   missionId: string;
   section: MissionSection;
+  variant?: 'default' | 'bottom-bar';
 }) {
   const progress = useProgress();
   const ready = useSyncExternalStore(
@@ -89,6 +91,104 @@ export function MissionSectionNavigation({
           available: true,
         }
       : null;
+
+  if (variant === 'bottom-bar') {
+    if (!ready) {
+      return (
+        <nav
+          aria-label={`Navigasi bagian misi ${mission.title}`}
+          className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7]/95 backdrop-blur-md border-t border-amber-200/60 shadow-lg py-3.5 px-6 rounded-t-[2.5rem]"
+        >
+          <div className="mx-auto max-w-xl flex items-center justify-center text-xs font-bold text-slate-400">
+            Memuat tahapan misi…
+          </div>
+        </nav>
+      );
+    }
+
+    return (
+      <nav
+        aria-label={`Navigasi bagian misi ${mission.title}`}
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7]/95 backdrop-blur-md border-t border-amber-200/60 shadow-lg py-3.5 px-6 rounded-t-[2.5rem]"
+      >
+        <div className="mx-auto max-w-xl relative flex items-center justify-between">
+          <div className="absolute top-5 left-10 right-10 h-0.5 bg-slate-200 -z-0" />
+
+          {stages.map((stage) => {
+            const isCurrent = stage.id === section;
+            const isDone = stage.complete;
+            const isLocked = !stage.available && !isDone;
+
+            const iconElement = isDone ? (
+              <Check className="size-5 font-black stroke-[3]" />
+            ) : isCurrent ? (
+              <Hand className="size-5" />
+            ) : (
+              <LockKeyhole className="size-4.5" />
+            );
+
+            const circleClass = cn(
+              'grid size-10 place-items-center rounded-full shadow-xs transition-transform',
+              isDone
+                ? 'bg-[#00D5D1] text-slate-950 font-black'
+                : isCurrent
+                  ? 'bg-[#FFAE00] text-slate-950 ring-4 ring-amber-200'
+                  : 'bg-slate-200 text-slate-500',
+            );
+
+            return (
+              <div
+                key={stage.id}
+                className="relative z-10 flex flex-col items-center text-center"
+              >
+                {stage.available && !isCurrent ? (
+                  <Link
+                    href={stage.href}
+                    className="group flex flex-col items-center text-center focus:outline-none"
+                  >
+                    <span className={cn(circleClass, 'group-hover:scale-110')}>
+                      {iconElement}
+                    </span>
+                    <span className="mt-2 text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors">
+                      {stage.label}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-500">
+                      {isDone ? 'Selesai' : 'Tersedia'}
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="flex flex-col items-center text-center">
+                    <span className={circleClass}>{iconElement}</span>
+                    <span className="mt-2 text-xs font-black text-slate-900">
+                      {stage.label}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[10px] font-bold',
+                        isCurrent
+                          ? 'text-amber-700'
+                          : isDone
+                            ? 'text-emerald-700'
+                            : 'text-slate-400',
+                      )}
+                    >
+                      {isDone
+                        ? 'Selesai'
+                        : isCurrent
+                          ? 'Sedang berlangsung'
+                          : isLocked
+                            ? 'Terkunci'
+                            : 'Tersedia'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
 
   if (!ready) {
     return (

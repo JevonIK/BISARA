@@ -112,6 +112,7 @@ type CameraPracticeProps = {
   reviewMode?: boolean;
   productionMode?: boolean;
   onProductionResult?: (result: GestureScore) => void;
+  exampleCard?: React.ReactNode;
 };
 
 type NextAction = {
@@ -154,6 +155,7 @@ export function CameraPractice({
   reviewMode = false,
   productionMode = false,
   onProductionResult,
+  exampleCard,
 }: CameraPracticeProps) {
   const userProgress = useProgress();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -906,9 +908,18 @@ export function CameraPractice({
   }
 
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
-      <section className="overflow-hidden border border-signal-navy/10 bg-signal-navy">
-        <div className="relative aspect-video bg-[#0d1128] sm:min-h-[360px]">
+    <div
+      className={cn(
+        'grid items-stretch gap-5',
+        exampleCard
+          ? 'grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[300px_1fr_300px]'
+          : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]',
+      )}
+    >
+      {exampleCard}
+
+      <section className="flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
+        <div className="relative aspect-video bg-[#0B0F19] sm:min-h-[360px]">
           <video
             ref={videoRef}
             className={cn(
@@ -937,19 +948,19 @@ export function CameraPractice({
           {showSetup && (
             <div className="absolute inset-0 grid place-items-center p-6 text-center">
               <div className="max-w-md">
-                <span className="mx-auto grid size-20 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-signal-teal">
+                <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
                   {status === 'denied' || status === 'unavailable' ? (
                     <CameraOff className="size-8" />
                   ) : (
                     <Camera className="size-8" />
                   )}
                 </span>
-                <h2 className="mt-6 text-2xl font-black tracking-[-0.035em] text-white">
+                <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
                   {productionMode
                     ? 'Siapkan kamera uji'
                     : 'Siapkan kamera latihan'}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-white/55">
+                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
                   Video diproses langsung di browser. BISARA tidak merekam atau
                   menyimpan video latihan ini.
                 </p>
@@ -958,7 +969,7 @@ export function CameraPractice({
                   size="lg"
                   onClick={startCamera}
                   disabled={isBusy}
-                  className="mt-6 h-12 rounded-full bg-signal-teal px-6 font-extrabold text-signal-navy hover:bg-signal-teal/90"
+                  className="mt-6 h-12 rounded-full bg-[#00D5D1] px-7 font-black text-slate-950 hover:bg-[#00BDCD] transition-all hover:scale-105 active:scale-95 shadow-sm"
                 >
                   {isBusy ? (
                     <LoaderCircle className="size-4 animate-spin" />
@@ -1151,16 +1162,42 @@ export function CameraPractice({
             )}
           </div>
         </div>
+
+        {/* Bottom White Status Bar */}
+        <div className="bg-white px-6 py-4 border-t border-slate-100">
+          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+            STATUS KAMERA
+          </span>
+          <p className="mt-0.5 text-sm sm:text-base font-black text-slate-900">
+            {status === 'idle'
+              ? 'Kamera belum aktif'
+              : status === 'requesting'
+                ? 'Menunggu izin kamera…'
+                : status === 'loading-model' || status === 'loading-reference'
+                  ? 'Memuat deteksi landmark tangan…'
+                  : practicePhase === 'countdown'
+                    ? 'Bersiap…'
+                    : practicePhase === 'recording'
+                      ? `Merekam gerakan tanda “${signLabel}”…`
+                      : practicePhase === 'scoring'
+                        ? 'Menganalisis kecocokan gerakan…'
+                        : practicePhase === 'result'
+                          ? 'Latihan selesai'
+                          : isReady
+                            ? 'Kamera aktif & siap berlatih'
+                            : 'Kamera belum siap'}
+          </p>
+        </div>
       </section>
 
       {/* Sidebar: score results or calibration */}
       {practicePhase === 'result' && gestureScore ? (
-        <aside className="self-start border-t-4 border-signal-coral bg-card p-6">
+        <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-sm border border-amber-200/50">
           <div className="mb-5">
-            <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-coral">
+            <p className="text-xs font-black uppercase tracking-[0.13em] text-[#E54D2E]">
               {productionMode ? 'Hasil uji peragaan' : 'Hasil latihan'}
             </p>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-signal-navy">
+            <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
               {gestureScore.assessable
                 ? practiceResultLabel(gestureScore, previouslyMastered)
                 : 'Belum bisa dinilai'}
@@ -1264,7 +1301,7 @@ export function CameraPractice({
                 href={nextAction.href}
                 className={cn(
                   buttonVariants(),
-                  'h-10 w-full bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90',
+                  'h-11 w-full rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00D5D1]/90',
                 )}
               >
                 {nextAction.label} <ArrowRight className="size-4" />
@@ -1278,7 +1315,7 @@ export function CameraPractice({
                 href={`/missions/test?mission=${missionId}&mode=recognition`}
                 className={cn(
                   buttonVariants({ variant: 'outline' }),
-                  'h-10 w-full border-signal-teal font-extrabold text-signal-navy',
+                  'h-11 w-full rounded-full border-2 border-[#00D5D1] font-black text-slate-900 hover:bg-[#00D5D1]/10',
                 )}
               >
                 Lanjut ke Uji pengenalan <ArrowRight className="size-4" />
@@ -1290,10 +1327,10 @@ export function CameraPractice({
               variant={gestureScore.passed ? 'outline' : 'default'}
               onClick={retryPractice}
               className={cn(
-                'h-10 w-full font-extrabold',
+                'h-11 w-full rounded-full font-black',
                 gestureScore.passed
-                  ? 'border-signal-navy/15 text-signal-navy'
-                  : 'bg-signal-teal text-signal-navy hover:bg-signal-teal/90',
+                  ? 'border-2 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  : 'bg-[#00D5D1] text-slate-900 hover:bg-[#00D5D1]/90',
               )}
             >
               <RotateCcw className="size-4" /> Coba lagi
@@ -1301,59 +1338,61 @@ export function CameraPractice({
           </div>
         </aside>
       ) : (
-        <aside className="self-start border-t-4 border-signal-yellow bg-card p-6">
-          <div className="mb-7 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.13em] text-amber-700">
-                Kalibrasi
-              </p>
-              <h2 className="mt-1 text-xl font-black tracking-[-0.03em] text-signal-navy">
-                Sebelum berlatih
-              </h2>
+        <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+          <div>
+            <div className="mb-7 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+                  KALIBRASI
+                </p>
+                <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                  Sebelum berlatih
+                </h2>
+              </div>
+              <ShieldCheck className="size-6 text-[#FFAE00]" />
             </div>
-            <ShieldCheck className="size-6 text-amber-600" />
+
+            <ul className="space-y-5">
+              {calibrationChecks.map((check) => {
+                const Icon = check.icon;
+                return (
+                  <li key={check.label} className="flex items-center gap-3.5">
+                    <span
+                      className={cn(
+                        'grid size-10 shrink-0 place-items-center rounded-full',
+                        check.passed
+                          ? 'bg-[#00D5D1]/20 text-emerald-800'
+                          : 'bg-slate-100 text-slate-600',
+                      )}
+                    >
+                      {check.passed ? (
+                        <Check className="size-5 stroke-[2.5] text-emerald-700" />
+                      ) : (
+                        <Icon className="size-5" />
+                      )}
+                    </span>
+                    <div>
+                      <span className="block text-sm font-black text-slate-900">
+                        {check.label}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500">
+                        {check.detail}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
-          <ul className="space-y-4">
-            {calibrationChecks.map((check) => {
-              const Icon = check.icon;
-              return (
-                <li key={check.label} className="flex items-center gap-3">
-                  <span
-                    className={cn(
-                      'grid size-9 shrink-0 place-items-center rounded-full',
-                      check.passed
-                        ? 'bg-signal-teal text-signal-navy'
-                        : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {check.passed ? (
-                      <Check className="size-4" strokeWidth={3} />
-                    ) : (
-                      <Icon className="size-4" />
-                    )}
-                  </span>
-                  <span>
-                    <span className="block text-sm font-extrabold text-signal-navy">
-                      {check.label}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {check.detail}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="mt-7 border-t border-signal-navy/10 pt-5">
-            <p className="text-xs leading-5 text-muted-foreground">
+          <div className="mt-7 border-t border-slate-200 pt-5">
+            <p className="text-xs font-medium leading-relaxed text-slate-500">
               {referenceReady
-                ? 'Referensi siap. Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat, dan beri ruang di sekitar kedua tangan.'
+                ? 'Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat, dan beri ruang di sekitar kedua tangan.'
                 : 'Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat, dan beri ruang di sekitar kedua tangan.'}
             </p>
             {isReady && !referenceReady && (
-              <p className="mt-3 text-xs leading-5 text-signal-coral">
+              <p className="mt-3 text-xs font-semibold text-[#E54D2E]">
                 Referensi gerakan tidak dapat dimuat. Penilaian skor tidak
                 tersedia saat ini.
               </p>
