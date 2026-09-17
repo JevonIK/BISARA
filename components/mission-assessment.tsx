@@ -1,15 +1,12 @@
 'use client';
 
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
-  CircleAlert,
   Brain,
   LockKeyhole,
   Play,
   RefreshCw,
-  Trophy,
   Video,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -17,8 +14,7 @@ import { useMemo, useState } from 'react';
 
 import { ProductionTest } from '@/components/production-test';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Progress, ProgressLabel } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { useProgress } from '@/hooks/use-progress';
 import {
   getSign,
@@ -74,10 +70,15 @@ export function MissionAssessment({
   const [selected, setSelected] = useState<SignId | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
 
+  const [typedText, setTypedText] = useState('');
+  const [preferMultipleChoice, setPreferMultipleChoice] = useState(false);
+
   const startRecognition = () => {
     setRecognitionAttempt((value) => value + 1);
     setIndex(0);
     setSelected(null);
+    setTypedText('');
+    setPreferMultipleChoice(false);
     setAnswers([]);
     setView('recognition');
   };
@@ -119,14 +120,31 @@ export function MissionAssessment({
 
   if (view === 'recognition') {
     const question = questions[index];
+    const sign = getSign(question.signId);
+    // Question 3 in a 5-question set (or every 3rd question) tests translation by typing, matching design screenshot
+    const isTyping = !preferMultipleChoice && (index + 1) === 3;
+    const canSubmit = isTyping ? typedText.trim().length > 0 : Boolean(selected);
+
     const submit = () => {
-      if (!selected) return;
+      if (!canSubmit) return;
+      const isCorrect = isTyping
+        ? typedText.trim().toLowerCase() === sign.label.toLowerCase()
+        : selected === question.signId;
+
+      const recordedAnswerId = isTyping
+        ? (question.options.find(
+            (opt) =>
+              getSign(opt).label.toLowerCase() ===
+              typedText.trim().toLowerCase(),
+          ) ?? (isCorrect ? question.signId : question.options[0]))
+        : selected!;
+
       const nextAnswers = [
         ...answers,
         {
           signId: question.signId,
-          selected,
-          correct: selected === question.signId,
+          selected: recordedAnswerId,
+          correct: isCorrect,
         },
       ];
       if (index === questions.length - 1) {
@@ -141,81 +159,151 @@ export function MissionAssessment({
         setAnswers(nextAnswers);
         setIndex((value) => value + 1);
         setSelected(null);
+        setTypedText('');
+        setPreferMultipleChoice(false);
       }
     };
+
+    const percentage = Math.round(((index + 1) / questions.length) * 100);
+
     return (
-      <section className="border border-signal-navy/10 bg-card">
-        <TopBar
-          label="Uji pengenalan"
-          current={index + 1}
-          total={questions.length}
-          onBack={() => setView('menu')}
-        />
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="bg-signal-navy p-5 sm:p-8">
-            <div className="mb-4 flex items-center justify-between text-white">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
-                  Tanpa label
-                </p>
-                <h2 className="mt-1 text-xl font-black">Apa arti tanda ini?</h2>
-              </div>
-              <Video className="size-5 text-white/60" />
-            </div>
-            <AssessmentVideo
-              key={question.signId}
-              src={getSign(question.signId).videoSrc}
-              label={`Soal ${index + 1}`}
+      <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 lg:p-10 shadow-xs border border-amber-200/50">
+        {/* Top Progress Track */}
+        <div className="mb-6 sm:mb-8 border-b border-slate-100 pb-6">
+          <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+            <span className="text-slate-900">
+              Soal {index + 1} dari {questions.length}
+            </span>
+            <span className="text-slate-500">{percentage}%</span>
+          </div>
+          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-[#E54D2E] transition-all duration-300"
+              style={{
+                width: `${((index + 1) / questions.length) * 100}%`,
+              }}
             />
           </div>
-          <div className="flex min-h-[470px] flex-col justify-between p-6 sm:p-8">
-            <div className="grid gap-3" role="radiogroup">
-              {question.options.map((id, optionIndex) => {
-                const option = getSign(id);
-                return (
-                  <label
-                    key={id}
-                    className={cn(
-                      'flex min-h-16 cursor-pointer items-center gap-4 border p-4 text-sm font-extrabold',
-                      selected === id
-                        ? 'border-signal-teal bg-signal-teal-soft'
-                        : 'border-signal-navy/10 hover:border-signal-teal',
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      className="sr-only"
-                      checked={selected === id}
-                      onChange={() => setSelected(id)}
-                    />
-                    <span className="grid size-8 place-items-center rounded-full border border-signal-navy/15 text-xs">
-                      {String.fromCharCode(65 + optionIndex)}
-                    </span>
-                    {option.label}
-                  </label>
-                );
-              })}
+        </div>
+
+        {/* 2-Column Question Body */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 sm:gap-10 items-start">
+          {/* Left Column: Video */}
+          <div>
+            <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+              {isTyping ? 'TERJEMAHKAN TANDA' : 'PERHATIKAN TANDA'}
+            </span>
+            <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+              Apa arti tanda dalam video ini?
+            </h2>
+            <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-black shadow-inner">
+              <div className="absolute top-3.5 left-3.5 z-10 rounded-full bg-black/65 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-xs">
+                WL-BISINDO • Banten
+              </div>
+              <video
+                key={question.signId}
+                src={versionedSignVideo(sign.videoSrc)}
+                aria-label={`Video tanda soal ${index + 1}`}
+                className="size-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                controls
+              />
             </div>
-            <div className="mt-7">
-              <p className="mb-4 flex gap-2 text-xs text-muted-foreground">
-                <CircleAlert className="size-4" />
-                Jawaban dibahas setelah semua soal selesai.
-              </p>
-              <Button
-                size="lg"
-                disabled={!selected}
+          </div>
+
+          {/* Right Column: Answers */}
+          <div className="flex flex-col justify-between h-full pt-1">
+            {isTyping ? (
+              <div>
+                <span className="text-sm sm:text-base font-black text-slate-900 block mb-3">
+                  Ketik kata yang diisyaratkan dalam video
+                </span>
+                <input
+                  type="text"
+                  value={typedText}
+                  onChange={(e) => setTypedText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && canSubmit) {
+                      e.preventDefault();
+                      submit();
+                    }
+                  }}
+                  placeholder="Ketik kata di sini…"
+                  className="w-full rounded-2xl border-2 border-slate-200 px-5 py-4 text-base font-bold text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none transition-colors bg-white shadow-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPreferMultipleChoice(true)}
+                  className="mt-3 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+                >
+                  Beralih ke pilihan ganda
+                </button>
+              </div>
+            ) : (
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-900 block mb-4">
+                  PILIH SATU JAWABAN
+                </span>
+                <div className="space-y-3" role="radiogroup">
+                  {question.options.map((id, optionIndex) => {
+                    const option = getSign(id);
+                    const isSelected = selected === id;
+                    return (
+                      <button
+                        type="button"
+                        key={id}
+                        onClick={() => setSelected(id)}
+                        className={cn(
+                          'flex w-full items-center gap-4 rounded-2xl border-2 p-4 sm:p-5 text-left transition-all cursor-pointer select-none',
+                          isSelected
+                            ? 'border-slate-900 bg-slate-50/50 shadow-xs'
+                            : 'border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50/30',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'grid size-8 sm:size-9 shrink-0 place-items-center rounded-full border text-xs sm:text-sm font-black transition-colors',
+                            isSelected
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-200 bg-white text-slate-700',
+                          )}
+                        >
+                          {String.fromCharCode(65 + optionIndex)}
+                        </span>
+                        <span className="text-sm sm:text-base font-black text-slate-900">
+                          {option.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8">
+              <button
+                type="button"
+                disabled={!canSubmit}
                 onClick={submit}
-                className="w-full rounded-full bg-signal-navy font-extrabold text-white"
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm sm:text-base font-black text-white transition-all',
+                  canSubmit
+                    ? 'bg-slate-900 hover:bg-slate-800 shadow-md active:scale-[0.99] cursor-pointer'
+                    : 'bg-[#7E858B] cursor-not-allowed opacity-80',
+                )}
               >
                 {index === questions.length - 1
                   ? 'Lihat hasil'
-                  : 'Simpan & lanjut'}{' '}
+                  : 'Periksa jawaban'}
                 <ArrowRight className="size-4" />
-              </Button>
+              </button>
             </div>
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -225,80 +313,90 @@ export function MissionAssessment({
     const passed = score >= RECOGNITION_PASS_SCORE;
     const missedAnswers = answers.filter((answer) => !answer.correct);
     return (
-      <section className="grid overflow-hidden border border-signal-navy/10 bg-card lg:grid-cols-[330px_1fr]">
-        <div className="grid place-items-center bg-signal-navy p-8 text-center text-white">
+      <div className="rounded-[2.5rem] bg-white p-7 sm:p-10 shadow-xs border border-amber-200/50">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-6">
           <div>
-            <Trophy className="mx-auto size-10 text-signal-teal" />
-            <p className="mt-5 text-7xl font-black">{score}</p>
-            <p className="text-sm text-white/55">dari 100 poin</p>
-          </div>
-        </div>
-        <div className="p-7 sm:p-10">
-          <Badge
-            className={
-              passed
-                ? 'bg-signal-teal-soft text-emerald-800'
-                : 'bg-signal-coral/10 text-red-800'
-            }
-          >
-            {passed ? 'Lulus' : 'Perlu diulang'}
-          </Badge>
-          <h2 className="mt-4 text-3xl font-black text-signal-navy">
-            {correct} dari {questions.length} jawaban benar
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {passed
-              ? 'Uji pengenalan lulus. Lanjutkan ke Uji peragaan tanpa contoh untuk menyelesaikan misi.'
-              : `Skor minimal adalah ${RECOGNITION_PASS_SCORE}. Tonton ulang tanda yang keliru lalu coba lagi.`}
-          </p>
-          {missedAnswers.length ? (
-            <div className="mt-6 border border-signal-navy/10 bg-muted/35 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-signal-navy">
-                Tanda yang perlu diperkuat
-              </p>
-              <ul className="mt-3 grid gap-2">
-                {missedAnswers.map((answer) => (
-                  <li
-                    key={answer.signId}
-                    className="flex flex-wrap items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="text-muted-foreground">
-                      Jawabanmu {getSign(answer.selected).label}; tanda yang
-                      benar {getSign(answer.signId).label}.
-                    </span>
-                    <Link
-                      href={`/missions/practice?mission=${mission.id}&sign=${answer.signId}`}
-                      className="font-extrabold text-emerald-700 hover:underline"
-                    >
-                      Latih ulang
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          <div className="mt-7 flex flex-wrap gap-3">
-            {passed ? (
-              <Link
-                href={`/missions/test?mission=${mission.id}&mode=recall`}
-                className={cn(
-                  buttonVariants({ size: 'lg' }),
-                  'rounded-full bg-signal-teal font-extrabold text-signal-navy',
-                )}
-              >
-                Uji peragaan <ArrowRight className="size-4" />
-              </Link>
-            ) : null}
-            <Button
-              size="lg"
-              onClick={startRecognition}
-              className="rounded-full bg-signal-navy font-extrabold text-white"
+            <Badge
+              className={cn(
+                'rounded-full px-3.5 py-1 text-xs font-black',
+                passed
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-red-100 text-red-800',
+              )}
             >
-              <RefreshCw className="size-4" /> Ulangi tes
-            </Button>
+              {passed ? 'Lulus' : 'Perlu diulang'}
+            </Badge>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              {correct} dari {questions.length} jawaban benar
+            </h2>
+            <p className="mt-2 text-sm sm:text-base font-semibold text-slate-600">
+              {passed
+                ? 'Uji pengenalan lulus! Lanjutkan ke Uji peragaan tanpa contoh untuk menyelesaikan misi.'
+                : `Skor minimal adalah ${RECOGNITION_PASS_SCORE}. Tonton ulang tanda yang keliru lalu coba lagi.`}
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-5xl sm:text-6xl font-black text-slate-900 block">
+              {score}
+            </span>
+            <span className="text-xs font-bold text-slate-500">
+              dari 100 poin
+            </span>
           </div>
         </div>
-      </section>
+
+        {missedAnswers.length ? (
+          <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-5 sm:p-6">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-800">
+              Tanda yang perlu diperkuat
+            </p>
+            <ul className="mt-3 space-y-2.5">
+              {missedAnswers.map((answer) => (
+                <li
+                  key={answer.signId}
+                  className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold"
+                >
+                  <span className="text-slate-600">
+                    Jawabanmu{' '}
+                    <strong className="text-slate-900">
+                      {getSign(answer.selected).label}
+                    </strong>
+                    ; tanda yang benar{' '}
+                    <strong className="text-emerald-700">
+                      {getSign(answer.signId).label}
+                    </strong>
+                    .
+                  </span>
+                  <Link
+                    href={`/missions/practice?mission=${mission.id}&sign=${answer.signId}`}
+                    className="font-black text-amber-700 hover:text-amber-800 underline"
+                  >
+                    Latih ulang
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          {passed ? (
+            <Link
+              href={`/missions/test?mission=${mission.id}&mode=recall`}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3.5 text-sm sm:text-base font-black text-white hover:bg-slate-800 transition-all shadow-sm"
+            >
+              Lanjut ke Uji peragaan <ArrowRight className="size-4" />
+            </Link>
+          ) : null}
+          <Button
+            size="lg"
+            onClick={startRecognition}
+            className="rounded-full border-2 border-slate-200 bg-white font-black text-slate-800 hover:bg-slate-50 px-6 py-3.5"
+          >
+            <RefreshCw className="size-4" /> Ulangi tes
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -314,31 +412,28 @@ export function MissionAssessment({
         : null;
     const replay = getMissionReplayAction(mission);
     return (
-      <section className="grid min-h-[460px] place-items-center border border-signal-teal bg-signal-teal-soft p-8 text-center">
-        <div className="max-w-xl">
-          <span className="mx-auto grid size-20 place-items-center rounded-full bg-signal-teal">
+      <div className="rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center">
+        <div className="max-w-xl mx-auto">
+          <span className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm">
             <Check className="size-9" strokeWidth={3} />
           </span>
-          <p className="mt-6 text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+          <p className="mt-6 text-xs font-black uppercase tracking-wider text-[#E54D2E]">
             Misi selesai
           </p>
-          <h2 className="mt-3 text-4xl font-black text-signal-navy">
+          <h2 className="mt-2 text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
             Target latihan “{mission.title}” selesai
           </h2>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          <p className="mt-3 text-sm sm:text-base leading-relaxed text-slate-600">
             {mission.type === 'checkpoint'
               ? 'Uji pengenalan dan Uji peragaan'
               : 'Tirukan, uji pengenalan, dan Uji peragaan'}{' '}
             selesai. Kamu dapat melanjutkan ke misi berikutnya atau review
             berkala.
           </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href={nextMission?.href ?? '/review'}
-              className={cn(
-                buttonVariants({ size: 'lg' }),
-                'rounded-full bg-signal-navy px-6 font-extrabold text-white',
-              )}
+              className="rounded-full bg-slate-900 px-7 py-3.5 text-sm font-black text-white hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
             >
               {nextMission
                 ? `Lanjut: ${nextMission.title}`
@@ -347,16 +442,13 @@ export function MissionAssessment({
             </Link>
             <Link
               href={replay.href}
-              className={cn(
-                buttonVariants({ size: 'lg', variant: 'outline' }),
-                'rounded-full px-6 font-extrabold',
-              )}
+              className="rounded-full border-2 border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:bg-slate-50 transition-all flex items-center gap-2"
             >
               <RefreshCw className="size-4" /> {replay.label}
             </Link>
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -384,57 +476,6 @@ export function MissionAssessment({
   );
 }
 
-function AssessmentVideo({ src, label }: { src: string; label: string }) {
-  return (
-    <video
-      src={versionedSignVideo(src)}
-      aria-label={label}
-      className="aspect-video w-full bg-black object-cover"
-      autoPlay
-      loop
-      muted
-      playsInline
-      controls
-      controlsList="nodownload noplaybackrate"
-    />
-  );
-}
-
-function TopBar({
-  label,
-  current,
-  total,
-  onBack,
-}: {
-  label: string;
-  current: number;
-  total: number;
-  onBack: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-5 border-b border-signal-navy/10 p-5">
-      <button
-        type="button"
-        aria-label="Kembali ke pilihan latihan"
-        onClick={onBack}
-        className="text-muted-foreground"
-      >
-        <ArrowLeft className="size-5" />
-      </button>
-      <div className="flex-1">
-        <div className="mb-2 flex justify-between text-xs font-bold text-signal-navy">
-          <span>
-            {label} · {current} dari {total}
-          </span>
-          <span>{Math.round((current / total) * 100)}%</span>
-        </div>
-        <Progress value={(current / total) * 100}>
-          <ProgressLabel className="sr-only">Progres</ProgressLabel>
-        </Progress>
-      </div>
-    </div>
-  );
-}
 
 function ModeCard({
   icon: Icon,
@@ -456,28 +497,27 @@ function ModeCard({
   locked: boolean;
 }) {
   return (
-    <article className="flex min-h-80 flex-col justify-between border-t-4 border-signal-teal bg-card p-7">
+    <article className="flex min-h-80 flex-col justify-between rounded-[2.5rem] bg-white p-7 sm:p-8 shadow-xs border border-amber-200/50">
       <div>
-        <span className="grid size-14 place-items-center rounded-full bg-signal-teal-soft text-emerald-800">
+        <span className="grid size-14 place-items-center rounded-2xl bg-amber-100 text-amber-900">
           <Icon className="size-6" />
         </span>
-        <p className="mt-7 text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+        <p className="mt-6 text-xs font-black uppercase tracking-wider text-[#E54D2E]">
           {eyebrow}
         </p>
-        <h2 className="mt-2 text-3xl font-black text-signal-navy">{title}</h2>
-        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+        <h2 className="mt-1.5 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          {title}
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">
           {description}
         </p>
       </div>
-      <div className="mt-7 flex items-center justify-between border-t border-signal-navy/10 pt-5">
-        <span className="text-xs font-bold text-muted-foreground">{meta}</span>
+      <div className="mt-7 flex items-center justify-between border-t border-slate-100 pt-5">
+        <span className="text-xs font-bold text-slate-500">{meta}</span>
         {href && !locked ? (
           <Link
             href={href}
-            className={cn(
-              buttonVariants(),
-              'rounded-full bg-signal-navy font-extrabold text-white',
-            )}
+            className="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-black text-white hover:bg-slate-800 transition-all flex items-center gap-2"
           >
             <Play className="size-4" /> Mulai
           </Link>
@@ -485,7 +525,12 @@ function ModeCard({
           <Button
             onClick={onStart}
             disabled={locked}
-            className="rounded-full bg-signal-navy font-extrabold text-white"
+            className={cn(
+              'rounded-full px-6 py-2.5 text-sm font-black transition-all flex items-center gap-2',
+              locked
+                ? 'bg-slate-100 text-slate-400'
+                : 'bg-slate-900 text-white hover:bg-slate-800',
+            )}
           >
             {locked ? (
               <LockKeyhole className="size-4" />
@@ -512,19 +557,20 @@ function Gate({
   action: string;
 }) {
   return (
-    <section className="grid min-h-[420px] place-items-center border border-signal-navy/10 bg-card p-8 text-center">
+    <section className="grid min-h-[380px] place-items-center rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center">
       <div className="max-w-xl">
-        <LockKeyhole className="mx-auto size-10 text-amber-700" />
-        <h2 className="mt-5 text-3xl font-black text-signal-navy">{title}</h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-100 text-amber-900">
+          <LockKeyhole className="size-7" />
+        </span>
+        <h2 className="mt-5 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          {title}
+        </h2>
+        <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
           {description}
         </p>
         <Link
           href={href}
-          className={cn(
-            buttonVariants({ size: 'lg' }),
-            'mt-7 rounded-full bg-signal-navy px-6 font-extrabold text-white',
-          )}
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-sm font-black text-white hover:bg-slate-800 transition-all shadow-sm"
         >
           {action} <ArrowRight className="size-4" />
         </Link>

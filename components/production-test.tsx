@@ -42,20 +42,23 @@ export function ProductionTest({
 
   if (!activeSignId) {
     return (
-      <section className="border border-signal-teal bg-signal-teal-soft p-7 sm:p-10">
-        <Check className="size-10 text-emerald-700" />
-        <h2 className="mt-4 text-3xl font-black text-signal-navy">
-          Uji peragaan selesai
-        </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          {signIds.length} tanda telah melewati checker tanpa contoh. Progres
-          tersimpan, dan misi berikutnya kini terbuka.
-        </p>
+      <section className="rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center max-w-xl mx-auto space-y-6">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+          <Check className="size-8 stroke-[2.5]" />
+        </div>
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+            Uji Peragaan Selesai!
+          </h2>
+          <p className="mt-3 text-sm font-medium text-slate-600 leading-relaxed">
+            {signIds.length} tanda telah berhasil kamu peragakan di depan kamera tanpa contoh. Progresmu tersimpan!
+          </p>
+        </div>
         <Button
           onClick={onExit}
-          className="mt-7 rounded-full bg-signal-navy text-white"
+          className="h-12 w-full rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all text-sm flex items-center justify-center gap-2 shadow-xs"
         >
-          Lihat hasil misi <ArrowRight className="size-4" />
+          Lihat Hasil Misi <ArrowRight className="size-4" />
         </Button>
       </section>
     );
@@ -74,57 +77,79 @@ export function ProductionTest({
     recordProductionAssessment(missionId, activeSignId, score);
   };
 
+  const progressPercent = Math.round((passedIds.length / signIds.length) * 100);
+
   return (
-    <section className="space-y-5">
-      <div className="border border-signal-navy/10 bg-card p-5 sm:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
-              Uji peragaan tanpa contoh
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-signal-navy">
-              {passedIds.length} dari {signIds.length} tanda lulus
-            </h2>
+    <section className="space-y-6">
+      <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 shadow-xs border border-amber-200/50">
+        {/* Top Progress Bar matching recognition test */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs font-black tracking-wider text-slate-800 mb-2">
+            <span>TANDA {passedIds.length + (activePassed ? 0 : 1)} DARI {signIds.length}</span>
+            <span>{progressPercent}%</span>
           </div>
-          <Button variant="outline" onClick={onExit} className="rounded-full">
+          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#E54D2E] transition-all duration-300 rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-5">
+          <div>
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#E54D2E] block mb-1">
+              UJI PERAGAAN KAMERA
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Peragakan Tanda: <span className="text-[#00B4B0] underline decoration-[#00B4B0]/40">{sign.label}</span>
+            </h2>
+            <p className="mt-1 text-xs text-slate-500 font-medium">
+              Pikirkan gerakannya dulu. Aktifkan kamera dan tekan &ldquo;Mulai uji&rdquo; saat siap.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={onExit}
+            className="rounded-full border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
+          >
             Keluar uji
           </Button>
         </div>
-        <progress
-          className="mt-5 h-2 w-full accent-signal-teal"
-          value={passedIds.length}
-          max={signIds.length}
-          aria-label="Tanda uji peragaan yang lulus"
-        />
-        <ol className="mt-5 flex flex-wrap gap-2">
-          {signIds.map((id, index) => (
-            <li
-              key={id}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold ${id === activeSignId ? 'border-signal-yellow bg-signal-yellow/20 text-signal-navy' : passedIds.includes(id) ? 'border-signal-teal bg-signal-teal-soft text-signal-navy' : 'border-signal-navy/10 text-muted-foreground'}`}
-            >
-              {passedIds.includes(id) ? '✓' : index + 1} · {getSign(id).label}
-            </li>
-          ))}
-        </ol>
-        {progress.completedMissionIds.includes(missionId) &&
-        remainingIds.length > 0 ? (
-          <p className="mt-4 text-xs leading-5 text-muted-foreground">
-            Misi ini sudah tercatat selesai sebelum uji peragaan memakai
-            checker. Kamu dapat menguji ulang tanpa menghapus progres lama.
+
+        {/* Sign Stepper Pills */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {signIds.map((id, index) => {
+            const isCurrent = id === activeSignId;
+            const isPassed = passedIds.includes(id);
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setSelectedSignId(id);
+                  setLastResult(null);
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                  isCurrent
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : isPassed
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                }`}
+              >
+                {isPassed ? <Check className="size-3 stroke-[3]" /> : <span>{index + 1}</span>}
+                <span>{getSign(id).label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {progress.completedMissionIds.includes(missionId) && remainingIds.length > 0 ? (
+          <p className="mt-4 text-xs leading-5 text-slate-500">
+            Misi ini sudah tercatat selesai sebelum uji peragaan memakai checker. Kamu dapat menguji ulang tanpa menghapus progres lama.
           </p>
         ) : null}
-        <div className="mt-5 border-t border-signal-navy/10 pt-5">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-coral">
-            Kata yang harus diperagakan
-          </p>
-          <h3 className="mt-2 text-4xl font-black text-signal-navy">
-            {sign.label}
-          </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Pikirkan gerakannya dulu. Aktifkan kamera dan tekan “Mulai uji” saat
-            siap. Contoh tetap tersembunyi selama pengambilan gerakan.
-          </p>
-        </div>
       </div>
 
       <CameraPractice
@@ -139,17 +164,21 @@ export function ProductionTest({
       />
 
       {activePassed ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 border border-signal-teal bg-signal-teal-soft p-5">
-          <p className="font-black text-signal-navy">
-            <Check className="mr-2 inline size-5" /> Tanda {sign.label} lulus
-            tanpa contoh.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-5 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
+              <Check className="size-5 stroke-[3]" />
+            </div>
+            <p className="text-sm font-bold text-emerald-950">
+              Hebat! Tanda <span className="font-black underline">{sign.label}</span> lulus uji tanpa contoh.
+            </p>
+          </div>
           <Button
             onClick={() => {
               setSelectedSignId(nextSignId ?? null);
               setLastResult(null);
             }}
-            className="rounded-full bg-signal-navy text-white"
+            className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 h-auto flex items-center gap-2 shadow-xs"
           >
             {nextSignId
               ? `Lanjut ke ${getSign(nextSignId).label}`
@@ -158,16 +187,16 @@ export function ProductionTest({
           </Button>
         </div>
       ) : result?.assessable && !result.passed ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 border border-signal-yellow bg-signal-yellow/10 p-5">
-          <p className="max-w-xl text-sm leading-6 text-signal-navy">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 shadow-xs">
+          <p className="max-w-xl text-xs sm:text-sm font-medium leading-relaxed text-amber-950">
             Tanda ini belum lulus. Coba lagi dengan tombol di hasil checker,
             atau pelajari ulang contohnya sebelum kembali ke uji.
           </p>
           <Link
             href={`/missions/practice?mission=${exampleMission?.id ?? missionId}&sign=${activeSignId}&source=production&returnMission=${missionId}`}
-            className="inline-flex items-center gap-2 rounded-full border border-signal-navy/15 px-4 py-2 text-sm font-bold text-signal-navy"
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-bold text-amber-950 shadow-xs hover:bg-amber-100/50 transition-colors"
           >
-            <RotateCcw className="size-4" /> Lihat contoh di Tirukan
+            <RotateCcw className="size-3.5" /> Lihat contoh di Tirukan
           </Link>
         </div>
       ) : null}
