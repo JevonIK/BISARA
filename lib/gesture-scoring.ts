@@ -22,6 +22,7 @@ export type GestureScore = {
   handshape: number;
   position: number;
   orientation: number;
+  orientationAssessable: boolean;
   movement: number;
   coordination: number;
   detectionQuality: number;
@@ -402,8 +403,16 @@ function scoreAttemptWindows(
       if (result.passed !== best.passed) return result.passed ? result : best;
       if (result.overall !== best.overall)
         return result.overall > best.overall ? result : best;
-      return weightedComponentScore(result, result.requiredHandCount) >
-        weightedComponentScore(best, best.requiredHandCount)
+      return weightedComponentScore(
+        result,
+        result.requiredHandCount,
+        result.orientationAssessable,
+      ) >
+        weightedComponentScore(
+          best,
+          best.requiredHandCount,
+          best.orientationAssessable,
+        )
         ? result
         : best;
     });
@@ -461,6 +470,21 @@ function scorePrepared(
   const contactDominant = hasSustainedInterHandContact(reference);
   const indexApproachDominant =
     contactDominant && hasIndexFingerApproach(reference);
+  // A contact reference may show almost no unobstructed palm. MediaPipe's
+  // inferred palm axes then come from overlapping fingers and are not reliable
+  // evidence for rejecting a learner. Require enough separated frames on both
+  // sides before grading orientation; keep handshape, approach and contact as
+  // the decisive evidence when those frames do not exist.
+  const separatedReference = contactDominant
+    ? reference.filter((frame) => !hasInterHandContact(frame))
+    : reference;
+  const separatedAttempt = contactDominant
+    ? attempt.filter((frame) => !hasInterHandContact(frame))
+    : attempt;
+  const orientationAssessable =
+    !contactDominant ||
+    (separatedReference.length >= MIN_VISIBLE_FRAMES &&
+      separatedAttempt.length >= MIN_VISIBLE_FRAMES);
   const positionRelativeToBody =
     hasBodyPositionCoverage(reference) && hasBodyPositionCoverage(attempt);
   const referenceMovement = movementSequence(reference);
@@ -498,7 +522,11 @@ function scorePrepared(
       requiredHandCount === 2 ? 0.45 : 0.3,
     ),
     orientation: errorToScore(
-      robustPoseError(reference, attempt, compareOrientation),
+      robustPoseError(
+        orientationAssessable ? separatedReference : reference,
+        orientationAssessable ? separatedAttempt : attempt,
+        compareOrientation,
+      ),
       0.62,
     ),
     movement: errorToScore(
@@ -521,13 +549,21 @@ function scorePrepared(
 
   // Coordination is not evidence for a one-hand sign. Renormalize the useful
   // components instead of letting an automatic 100 inflate its total.
-  const weighted = weightedComponentScore(components, requiredHandCount);
+  const weighted = weightedComponentScore(
+    components,
+    requiredHandCount,
+    orientationAssessable,
+  );
   // Coverage is already enforced before scoring. Multiplying by it again would
   // punish detector occlusion twice, especially when two hands overlap.
   const weightedScore = roundScore(weighted);
-  const weakest = weakestComponent(components);
+  const weakest = weakestComponent({
+    ...components,
+    orientation: orientationAssessable ? components.orientation : 100,
+  });
   const weakestCore = weakestComponent({
     ...components,
+    orientation: orientationAssessable ? components.orientation : 100,
     position: positionRelativeToBody ? components.position : 100,
     coordination: requiredHandCount === 2 ? components.coordination : 100,
   });
@@ -551,7 +587,8 @@ function scorePrepared(
         : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
             components.movement < MIN_TWO_HAND_JOINT_MOVEMENT_SCORE
           ? 'movement'
-          : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
+        : orientationAssessable &&
+            components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
               components.orientation < MIN_TWO_HAND_ORIENTATION_SCORE
             ? 'coordination'
             : null
@@ -580,6 +617,7 @@ function scorePrepared(
   return {
     overall,
     ...components,
+    orientationAssessable,
     detectionQuality,
     assessable: true,
     passed: overall >= PASS_THRESHOLD,
@@ -602,7 +640,16 @@ function scorePrepared(
 function weightedComponentScore(
   components: Components,
   requiredHandCount: 1 | 2,
+  orientationAssessable = true,
 ) {
+  if (!orientationAssessable) {
+    const weighted =
+      components.handshape * 0.35 +
+      components.movement * 0.25 +
+      components.position * 0.1 +
+      components.coordination * 0.1;
+    return weighted / 0.8;
+  }
   return requiredHandCount === 2
     ? components.handshape * 0.35 +
         components.movement * 0.25 +
@@ -2127,6 +2174,7 @@ function emptyScore(
     handshape: 0,
     position: 0,
     orientation: 0,
+    orientationAssessable: false,
     movement: 0,
     coordination: 0,
     detectionQuality,

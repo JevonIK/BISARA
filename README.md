@@ -224,6 +224,10 @@ pnpm dev
 Open **http://localhost:3000** in your browser. The app will hot-reload when
 you edit source files.
 
+In the local development server, all chapters and missions are open for
+debugging. This does not mark them complete or change checker scores, rewards,
+or the normal progression rules in production.
+
 ### Full stack (frontend + backend API + database)
 
 To enable user accounts, server-synced progress, and the registration/login

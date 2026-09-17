@@ -250,10 +250,7 @@ void test('Teman tolerates bounded inner-joint noise while hands overlap', () =>
       point.y += handScale * 0.18 * -direction;
     }
   }
-  const alternatives = getSigns(signIds)
-    .filter((sign) => sign.id !== 'teman')
-    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
-  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+  const score = scoreGesture(frames, attempt);
   assert.equal(score.passed, true, JSON.stringify(score));
   assert.ok(score.handshape >= 85, JSON.stringify(score));
 });
@@ -278,7 +275,10 @@ void test('Teman ignores simultaneous hidden-joint drift while preserving finger
     }
   }
 
-  const score = scoreGesture(frames, attempt);
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'teman')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
   assert.equal(score.passed, true, JSON.stringify(score));
   assert.ok(score.handshape >= 85, JSON.stringify(score));
 });
@@ -316,6 +316,34 @@ void test('Teman grades sustained hand contact instead of exact wrist spacing', 
   const separatedHands = scoreGesture(frames, scaleTwoHandSpacing(frames, 1.7));
   assert.equal(separatedHands.passed, false, JSON.stringify(separatedHands));
   assert.equal(separatedHands.criticalMismatch, 'coordination');
+});
+
+void test('Teman does not reject an intact contact sign for unobservable palm orientation', () => {
+  const frames = reference('teman');
+  const angle = Math.PI / 3;
+  const attempt = structuredClone(frames).map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point) => {
+        const x = point.x - 0.5;
+        const y = point.y - 0.55;
+        return {
+          ...point,
+          x: 0.5 + x * Math.cos(angle) - y * Math.sin(angle),
+          y: 0.55 + x * Math.sin(angle) + y * Math.cos(angle),
+        };
+      }),
+    })),
+  }));
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'teman')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+  assert.equal(score.orientationAssessable, false);
+  assert.ok(score.orientation < 50, JSON.stringify(score));
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.movement >= 70 && score.coordination >= 90);
 });
 
 void test('Teman follows the fingers approaching despite a different wrist path', () => {

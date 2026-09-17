@@ -446,6 +446,7 @@ void test('only finishing all mission sections unlocks the next mission and pays
       handshape: 80,
       movement: 80,
       orientation: 80,
+      orientationAssessable: true,
       position: 80,
       coordination: 80,
       detectionQuality: 100,

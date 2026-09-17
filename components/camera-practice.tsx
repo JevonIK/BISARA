@@ -26,6 +26,7 @@ import {
   versionedSignVideo,
   type SignId,
 } from '@/lib/curriculum-data';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import {
   canAlternativeOutscore,
   getRequiredHandCount,
@@ -188,7 +189,6 @@ export function CameraPractice({
   const smoothedHandsRef = useRef<HandObservation[]>([]);
   const recordingStartRef = useRef(0);
   const recordingDurationRef = useRef(FALLBACK_RECORDING_DURATION_MS);
-  const referenceStartRef = useRef(0);
   const practicePhaseRef = useRef<PracticePhase>('idle');
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -207,6 +207,10 @@ export function CameraPractice({
     FALLBACK_RECORDING_DURATION_MS,
   );
   const [gestureScore, setGestureScore] = useState<GestureScore | null>(null);
+  const [attemptDiagnostics, setAttemptDiagnostics] = useState({
+    capturedFrames: 0,
+    twoHandFrames: 0,
+  });
   const [referenceReady, setReferenceReady] = useState(false);
   const [requiredHandCount, setRequiredHandCount] = useState(1);
   const [nextAction, setNextAction] = useState<NextAction | null>(null);
@@ -313,6 +317,9 @@ export function CameraPractice({
       scoringTimerRef.current = null;
     }
     frameBufferRef.current = [];
+    smoothedHandsRef.current = [];
+    latestPoseLandmarksRef.current = undefined;
+    latestPoseAtRef.current = 0;
 
     setCountdown(0);
     setRecordingProgress(0);
@@ -333,7 +340,6 @@ export function CameraPractice({
         referenceFramesRef.current = refFrames;
         const timing = getReferenceTiming(refFrames);
         recordingDurationRef.current = timing.durationMs;
-        referenceStartRef.current = timing.startMs;
         setRecordingDuration(timing.durationMs);
         setRequiredHandCount(getRequiredHandCount(refFrames));
         setReferenceReady(true);
@@ -442,7 +448,6 @@ export function CameraPractice({
         referenceFramesRef.current = refFrames;
         const timing = getReferenceTiming(refFrames);
         recordingDurationRef.current = timing.durationMs;
-        referenceStartRef.current = timing.startMs;
         setRecordingDuration(timing.durationMs);
         setRequiredHandCount(getRequiredHandCount(refFrames));
         setReferenceReady(true);
@@ -631,6 +636,11 @@ export function CameraPractice({
       if (!mountedRef.current || practicePhaseRef.current !== 'scoring') return;
       const referenceFrames = referenceFramesRef.current;
       const attemptFrames = frameBufferRef.current;
+      setAttemptDiagnostics({
+        capturedFrames: attemptFrames.length,
+        twoHandFrames: attemptFrames.filter((frame) => frame.hands.length >= 2)
+          .length,
+      });
       let result = scoreGesture(referenceFrames, attemptFrames);
       if (canAlternativeOutscore(result)) {
         const loading =
@@ -647,6 +657,8 @@ export function CameraPractice({
             result,
           );
         } catch {
+          // A transient template load must not poison every later retry.
+          alternativeFramesPromiseRef.current = undefined;
           result = {
             ...result,
             overall: 0,
@@ -735,7 +747,8 @@ export function CameraPractice({
     if (referenceVideo) {
       referenceVideo.loop = false;
       referenceVideo.playbackRate = PRACTICE_PLAYBACK_RATE;
-      referenceVideo.currentTime = referenceStartRef.current / 1000;
+      // The seek already happened before the countdown. Seeking again here can
+      // delay playback while the camera recording has already begun.
       void referenceVideo.play().catch(() => undefined);
     }
 
@@ -756,13 +769,15 @@ export function CameraPractice({
       return;
 
     frameBufferRef.current = [];
+    smoothedHandsRef.current = [];
+    latestPoseLandmarksRef.current = undefined;
+    latestPoseAtRef.current = 0;
     setRecordingProgress(0);
     setGestureScore(null);
     setNextAction(null);
 
     const timing = getReferenceTiming(referenceFramesRef.current);
     recordingDurationRef.current = timing.durationMs;
-    referenceStartRef.current = timing.startMs;
     setRecordingDuration(timing.durationMs);
 
     const referenceVideo = getReferenceVideo();
@@ -1024,9 +1039,11 @@ export function CameraPractice({
                   {countdown}
                 </span>
                 <p className="mt-4 text-sm font-bold text-white">
-                  {productionMode
-                    ? 'Bersiap — peragakan kata dari ingatan setelah hitungan'
-                    : 'Bersiap — contoh diputar perlahan setelah hitungan'}
+                  {signId === 'teman'
+                    ? 'Pisahkan kedua telunjuk di depan dada. Setelah hitungan, dekatkan hingga bertemu lalu tahan.'
+                    : productionMode
+                      ? 'Bersiap — peragakan kata dari ingatan setelah hitungan'
+                      : 'Bersiap — contoh diputar perlahan setelah hitungan'}
                 </p>
                 <p className="mt-2 text-xs text-white/70">
                   Pastikan tangan masuk bingkai saat “Mulai!”
@@ -1184,6 +1201,7 @@ export function CameraPractice({
               <QualitativeMetric
                 label="Arah telapak"
                 value={gestureScore.orientation}
+                unassessed={!gestureScore.orientationAssessable}
               />
               <QualitativeMetric
                 label={
@@ -1238,11 +1256,32 @@ export function CameraPractice({
             </p>
           ) : null}
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            {!gestureScore.orientationAssessable && gestureScore.assessable
+              ? 'Arah telapak tidak ikut menentukan hasil karena tangan pada contoh bertumpuk hampir sepanjang gerakan. '
+              : null}
             {gestureScore.positionRelativeToBody
               ? '“Posisi terhadap tubuh” membandingkan letak tangan dari bahu dan torso, sehingga tanda di kepala dan dada dapat dibedakan.'
               : 'Jangkar bahu belum stabil pada rekaman ini; posisi hanya dibandingkan terhadap gambar kamera dan tidak menjadi syarat kelulusan.'}{' '}
             Checker belum menilai ekspresi wajah atau tata bahasa BISINDO.
           </p>
+
+          {isCurriculumDebugUnlocked() ? (
+            <details className="mt-4 border border-signal-navy/10 p-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-bold text-signal-navy">
+                Diagnostik checker lokal
+              </summary>
+              <p className="mt-2 leading-5">
+                Total {gestureScore.overall}; bentuk {gestureScore.handshape};
+                gerak {gestureScore.movement}; arah {gestureScore.orientation}
+                {gestureScore.orientationAssessable ? '' : ' (tidak dinilai)'};
+                posisi {gestureScore.position}; koordinasi{' '}
+                {gestureScore.coordination}. Syarat gagal:{' '}
+                {gestureScore.criticalMismatch ?? 'tidak ada'}. Frame terekam:{' '}
+                {attemptDiagnostics.capturedFrames}, kedua tangan:{' '}
+                {attemptDiagnostics.twoHandFrames}.
+              </p>
+            </details>
+          ) : null}
 
           {gestureScore.passed && nextAction ? (
             <div className="mt-5 border border-signal-teal bg-signal-teal-soft p-4">
@@ -1503,13 +1542,17 @@ function QualitativeMetric({
   label,
   value,
   detection = false,
+  unassessed = false,
 }: {
   label: string;
   value: number;
   detection?: boolean;
+  unassessed?: boolean;
 }) {
   const state =
-    value >= 75
+    unassessed
+      ? 'Tidak dinilai'
+      : value >= 75
       ? detection
         ? 'Stabil'
         : 'Baik'
@@ -1524,7 +1567,9 @@ function QualitativeMetric({
       <span
         className={cn(
           'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1',
-          value >= 75
+          unassessed
+            ? 'bg-muted text-muted-foreground'
+            : value >= 75
             ? 'bg-signal-teal-soft text-emerald-800'
             : value >= 50
               ? 'bg-signal-yellow/25 text-amber-800'
@@ -1534,7 +1579,9 @@ function QualitativeMetric({
         <span
           className={cn(
             'size-1.5 rounded-full',
-            value >= 75
+            unassessed
+              ? 'bg-muted-foreground'
+              : value >= 75
               ? 'bg-signal-teal'
               : value >= 50
                 ? 'bg-signal-yellow'
