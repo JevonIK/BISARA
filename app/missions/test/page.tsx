@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { ArrowLeft, Flag } from 'lucide-react';
 import Link from 'next/link';
 
+import { Suspense } from 'react';
+
 import { AppHeader } from '@/components/app-header';
 import { MissionAssessment } from '@/components/mission-assessment';
 import { MissionSectionNavigation } from '@/components/mission-section-navigation';
@@ -55,26 +57,26 @@ export default async function MissionTestPage({
                 Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
               </span>
               <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-black text-[#E54D2E]">
-                {isRecall ? 'Uji Peragaan' : 'Tahap Latihan'}
+                Tahap Latihan
               </span>
             </div>
             <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
-              {isRecall ? 'Uji peragaan tanpa contoh' : 'Asah Kemampuanmu!'}
+              Asah Kemampuanmu!
             </h1>
             <p className="mt-2 text-sm sm:text-base font-semibold text-slate-700">
-              {isRecall
-                ? 'Peragakan kosakata yang dipelajari tanpa bantuan contoh video.'
-                : 'Selesaikan latihan singkat ini untuk mengunci kosakata yang baru kamu pelajari'}
+              Selesaikan latihan singkat ini untuk mengunci kosakata yang baru kamu pelajari
             </p>
           </div>
         )}
 
         <div className="mt-6">
-          <MissionAssessment
-            key={`${mission.id}:${params.mode ?? 'menu'}`}
-            missionId={mission.id}
-            initialMode={params.mode}
-          />
+          <Suspense fallback={null}>
+            <MissionAssessment
+              key={`${mission.id}:${params.mode ?? 'menu'}`}
+              missionId={mission.id}
+              initialMode={params.mode}
+            />
+          </Suspense>
         </div>
       </div>
 

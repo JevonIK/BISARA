@@ -10,6 +10,7 @@ import {
   Video,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { ProductionTest } from '@/components/production-test';
@@ -51,13 +52,16 @@ export function MissionAssessment({
   initialMode?: string;
 }) {
   const mission = getMission(missionId);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamMode = searchParams.get('mode') ?? initialMode;
   const progress = useProgress();
   const learning = getMissionLearningState(mission, progress);
   const initialView: View = ['context', 'conversation', 'recall'].includes(
-    initialMode ?? '',
+    searchParamMode ?? '',
   )
     ? 'recall'
-    : initialMode === 'recognition' || initialMode === 'translation'
+    : searchParamMode === 'recognition' || searchParamMode === 'translation'
       ? 'recognition'
       : 'menu';
   const [recognitionAttempt, setRecognitionAttempt] = useState(0);
@@ -66,6 +70,19 @@ export function MissionAssessment({
     [mission, recognitionAttempt],
   );
   const [view, setView] = useState<View>(initialView);
+
+  const [prevMode, setPrevMode] = useState(searchParamMode);
+  if (prevMode !== searchParamMode) {
+    setPrevMode(searchParamMode);
+    if (['context', 'conversation', 'recall'].includes(searchParamMode ?? '')) {
+      setView('recall');
+    } else if (
+      searchParamMode === 'recognition' ||
+      searchParamMode === 'translation'
+    ) {
+      setView('recognition');
+    }
+  }
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<SignId | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -114,14 +131,17 @@ export function MissionAssessment({
     return (
       <ProductionTest
         missionId={mission.id}
-        onExit={() => setView(learning.missionComplete ? 'complete' : 'menu')}
+        onExit={() => {
+          router.replace(`/missions/test?mission=${mission.id}`);
+          setView(learning.missionComplete ? 'complete' : 'menu');
+        }}
       />
     );
 
   if (view === 'recognition') {
     const question = questions[index];
     const sign = getSign(question.signId);
-    // Question 3 in a 5-question set (or every 3rd question) tests translation by typing, matching design screenshot
+    // Question 3 in a 5-question set tests translation by typing (matching uploaded_media_2_1789658260613.png)
     const isTyping = !preferMultipleChoice && (index + 1) === 3;
     const canSubmit = isTyping ? typedText.trim().length > 0 : Boolean(selected);
 
@@ -196,7 +216,7 @@ export function MissionAssessment({
             <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
               Apa arti tanda dalam video ini?
             </h2>
-            <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-black shadow-inner">
+            <div className="relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-2xl bg-black shadow-inner">
               <div className="absolute top-3.5 left-3.5 z-10 rounded-full bg-black/65 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-xs">
                 WL-BISINDO • Banten
               </div>
@@ -283,24 +303,22 @@ export function MissionAssessment({
               </div>
             )}
 
-            <div className="mt-8">
-              <button
-                type="button"
-                disabled={!canSubmit}
-                onClick={submit}
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm sm:text-base font-black text-white transition-all',
-                  canSubmit
-                    ? 'bg-slate-900 hover:bg-slate-800 shadow-md active:scale-[0.99] cursor-pointer'
-                    : 'bg-[#7E858B] cursor-not-allowed opacity-80',
-                )}
-              >
-                {index === questions.length - 1
-                  ? 'Lihat hasil'
-                  : 'Periksa jawaban'}
-                <ArrowRight className="size-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!canSubmit}
+              className={cn(
+                'mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black transition-all shadow-xs cursor-pointer',
+                canSubmit
+                  ? 'bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99]'
+                  : 'bg-[#7E858B] text-white cursor-not-allowed opacity-90',
+              )}
+            >
+              {index === questions.length - 1
+                ? 'Lihat hasil'
+                : 'Periksa jawaban'}
+              <ArrowRight className="size-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -383,15 +401,23 @@ export function MissionAssessment({
           {passed ? (
             <Link
               href={`/missions/test?mission=${mission.id}&mode=recall`}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3.5 text-sm sm:text-base font-black text-white hover:bg-slate-800 transition-all shadow-sm"
+              onClick={() => {
+                setView('recall');
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3.5 text-sm sm:text-base font-black text-white hover:bg-slate-800 transition-all shadow-sm cursor-pointer"
             >
               Lanjut ke Uji peragaan <ArrowRight className="size-4" />
             </Link>
           ) : null}
           <Button
             size="lg"
-            onClick={startRecognition}
-            className="rounded-full border-2 border-slate-200 bg-white font-black text-slate-800 hover:bg-slate-50 px-6 py-3.5"
+            onClick={() => {
+              router.replace(
+                `/missions/test?mission=${mission.id}&mode=recognition`,
+              );
+              startRecognition();
+            }}
+            className="rounded-full border-2 border-slate-200 bg-white font-black text-slate-800 hover:bg-slate-50 px-6 py-3.5 cursor-pointer"
           >
             <RefreshCw className="size-4" /> Ulangi tes
           </Button>
@@ -470,6 +496,7 @@ export function MissionAssessment({
         description="Lihat kata, lalu peragakan dengan kamera tanpa contoh. Setiap tanda perlu melewati checker; progres tersimpan per tanda."
         meta={`${learning.productionPassedCount}/${learning.productionSignCount} tanda lulus`}
         href={`/missions/test?mission=${mission.id}&mode=recall`}
+        onStart={() => setView('recall')}
         locked={!learning.recognitionComplete}
       />
     </section>
@@ -517,6 +544,7 @@ function ModeCard({
         {href && !locked ? (
           <Link
             href={href}
+            onClick={onStart}
             className="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-black text-white hover:bg-slate-800 transition-all flex items-center gap-2"
           >
             <Play className="size-4" /> Mulai

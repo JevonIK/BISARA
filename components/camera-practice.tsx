@@ -869,10 +869,11 @@ export function CameraPractice({
     },
     {
       label: 'Tangan terlihat',
-      detail:
-        handCount >= requiredHandCount
+      detail: isReady
+        ? handCount >= requiredHandCount
           ? `${handCount} terdeteksi`
-          : `${handCount}/${requiredHandCount} terdeteksi`,
+          : `${handCount}/${requiredHandCount} terdeteksi`
+        : 'Belum terdeteksi',
       passed: handCount >= requiredHandCount,
       icon: Hand,
     },
@@ -913,7 +914,7 @@ export function CameraPractice({
         'grid items-stretch gap-5',
         exampleCard
           ? 'grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[300px_1fr_300px]'
-          : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]',
+          : 'grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]',
       )}
     >
       {exampleCard}
@@ -950,15 +951,13 @@ export function CameraPractice({
               <div className="max-w-md">
                 <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
                   {status === 'denied' || status === 'unavailable' ? (
-                    <CameraOff className="size-8" />
+                     <CameraOff className="size-8" />
                   ) : (
                     <Camera className="size-8" />
                   )}
                 </span>
                 <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
-                  {productionMode
-                    ? 'Siapkan kamera uji'
-                    : 'Siapkan kamera latihan'}
+                  Siapkan kamera latihan
                 </h2>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
                   Video diproses langsung di browser. BISARA tidak merekam atau
@@ -1096,111 +1095,74 @@ export function CameraPractice({
           )}
         </div>
 
-        {(!exampleCard || errorMessage || (isReady && practicePhase !== 'scoring')) && (
-          <div
-            className={cn(
-              'flex flex-col gap-4 border-t border-white/10 px-5 py-4 text-white sm:flex-row sm:items-center',
-              exampleCard ? 'justify-end' : 'justify-between',
-            )}
-          >
-            {!exampleCard && (
-              <div aria-live="polite">
-                <p className="text-xs font-black uppercase tracking-[0.13em] text-signal-teal">
-                  Status kamera
-                </p>
-                <p className="mt-1 text-sm font-bold">
-                  {cameraStatusLabel(status, handCount)}
-                </p>
-                {errorMessage && (
-                  <p className="mt-1 max-w-xl text-xs leading-5 text-signal-coral">
-                    {errorMessage}
-                  </p>
-                )}
-              </div>
-            )}
-            {exampleCard && errorMessage && (
-              <p className="max-w-xl text-xs leading-5 text-signal-coral">
+        {/* Unified Bottom Dark Status & Control Bar matching reference design */}
+        <div className="flex flex-col gap-4 border-t border-white/10 bg-[#0B0F19] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div aria-live="polite">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#00D5D1] block">
+              STATUS KAMERA
+            </span>
+            <p className="mt-0.5 text-sm sm:text-base font-bold text-white">
+              {practicePhase === 'countdown'
+                ? 'Bersiap…'
+                : practicePhase === 'recording'
+                  ? `Merekam gerakan tanda “${signLabel}”…`
+                  : practicePhase === 'scoring'
+                    ? 'Menganalisis kecocokan gerakan…'
+                    : practicePhase === 'result'
+                      ? 'Latihan selesai'
+                      : isReady
+                        ? 'Kamera aktif & siap berlatih'
+                        : cameraStatusLabel(status, handCount)}
+            </p>
+            {errorMessage && (
+              <p className="mt-1 max-w-xl text-xs leading-5 text-signal-coral">
                 {errorMessage}
               </p>
             )}
+          </div>
 
-          <div className="flex gap-2">
-            {isReady && practicePhase === 'idle' && (
-              <Button
-                type="button"
-                onClick={startPractice}
-                disabled={!canStartPractice}
-                className="bg-signal-teal font-extrabold text-signal-navy hover:bg-signal-teal/90"
-              >
-                <Play className="size-4" />{' '}
-                {productionMode ? 'Mulai uji' : 'Mulai latihan'}
-              </Button>
-            )}
-            {isReady &&
-              (practicePhase === 'countdown' ||
-                practicePhase === 'recording') && (
+          {isReady && (
+            <div className="flex flex-wrap items-center gap-2">
+              {practicePhase === 'idle' && (
+                <Button
+                  type="button"
+                  onClick={startPractice}
+                  disabled={!canStartPractice}
+                  className="rounded-full bg-[#00D5D1] px-5 py-2 font-black text-slate-950 hover:bg-[#00BDCD] shadow-sm"
+                >
+                  <Play className="size-4" />{' '}
+                  {productionMode ? 'Mulai uji' : 'Mulai latihan'}
+                </Button>
+              )}
+              {(practicePhase === 'countdown' || practicePhase === 'recording') && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={cancelPractice}
-                  className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
                 >
                   <X className="size-4" /> Batalkan
                 </Button>
               )}
-            {isReady && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  // Keep the camera session warm and start the next attempt
-                  // immediately instead of returning to the setup screen.
-                  onClick={retryPractice}
-                  disabled={
-                    practicePhase !== 'idle' && practicePhase !== 'result'
-                  }
-                  className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                >
-                  <RefreshCw className="size-4" /> Muat ulang
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={stopCamera}
-                  className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                >
-                  <CameraOff className="size-4" /> Matikan
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-        )}
-
-        {/* Bottom White Status Bar */}
-        <div className="bg-white px-6 py-4 border-t border-slate-100">
-          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
-            STATUS KAMERA
-          </span>
-          <p className="mt-0.5 text-sm sm:text-base font-black text-slate-900">
-            {status === 'idle'
-              ? 'Kamera belum aktif'
-              : status === 'requesting'
-                ? 'Menunggu izin kamera…'
-                : status === 'loading-model' || status === 'loading-reference'
-                  ? 'Memuat deteksi landmark tangan…'
-                  : practicePhase === 'countdown'
-                    ? 'Bersiap…'
-                    : practicePhase === 'recording'
-                      ? `Merekam gerakan tanda “${signLabel}”…`
-                      : practicePhase === 'scoring'
-                        ? 'Menganalisis kecocokan gerakan…'
-                        : practicePhase === 'result'
-                          ? 'Latihan selesai'
-                          : isReady
-                            ? 'Kamera aktif & siap berlatih'
-                            : 'Kamera belum siap'}
-          </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={retryPractice}
+                disabled={practicePhase !== 'idle' && practicePhase !== 'result'}
+                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <RefreshCw className="size-4" /> Muat ulang
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={stopCamera}
+                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <CameraOff className="size-4" /> Matikan
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 

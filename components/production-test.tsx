@@ -77,36 +77,38 @@ export function ProductionTest({
     recordProductionAssessment(missionId, activeSignId, score);
   };
 
-  const progressPercent = Math.round((passedIds.length / signIds.length) * 100);
+  const currentIndex = signIds.indexOf(activeSignId);
+  const questionNumber = currentIndex >= 0 ? currentIndex + 1 : 1;
+  const progressPercent = Math.round((questionNumber / signIds.length) * 100);
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 shadow-xs border border-amber-200/50">
-        {/* Top Progress Bar matching recognition test */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between text-xs font-black tracking-wider text-slate-800 mb-2">
-            <span>TANDA {passedIds.length + (activePassed ? 0 : 1)} DARI {signIds.length}</span>
-            <span>{progressPercent}%</span>
+      <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 lg:p-10 shadow-xs border border-amber-200/50">
+        {/* Top Progress Track matching reference */}
+        <div className="mb-6 sm:mb-8 border-b border-slate-100 pb-6">
+          <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+            <span className="text-slate-900">
+              Soal {questionNumber} dari {signIds.length}
+            </span>
+            <span className="text-slate-500">{progressPercent}%</span>
           </div>
-          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full bg-[#E54D2E] transition-all duration-300 rounded-full"
+              className="h-full rounded-full bg-[#E54D2E] transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-5">
+        {/* Question Heading matching reference */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-[#E54D2E] block mb-1">
-              UJI PERAGAAN KAMERA
+            <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+              TIRUKAN TANDA
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-              Peragakan Tanda: <span className="text-[#00B4B0] underline decoration-[#00B4B0]/40">{sign.label}</span>
+            <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+              Tunjukkan isyarat untuk kata: <span className="text-slate-900">{sign.label}</span>
             </h2>
-            <p className="mt-1 text-xs text-slate-500 font-medium">
-              Pikirkan gerakannya dulu. Aktifkan kamera dan tekan &ldquo;Mulai uji&rdquo; saat siap.
-            </p>
           </div>
           <Button
             variant="outline"
@@ -117,8 +119,23 @@ export function ProductionTest({
           </Button>
         </div>
 
-        {/* Sign Stepper Pills */}
-        <div className="mt-5 flex flex-wrap gap-2">
+        {/* Camera Practice with Calibration Card */}
+        <div className="mt-6 sm:mt-8">
+          <CameraPractice
+            key={activeSignId}
+            signId={activeSignId}
+            signLabel={sign.label}
+            referenceVideoUrl={versionedSignVideo(sign.videoSrc)}
+            missionId={missionId}
+            missionSignIds={signIds}
+            productionMode
+            onProductionResult={handleResult}
+          />
+        </div>
+
+        {/* Sign Stepper Quick Jump */}
+        <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5">
+          <span className="text-xs font-bold text-slate-400 mr-1">Daftar tanda:</span>
           {signIds.map((id, index) => {
             const isCurrent = id === activeSignId;
             const isPassed = passedIds.includes(id);
@@ -130,7 +147,7 @@ export function ProductionTest({
                   setSelectedSignId(id);
                   setLastResult(null);
                 }}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all ${
                   isCurrent
                     ? 'bg-slate-900 text-white shadow-xs'
                     : isPassed
@@ -145,61 +162,45 @@ export function ProductionTest({
           })}
         </div>
 
-        {progress.completedMissionIds.includes(missionId) && remainingIds.length > 0 ? (
-          <p className="mt-4 text-xs leading-5 text-slate-500">
-            Misi ini sudah tercatat selesai sebelum uji peragaan memakai checker. Kamu dapat menguji ulang tanpa menghapus progres lama.
-          </p>
+        {/* Result Action Banner */}
+        {activePassed ? (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-5 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
+                <Check className="size-5 stroke-[3]" />
+              </div>
+              <p className="text-sm font-bold text-emerald-950">
+                Hebat! Tanda <span className="font-black underline">{sign.label}</span> lulus uji tanpa contoh.
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                setSelectedSignId(nextSignId ?? null);
+                setLastResult(null);
+              }}
+              className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 h-auto flex items-center gap-2 shadow-xs"
+            >
+              {nextSignId
+                ? `Lanjut ke soal berikutnya →`
+                : 'Lihat ringkasan'}
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
+        ) : result?.assessable && !result.passed ? (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 shadow-xs">
+            <p className="max-w-xl text-xs sm:text-sm font-medium leading-relaxed text-amber-950">
+              Tanda ini belum lulus. Coba lagi dengan tombol di hasil checker,
+              atau pelajari ulang contohnya sebelum kembali ke uji.
+            </p>
+            <Link
+              href={`/missions/practice?mission=${exampleMission?.id ?? missionId}&sign=${activeSignId}&source=production&returnMission=${missionId}`}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-bold text-amber-950 shadow-xs hover:bg-amber-100/50 transition-colors"
+            >
+              <RotateCcw className="size-3.5" /> Pelajari ulang di Tirukan
+            </Link>
+          </div>
         ) : null}
       </div>
-
-      <CameraPractice
-        key={activeSignId}
-        signId={activeSignId}
-        signLabel={sign.label}
-        referenceVideoUrl={versionedSignVideo(sign.videoSrc)}
-        missionId={missionId}
-        missionSignIds={signIds}
-        productionMode
-        onProductionResult={handleResult}
-      />
-
-      {activePassed ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-5 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
-              <Check className="size-5 stroke-[3]" />
-            </div>
-            <p className="text-sm font-bold text-emerald-950">
-              Hebat! Tanda <span className="font-black underline">{sign.label}</span> lulus uji tanpa contoh.
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              setSelectedSignId(nextSignId ?? null);
-              setLastResult(null);
-            }}
-            className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 h-auto flex items-center gap-2 shadow-xs"
-          >
-            {nextSignId
-              ? `Lanjut ke ${getSign(nextSignId).label}`
-              : 'Lihat ringkasan'}
-            <ArrowRight className="size-4" />
-          </Button>
-        </div>
-      ) : result?.assessable && !result.passed ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 shadow-xs">
-          <p className="max-w-xl text-xs sm:text-sm font-medium leading-relaxed text-amber-950">
-            Tanda ini belum lulus. Coba lagi dengan tombol di hasil checker,
-            atau pelajari ulang contohnya sebelum kembali ke uji.
-          </p>
-          <Link
-            href={`/missions/practice?mission=${exampleMission?.id ?? missionId}&sign=${activeSignId}&source=production&returnMission=${missionId}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-bold text-amber-950 shadow-xs hover:bg-amber-100/50 transition-colors"
-          >
-            <RotateCcw className="size-3.5" /> Lihat contoh di Tirukan
-          </Link>
-        </div>
-      ) : null}
     </section>
   );
 }
