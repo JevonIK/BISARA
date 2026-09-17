@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { AppHeader } from '@/components/app-header';
 import { CameraPractice } from '@/components/camera-practice';
@@ -38,6 +39,7 @@ export default async function PracticePage({
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
+  if (mission.type === 'alphabet') redirect(mission.href);
   const chapter = getChapterForMission(mission.id);
   const requestedSign =
     params.sign &&

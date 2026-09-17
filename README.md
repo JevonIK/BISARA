@@ -6,7 +6,8 @@ recognition, and perform signs from memory without an example.
 
 ## Current learning flow (September 2026)
 
-- The active curriculum has 4 chapters, 20 missions, and all 32 dataset words.
+- The active curriculum has 5 chapters and 25 missions: 20 missions for all 32
+  word-level signs, followed by 5 alphabet missions covering A–Z.
 - Required flow: **Amati → Tirukan → Uji pengenalan → Uji peragaan**.
   After all signs pass camera practice and recognition reaches at least 70,
   learners perform each mission sign from memory with the camera checker before
@@ -35,6 +36,10 @@ recognition, and perform signs from memory without an example.
   `signMastery[id]` fields. The API schema accepts these in the existing JSONB
   column; no database migration is required. Restart/rebuild the API before
   syncing the new production pass field.
+- Chapter 5 is a reference-video lesson for spelling names and places. Learners
+  watch each letter clip, then finish the mission; alphabet letters are not
+  scored by the camera checker. The existing completed mission IDs store its
+  progress without a new database table.
 
 The milestones below describe earlier iterations; the current flow above
 supersedes their scenario-completion and review requirements.
@@ -323,6 +328,13 @@ first activated. MediaPipe may send performance and usage metrics as described
 in its vendor privacy notice, but camera input remains on the device.
 
 ## Third-party attribution
+
+The 26 Chapter 5 alphabet clips are selected and web-encoded from the
+_Indonesian Sign Language Dataset: Alphabet Video_ by Indah Siradjuddin,
+DOI [10.17632/p7j5jrsbbb.1](https://doi.org/10.17632/p7j5jrsbbb.1),
+licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Selection and conversion details are in [the alphabet dataset notes](docs/alphabet-dataset.md).
+The dataset's creator does not endorse BISARA.
 
 Hand and body landmark detection use
 [`@mediapipe/tasks-vision`](https://www.npmjs.com/package/@mediapipe/tasks-vision)

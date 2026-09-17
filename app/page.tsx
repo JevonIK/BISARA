@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { AppHeader } from '@/components/app-header';
 import { ChapterAccordionCard } from '@/components/chapter-accordion-card';
 import { useProgress } from '@/hooks/use-progress';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import { chapters, getChapterForMission } from '@/lib/learning-data';
 import {
   getCurrentMission,
@@ -27,9 +28,6 @@ export default function Home() {
   const progress = useProgress();
   const currentMission = getCurrentMission(progress);
   const currentChapter = getChapterForMission(currentMission.id);
-  const currentChapterIndex = chapters.findIndex(
-    (chapter) => chapter.id === currentChapter.id,
-  );
   const missionState = getMissionLearningState(currentMission, progress);
   const completedMissions = getPrototypeMissionCount(progress);
   const badgeCount = [
@@ -216,9 +214,15 @@ export default function Home() {
               <BookOpen className="size-4" /> Perjalanan Belajarmu
             </p>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-              Empat bab, satu tujuan nyata.
+              Lima bab, satu tujuan nyata.
             </h2>
           </div>
+
+          {isCurriculumDebugUnlocked() ? (
+            <p className="mb-6 rounded-2xl border border-cyan-400 bg-cyan-50 px-5 py-3 text-sm font-bold text-slate-800">
+              Mode debug lokal: semua bab dan misi terbuka. Progres dan hasil checker tetap asli.
+            </p>
+          ) : null}
 
           <div className="space-y-6">
             {chapters.map((chapter, index) => (
@@ -230,7 +234,6 @@ export default function Home() {
                 onToggle={() => toggleChapter(chapter.id)}
                 progress={progress}
                 currentMission={currentMission}
-                currentChapterIndex={currentChapterIndex}
               />
             ))}
           </div>

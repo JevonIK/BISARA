@@ -30,6 +30,7 @@ import { allMissions } from '@/lib/learning-data';
 import { signs } from '@/lib/curriculum-data';
 import { getReviewSignIds } from '@/lib/progress-storage';
 import {
+  getChapterProgress,
   getCurrentMission,
   getMissionLearningState,
   getPrototypeMissionCount,
@@ -297,15 +298,22 @@ export function ProgressDashboard() {
               ambang checker. Ambangnya masih perlu dikalibrasi bersama
               validator Tuli.
             </p>
-            <MasteryRow
-              label={`Uji peragaan: ${missionLearning.productionPassedCount}/${missionLearning.productionSignCount} tanda lulus`}
-              value={
-                (missionLearning.productionPassedCount /
-                  missionLearning.productionSignCount) *
-                100
-              }
-              color="bg-signal-coral"
-            />
+            {currentMission.type === 'alphabet' ? (
+              <MasteryRow
+                label="Materi alfabet: misi selesai"
+                value={getChapterProgress('chapter-5', userProgress)}
+                color="bg-signal-coral"
+              />
+            ) : (
+              <MasteryRow
+                label={`Uji peragaan: ${missionLearning.productionPassedCount}/${missionLearning.productionSignCount} tanda lulus`}
+                value={
+                  (missionLearning.productionPassedCount /
+                    missionLearning.productionSignCount) * 100
+                }
+                color="bg-signal-coral"
+              />
+            )}
           </div>
         </article>
 

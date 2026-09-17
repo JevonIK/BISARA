@@ -1,4 +1,5 @@
 import { getSigns } from '@/lib/curriculum-data';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import {
   allMissions,
   chapters,
@@ -18,6 +19,7 @@ export type LearningStageState = 'completed' | 'current' | 'locked';
 export function isMissionUnlocked(missionId: string, progress: UserProgress) {
   const index = getMissionPosition(missionId);
   return (
+    isCurriculumDebugUnlocked() ||
     index <= 0 ||
     progress.completedMissionIds.includes(allMissions[index - 1].id) ||
     progress.completedMissionIds.includes(missionId)
@@ -30,6 +32,31 @@ export function getMissionLearningState(
 ) {
   const mission =
     typeof missionOrId === 'string' ? getMission(missionOrId) : missionOrId;
+  if (mission.type === 'alphabet') {
+    const missionComplete = progress.completedMissionIds.includes(mission.id);
+    const unlocked = isMissionUnlocked(mission.id, progress);
+    return {
+      mission,
+      missionSigns: [],
+      masteredSignIds: [],
+      masteredSignCount: 0,
+      practiceStarted: false,
+      practiceComplete: false,
+      recognitionScore: 0,
+      recognitionComplete: false,
+      missionComplete,
+      conversationComplete: missionComplete,
+      productionPassedCount: 0,
+      productionSignCount: 0,
+      progressPercent: missionComplete ? 100 : 0,
+      unlocked,
+      next: !unlocked
+        ? { href: '/missions', label: 'Selesaikan misi sebelumnya' }
+        : missionComplete
+          ? getNextMissionAction(mission.id)
+          : { href: mission.href, label: `Pelajari huruf ${mission.title}` },
+    };
+  }
   const missionSigns = getSigns(mission.signIds);
   const masteredSignIds = missionSigns
     .filter((sign) => progress.signMastery[sign.id]?.passed)
@@ -128,6 +155,9 @@ export function getMissionReplayAction(missionOrId: Mission | string) {
     typeof missionOrId === 'string' ? getMission(missionOrId) : missionOrId;
   const missionQuery = `mission=${mission.id}`;
 
+  if (mission.type === 'alphabet') {
+    return { href: mission.href, label: 'Ulangi materi alfabet' };
+  }
   return mission.type === 'checkpoint'
     ? {
         href: `/missions/test?${missionQuery}&mode=recognition&replay=1`,

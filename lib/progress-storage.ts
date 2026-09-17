@@ -1,6 +1,7 @@
 import type { StarRating } from '@/lib/scoring';
 import type { GestureScore } from '@/lib/gesture-scoring';
 import { signIds, signs, type SignId } from '@/lib/curriculum-data';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import {
   allMissions,
   buildRecognitionQuestions,
@@ -369,7 +370,9 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
       );
     }
     for (const missionId of completedMissionIds) {
-      missionScores[missionId] = Math.max(missionScores[missionId] ?? 0, 70);
+      if (getMission(missionId).type !== 'alphabet') {
+        missionScores[missionId] = Math.max(missionScores[missionId] ?? 0, 70);
+      }
     }
     const recordedConversationCompletions = Object.values(
       conversationCompletionsByMission,
@@ -465,6 +468,23 @@ function completeEligibleMission(
   missionId: string,
 ): UserProgress {
   const mission = getMission(missionId);
+  if (mission.type === 'alphabet') {
+    const position = allMissions.findIndex((item) => item.id === missionId);
+    const previous = allMissions[position - 1];
+    if (
+      progress.completedMissionIds.includes(missionId) ||
+      position < 0 ||
+      (previous && !progress.completedMissionIds.includes(previous.id) &&
+        !isCurriculumDebugUnlocked())
+    ) return progress;
+    const completedMissionIds = [...progress.completedMissionIds, missionId];
+    return {
+      ...progress,
+      completedMissionIds,
+      completedMissions: completedMissionIds.length,
+      xp: progress.xp + mission.xp,
+    };
+  }
   if (
     progress.completedMissionIds.includes(missionId) ||
     (progress.missionScores[missionId] ?? 0) < 70 ||

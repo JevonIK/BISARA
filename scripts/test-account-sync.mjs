@@ -9,6 +9,8 @@ const directory = await mkdtemp(path.join(tmpdir(), 'bisara-sync-test-'));
 const sources = [
   'lib/scoring.ts',
   'lib/curriculum-data.ts',
+  'lib/debug-unlock.ts',
+  'lib/alphabet-data.ts',
   'lib/learning-data.ts',
   'lib/berkenalan-data.ts',
   'lib/learning-progress.ts',

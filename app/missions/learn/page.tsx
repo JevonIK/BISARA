@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
+import { AlphabetMission } from '@/components/alphabet-mission';
 import {
   MissionHeroProgress,
   MissionStageList,
@@ -36,6 +37,9 @@ export default async function MissionLearningPage({
   const { mission: missionId } = await searchParams;
   const mission = getMission(missionId);
   const chapter = getChapterForMission(mission.id);
+  if (mission.type === 'alphabet') {
+    return <AlphabetMission key={mission.id} mission={mission} chapter={chapter} />;
+  }
   const missionSigns = getSigns(mission.signIds);
 
   return (
