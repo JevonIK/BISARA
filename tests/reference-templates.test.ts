@@ -34,6 +34,86 @@ function reference(id: (typeof signIds)[number]) {
   return manifest.frames[filename];
 }
 
+function mirrorDominantHand(frames: GestureFrame[]) {
+  return frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      handedness: hand.handedness === 'Right' ? 'Left' : 'Right',
+      landmarks: hand.landmarks.map((point) => ({
+        ...point,
+        x: 1 - point.x,
+      })),
+      worldLandmarks: hand.worldLandmarks?.map((point) => ({
+        ...point,
+        x: -point.x,
+      })),
+    })),
+  }));
+}
+
+function scaleTwoHandSpacing(frames: GestureFrame[], factor: number) {
+  return structuredClone(frames).map((frame) => {
+    if (frame.hands.length !== 2) return frame;
+    const center = {
+      x: (frame.hands[0].landmarks[0].x + frame.hands[1].landmarks[0].x) / 2,
+      y: (frame.hands[0].landmarks[0].y + frame.hands[1].landmarks[0].y) / 2,
+    };
+    return {
+      ...frame,
+      hands: frame.hands.map((hand) => {
+        const wrist = hand.landmarks[0];
+        const deltaX = (wrist.x - center.x) * (factor - 1);
+        const deltaY = (wrist.y - center.y) * (factor - 1);
+        return {
+          ...hand,
+          landmarks: hand.landmarks.map((point) => ({
+            ...point,
+            x: point.x + deltaX,
+            y: point.y + deltaY,
+          })),
+        };
+      }),
+    };
+  });
+}
+
+function withBodyPose(frames: GestureFrame[]) {
+  return structuredClone(frames).map((frame) => {
+    if (!frame.hands.length) return frame;
+    const poseLandmarks = Array.from({ length: 33 }, () => ({
+      x: 0.5,
+      y: 0.55,
+      z: 0,
+    }));
+    poseLandmarks[11] = { x: 0.35, y: 0.35, z: 0 };
+    poseLandmarks[12] = { x: 0.65, y: 0.35, z: 0 };
+    poseLandmarks[23] = { x: 0.4, y: 0.75, z: 0 };
+    poseLandmarks[24] = { x: 0.6, y: 0.75, z: 0 };
+    poseLandmarks[15] = { ...frame.hands[0].landmarks[0] };
+    poseLandmarks[16] = {
+      ...(frame.hands[1]?.landmarks[0] ?? frame.hands[0].landmarks[0]),
+    };
+    return { ...frame, poseLandmarks };
+  });
+}
+
+function shiftHandsVertically(frames: GestureFrame[], deltaY: number) {
+  return structuredClone(frames).map((frame) => ({
+    ...frame,
+    poseLandmarks: frame.poseLandmarks?.map((point, index) =>
+      index === 15 || index === 16 ? { ...point, y: point.y + deltaY } : point,
+    ),
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point) => ({
+        ...point,
+        y: point.y + deltaY,
+      })),
+    })),
+  }));
+}
+
 void test('all 32 stored references match the current videos and remain usable', async () => {
   assert.equal(manifest.version, SIGN_VIDEO_VERSION);
   assert.equal(Object.keys(manifest.frames).length, signIds.length);
@@ -78,6 +158,238 @@ void test('all 32 signs tolerate small landmark jitter', () => {
       `${id}: a small tracking fluctuation should not fail the correct sign`,
     );
   }
+});
+
+void test('Siapa tolerates overlap noise on inner curled-finger landmarks', () => {
+  const frames = reference('siapa');
+  const attempt = structuredClone(frames);
+  for (const [frameIndex, frame] of attempt.entries()) {
+    for (const hand of frame.hands) {
+      const wrist = hand.landmarks[0];
+      const middleBase = hand.landmarks[9];
+      const handScale = Math.hypot(
+        middleBase.x - wrist.x,
+        middleBase.y - wrist.y,
+      );
+      for (const pointIndex of [6, 7, 10, 11, 14, 15, 18, 19]) {
+        const direction = (frameIndex + pointIndex) % 2 ? 1 : -1;
+        const point = hand.landmarks[pointIndex];
+        point.x += handScale * 0.24 * direction;
+        point.y += handScale * 0.14 * -direction;
+      }
+    }
+  }
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'siapa')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.handshape >= 75, JSON.stringify(score));
+});
+
+void test('Siapa and Terima kasih accept the opposite dominant hand', () => {
+  for (const id of ['siapa', 'terima-kasih'] as const) {
+    const frames = reference(id);
+    assert.equal(getRequiredHandCount(frames), 1, id);
+    const alternatives = getSigns(signIds)
+      .filter((sign) => sign.id !== id)
+      .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+    const score = scoreGestureWithAlternatives(
+      frames,
+      mirrorDominantHand(frames),
+      alternatives,
+    );
+    assert.equal(score.passed, true, `${id}: ${JSON.stringify(score)}`);
+  }
+});
+
+void test('Terima kasih stays accepted across small tracking variations', () => {
+  const frames = reference('terima-kasih');
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'terima-kasih')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  for (const seed of [3, 11, 29]) {
+    const attempt = frames.map((frame, frameIndex) => ({
+      ...frame,
+      hands: frame.hands.map((hand, handIndex) => ({
+        ...hand,
+        landmarks: hand.landmarks.map((point, pointIndex) => ({
+          ...point,
+          x:
+            point.x +
+            Math.sin(seed + frameIndex * 13 + pointIndex * 5 + handIndex) *
+              0.0015,
+          y:
+            point.y +
+            Math.cos(seed + frameIndex * 17 + pointIndex * 3 + handIndex) *
+              0.0015,
+        })),
+      })),
+    }));
+    const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+    assert.equal(score.passed, true, `seed ${seed}: ${JSON.stringify(score)}`);
+  }
+});
+
+void test('Teman tolerates bounded inner-joint noise while hands overlap', () => {
+  const frames = reference('teman');
+  const attempt = structuredClone(frames);
+  for (const [frameIndex, frame] of attempt.entries()) {
+    if (frame.hands.length !== 2) continue;
+    const hand = frame.hands[frameIndex % 3 === 0 ? 0 : 1];
+    const wrist = hand.landmarks[0];
+    const middleBase = hand.landmarks[9];
+    const handScale = Math.hypot(
+      middleBase.x - wrist.x,
+      middleBase.y - wrist.y,
+    );
+    for (const pointIndex of [6, 7, 10, 11, 14, 15, 18, 19]) {
+      const direction = (frameIndex + pointIndex) % 2 ? 1 : -1;
+      const point = hand.landmarks[pointIndex];
+      point.x += handScale * 0.3 * direction;
+      point.y += handScale * 0.18 * -direction;
+    }
+  }
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'teman')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.handshape >= 85, JSON.stringify(score));
+});
+
+void test('Teman ignores simultaneous hidden-joint drift while preserving fingertip evidence', () => {
+  const frames = reference('teman');
+  const attempt = structuredClone(frames);
+  for (const [frameIndex, frame] of attempt.entries()) {
+    for (const [handIndex, hand] of frame.hands.entries()) {
+      const wrist = hand.landmarks[0];
+      const middleBase = hand.landmarks[9];
+      const handScale = Math.hypot(
+        middleBase.x - wrist.x,
+        middleBase.y - wrist.y,
+      );
+      for (const pointIndex of [2, 3, 6, 7, 10, 11, 14, 15, 18, 19]) {
+        const direction = (frameIndex + pointIndex + handIndex) % 2 ? 1 : -1;
+        const point = hand.landmarks[pointIndex];
+        point.x += handScale * 0.25 * direction;
+        point.y += handScale * 0.15 * -direction;
+      }
+    }
+  }
+
+  const score = scoreGesture(frames, attempt);
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.handshape >= 85, JSON.stringify(score));
+});
+
+void test('Teman accepts consistent signer variation below the strict unobstructed-hand threshold', () => {
+  const frames = reference('teman');
+  const attempt = structuredClone(frames);
+  for (const frame of attempt) {
+    for (const hand of frame.hands) {
+      const wrist = hand.landmarks[0];
+      const middleBase = hand.landmarks[9];
+      const handScale = Math.hypot(
+        middleBase.x - wrist.x,
+        middleBase.y - wrist.y,
+      );
+      for (const pointIndex of [4, 8, 12, 16, 20]) {
+        const point = hand.landmarks[pointIndex];
+        point.x += handScale * 0.085;
+        point.y -= handScale * 0.035;
+      }
+    }
+  }
+
+  const score = scoreGesture(frames, attempt);
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.handshape >= 70, JSON.stringify(score));
+});
+
+void test('Teman grades sustained hand contact instead of exact wrist spacing', () => {
+  const frames = reference('teman');
+  const naturalSpacing = scoreGesture(frames, scaleTwoHandSpacing(frames, 1.4));
+  assert.equal(naturalSpacing.passed, true, JSON.stringify(naturalSpacing));
+  assert.ok(naturalSpacing.coordination >= 90, JSON.stringify(naturalSpacing));
+
+  const separatedHands = scoreGesture(frames, scaleTwoHandSpacing(frames, 1.7));
+  assert.equal(separatedHands.passed, false, JSON.stringify(separatedHands));
+  assert.equal(separatedHands.criticalMismatch, 'coordination');
+});
+
+void test('Teman follows the fingers approaching despite a different wrist path', () => {
+  const frames = reference('teman');
+  const attempt = structuredClone(frames).map((frame, index, sequence) => {
+    const drift = Math.sin((index / sequence.length) * Math.PI * 2) * 0.1;
+    return {
+      ...frame,
+      hands: frame.hands.map((hand) => ({
+        ...hand,
+        landmarks: hand.landmarks.map((point) => ({
+          ...point,
+          x: point.x + drift,
+          y: point.y - drift * 0.4,
+        })),
+      })),
+    };
+  });
+  const score = scoreGesture(frames, attempt);
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.movement >= 70, JSON.stringify(score));
+});
+
+void test('Teman rejects a static contact even when both hands remain visible', () => {
+  const frames = reference('teman');
+  const contact = frames.find((frame) => frame.timeMs === 1848);
+  assert.ok(contact && contact.hands.length === 2);
+  const attempt = structuredClone(frames).map((frame) => ({
+    ...frame,
+    hands:
+      frame.hands.length === 2 ? structuredClone(contact.hands) : frame.hands,
+  }));
+  const score = scoreGesture(frames, attempt);
+  assert.equal(score.passed, false, JSON.stringify(score));
+  assert.equal(score.criticalMismatch, 'movement');
+});
+
+void test('Teman rejects separating the index fingers instead of bringing them together', () => {
+  const frames = reference('teman');
+  const reversedHands = frames
+    .filter((frame) => frame.hands.length === 2)
+    .map((frame) => frame.hands)
+    .reverse();
+  let visibleIndex = 0;
+  const attempt = structuredClone(frames).map((frame) => ({
+    ...frame,
+    hands:
+      frame.hands.length === 2
+        ? structuredClone(reversedHands[visibleIndex++])
+        : frame.hands,
+  }));
+  const score = scoreGesture(frames, attempt);
+  assert.equal(score.passed, false, JSON.stringify(score));
+  assert.equal(score.criticalMismatch, 'movement');
+});
+
+void test('Teman accepts normal chest-level placement variance but rejects another body region', () => {
+  const frames = withBodyPose(reference('teman'));
+  const chestVariation = scoreGesture(
+    frames,
+    shiftHandsVertically(frames, -0.12),
+  );
+  assert.equal(chestVariation.positionRelativeToBody, true);
+  assert.ok(chestVariation.position >= 60, JSON.stringify(chestVariation));
+  assert.equal(chestVariation.passed, true, JSON.stringify(chestVariation));
+
+  const differentRegion = scoreGesture(
+    frames,
+    shiftHandsVertically(frames, -0.3),
+  );
+  assert.equal(differentRegion.positionRelativeToBody, true);
+  assert.ok(differentRegion.position < 60, JSON.stringify(differentRegion));
+  assert.equal(differentRegion.criticalMismatch, 'position');
+  assert.equal(differentRegion.passed, false, JSON.stringify(differentRegion));
 });
 
 void test('all four two-hand signs reject a changed second hand', () => {

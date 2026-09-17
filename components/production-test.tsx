@@ -128,6 +128,7 @@ export function ProductionTest({
       </div>
 
       <CameraPractice
+        key={activeSignId}
         signId={activeSignId}
         signLabel={sign.label}
         referenceVideoUrl={versionedSignVideo(sign.videoSrc)}

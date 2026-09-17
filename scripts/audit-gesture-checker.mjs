@@ -38,8 +38,10 @@ if (Object.keys(manifest.frames).length !== definitions.length) {
 const scores = definitions.map((_, target) =>
   definitions.map((__, actual) => scoreGesture(frames[target], frames[actual])),
 );
+const handCounts = frames.map(getRequiredHandCount);
 const rawWrong = [];
 const finalWrong = [];
+const newlyAcceptedWithHandCountFilter = [];
 const selfRejected = [];
 for (const [target, targetSign] of definitions.entries()) {
   for (const [actual, actualSign] of definitions.entries()) {
@@ -49,16 +51,34 @@ for (const [target, targetSign] of definitions.entries()) {
     }
     if (target === actual || !result.passed) continue;
     rawWrong.push(`${targetSign.label} ← ${actualSign.label}`);
-    const bestAlternative = Math.max(
+    const eligible = scores
+      .filter(
+        (_, index) =>
+          index !== target && handCounts[index] === handCounts[target],
+      )
+      .map((row) => row[actual])
+      .filter((score) => score.assessable && score.passed)
+      .map((score) => score.overall);
+    const bestAlternative = Math.max(...eligible);
+    const oldBestAlternative = Math.max(
       ...scores
         .filter((_, index) => index !== target)
         .map((row) => row[actual])
         .filter((score) => score.assessable && score.passed)
         .map((score) => score.overall),
     );
-    // Same five-point margin as scoreGestureWithAlternatives. Scores are
+    if (
+      oldBestAlternative - result.overall >= 3 &&
+      bestAlternative - result.overall < 3
+    ) {
+      newlyAcceptedWithHandCountFilter.push(
+        `${targetSign.label} ← ${actualSign.label}`,
+      );
+    }
+    // A wrong target survives only if the actual sign lacks the same decisive
+    // three-point advantage used by scoreGestureWithAlternatives. Scores are
     // computed once here so the exhaustive audit stays fast enough to rerun.
-    if (result.overall - bestAlternative >= 5) {
+    if (bestAlternative - result.overall < 3) {
       finalWrong.push(`${targetSign.label} ← ${actualSign.label}`);
     }
   }
@@ -101,6 +121,7 @@ console.log(
       selfRejected,
       rawWrongCount: rawWrong.length,
       finalWrong,
+      newlyAcceptedWithHandCountFilter,
       twoHandSigns,
       alteredHandshapeTrials:
         definitions.length * Object.keys(forcedFingerStyles).length,

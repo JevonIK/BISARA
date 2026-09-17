@@ -1,8 +1,9 @@
-import type { HandLandmarker } from '@mediapipe/tasks-vision';
+import type { HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 
 import { SIGN_VIDEO_VERSION } from '@/lib/curriculum-data';
 import {
   hasUsableReference,
+  selectBodyPoseLandmarks,
   type GestureFrame,
   type HandObservation,
 } from '@/lib/gesture-scoring';
@@ -19,6 +20,7 @@ type StoredTemplates = {
 };
 
 const referenceCache = new Map<string, GestureFrame[]>();
+const bodyReferenceCache = new Map<string, GestureFrame[]>();
 const inFlightReferences = new Map<string, Promise<GestureFrame[]>>();
 let storedTemplatesPromise: Promise<StoredTemplates> | null = null;
 let extractorPromise: Promise<HandLandmarker> | null = null;
@@ -54,6 +56,71 @@ export async function getStoredReferenceFrames(
     throw new Error(`Template gerakan tidak valid: ${filename ?? videoUrl}`);
   }
   return frames;
+}
+
+/**
+ * Adds shoulder and torso landmarks to one reference clip after the learner
+ * activates the camera. Hand templates stay precomputed; this extra pass is
+ * only needed for body-relative placement and is cached for the page session.
+ */
+export async function getBodyAnchoredReferenceFrames(
+  videoUrl: string,
+  frames: GestureFrame[],
+  landmarker: PoseLandmarker,
+): Promise<GestureFrame[]> {
+  const cached = bodyReferenceCache.get(videoUrl);
+  if (cached) return cached;
+
+  const video = document.createElement('video');
+  video.crossOrigin = 'anonymous';
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = videoUrl;
+
+  try {
+    await loadVideo(video, videoUrl);
+    const enriched: GestureFrame[] = [];
+
+    for (const frame of frames) {
+      const targetSeconds = Math.min(
+        Math.max(0, frame.timeMs / 1000),
+        Math.max(0, video.duration - 0.001),
+      );
+      await seekVideo(video, targetSeconds);
+      if (video.readyState < 2) {
+        enriched.push(frame);
+        continue;
+      }
+
+      try {
+        const result = landmarker.detectForVideo(video, frame.timeMs);
+        const poseLandmarks = selectBodyPoseLandmarks(
+          result.landmarks.map((pose) =>
+            pose.map((landmark) => ({
+              x: landmark.x,
+              y: landmark.y,
+              z: landmark.z,
+            })),
+          ),
+          frame.hands,
+        );
+        enriched.push(
+          poseLandmarks?.length ? { ...frame, poseLandmarks } : frame,
+        );
+      } catch {
+        enriched.push(frame);
+      }
+    }
+
+    const poseCoverage =
+      enriched.filter((frame) => frame.poseLandmarks?.length).length /
+      Math.max(1, enriched.length);
+    if (poseCoverage >= 0.6) bodyReferenceCache.set(videoUrl, enriched);
+    return enriched;
+  } finally {
+    releaseVideo(video);
+  }
 }
 
 async function getExtractorLandmarker(): Promise<HandLandmarker> {
@@ -142,30 +209,14 @@ async function extractFramesFromVideo(
   video.src = videoUrl;
 
   try {
-    await new Promise<void>((resolve, reject) => {
-      video.addEventListener('loadeddata', () => resolve(), { once: true });
-      video.addEventListener(
-        'error',
-        () => reject(new Error(`Failed to load reference video: ${videoUrl}`)),
-        { once: true },
-      );
-      video.load();
-    });
+    await loadVideo(video, videoUrl);
 
     const duration = video.duration;
     const interval = 0.066; // ~15 fps sampling
     const frames: GestureFrame[] = [];
 
     for (let t = 0; t < duration; t += interval) {
-      video.currentTime = t;
-      await new Promise<void>((resolve) => {
-        const onSeeked = () => {
-          video.removeEventListener('seeked', onSeeked);
-          resolve();
-        };
-        video.addEventListener('seeked', onSeeked, { once: true });
-        setTimeout(onSeeked, 150);
-      });
+      await seekVideo(video, t);
 
       if (video.readyState < 2) continue;
 
@@ -196,8 +247,40 @@ async function extractFramesFromVideo(
   } finally {
     // Releasing each decoder matters when many mission examples are compared
     // in one session; otherwise later references can lose all detections.
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
+    releaseVideo(video);
   }
+}
+
+function loadVideo(video: HTMLVideoElement, videoUrl: string) {
+  return new Promise<void>((resolve, reject) => {
+    video.addEventListener('loadeddata', () => resolve(), { once: true });
+    video.addEventListener(
+      'error',
+      () => reject(new Error(`Failed to load reference video: ${videoUrl}`)),
+      { once: true },
+    );
+    video.load();
+  });
+}
+
+function seekVideo(video: HTMLVideoElement, time: number) {
+  if (Math.abs(video.currentTime - time) < 0.001) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      video.removeEventListener('seeked', finish);
+      resolve();
+    };
+    video.addEventListener('seeked', finish, { once: true });
+    video.currentTime = time;
+    setTimeout(finish, 150);
+  });
+}
+
+function releaseVideo(video: HTMLVideoElement) {
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
 }

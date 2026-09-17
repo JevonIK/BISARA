@@ -188,7 +188,7 @@ const signRows = [
     'Teman',
     25,
     'Koordinasi tangan',
-    'Perhatikan hubungan gerak kedua tangan dari awal sampai akhir.',
+    'Mulai dengan kedua telunjuk terpisah di depan dada, lalu dekatkan hingga bertemu dan tahan sesaat.',
   ],
   [
     'keluarga',
