@@ -408,6 +408,25 @@ void test('unreliable body-pose coverage does not create a hard position failure
   assert.equal(result.passed, true, JSON.stringify(result));
 });
 
+void test('occluded hips do not create a false body-position gate', () => {
+  const reference = withBodyPose(sequence());
+  const attempt = reference.map((item) => ({
+    ...item,
+    poseLandmarks: item.poseLandmarks?.map((point, index) => ({
+      ...point,
+      visibility: index === 23 || index === 24 ? 0.2 : 0.9,
+    })),
+  }));
+  assert.equal(
+    selectBodyPoseLandmarks([attempt[0].poseLandmarks!], attempt[0].hands),
+    undefined,
+  );
+  const result = scoreGesture(reference, attempt);
+  assert.equal(result.positionRelativeToBody, false);
+  assert.equal(result.criticalMismatch, null, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
 void test('body pose is assigned to the person whose wrists match the signing hand', () => {
   const hands = frame(0).hands;
   const pose = (centerX: number, wristX: number) => {

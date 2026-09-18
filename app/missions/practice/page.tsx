@@ -16,10 +16,12 @@ import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
 import { CameraPractice } from '@/components/camera-practice';
 import { PracticeSignProgress } from '@/components/practice-sign-progress';
+import { ReferenceSignVideo } from '@/components/reference-sign-video';
 import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { Badge } from '@/components/ui/badge';
 import { getSign, isSignId, versionedSignVideo } from '@/lib/curriculum-data';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
+import { getCuratedReferenceWindow } from '@/lib/reference-window';
 
 export const metadata: Metadata = {
   title: 'Latihan Kamera BISINDO',
@@ -140,16 +142,12 @@ export default async function PracticePage({
               <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
                 Contoh tanda
               </p>
-              <video
+              <ReferenceSignVideo
+                key={sign.id}
                 id={referenceVideoId}
-                className="mt-5 aspect-[4/3] w-full bg-black object-cover"
                 src={referenceVideoUrl}
-                aria-label={`Video contoh tanda ${sign.label}`}
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls
+                label={sign.label}
+                window={getCuratedReferenceWindow(referenceVideoUrl)}
               />
               <p className="mt-6 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
                 Fokus pengamatan

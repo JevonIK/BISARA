@@ -230,8 +230,8 @@ export function CameraPractice({
   const resumeReferencePreview = useCallback(() => {
     const referenceVideo = getReferenceVideo();
     if (!referenceVideo) return;
+    delete referenceVideo.dataset.practiceRecording;
     referenceVideo.loop = true;
-    referenceVideo.playbackRate = 1;
     if (referenceVideo.ended) referenceVideo.currentTime = 0;
     void referenceVideo.play().catch(() => undefined);
   }, [getReferenceVideo]);
@@ -516,6 +516,7 @@ export function CameraPractice({
                       x: landmark.x,
                       y: landmark.y,
                       z: landmark.z,
+                      visibility: landmark.visibility,
                     })),
                   ),
                   hands,
@@ -726,6 +727,7 @@ export function CameraPractice({
       }
       practicePhaseRef.current = 'result';
       setPracticePhase('result');
+      resumeReferencePreview();
     }, 50);
   }, [
     getReferenceVideo,
@@ -733,6 +735,7 @@ export function CameraPractice({
     missionSignIds,
     onProductionResult,
     productionMode,
+    resumeReferencePreview,
     reviewMode,
     signId,
     signLabel,
@@ -745,7 +748,8 @@ export function CameraPractice({
 
     const referenceVideo = getReferenceVideo();
     if (referenceVideo) {
-      referenceVideo.loop = false;
+      referenceVideo.dataset.practiceRecording = 'true';
+      referenceVideo.loop = true;
       referenceVideo.playbackRate = PRACTICE_PLAYBACK_RATE;
       // The seek already happened before the countdown. Seeking again here can
       // delay playback while the camera recording has already begun.
@@ -783,7 +787,8 @@ export function CameraPractice({
     const referenceVideo = getReferenceVideo();
     if (referenceVideo) {
       referenceVideo.pause();
-      referenceVideo.loop = false;
+      referenceVideo.dataset.practiceRecording = 'true';
+      referenceVideo.loop = true;
       referenceVideo.playbackRate = PRACTICE_PLAYBACK_RATE;
       referenceVideo.currentTime = timing.startMs / 1000;
     }
@@ -1234,10 +1239,14 @@ export function CameraPractice({
               Kualitas rekaman
             </p>
             <QualitativeMetric
-              label="Deteksi landmark"
+              label="Tangan terlihat"
               value={gestureScore.detectionQuality}
               detection
             />
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              Tangan yang terlihat stabil belum tentu memiliki ruas jari yang
+              terbaca akurat.
+            </p>
           </div>
 
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
@@ -1261,7 +1270,7 @@ export function CameraPractice({
               : null}
             {gestureScore.positionRelativeToBody
               ? '“Posisi terhadap tubuh” membandingkan letak tangan dari bahu dan torso, sehingga tanda di kepala dan dada dapat dibedakan.'
-              : 'Jangkar bahu belum stabil pada rekaman ini; posisi hanya dibandingkan terhadap gambar kamera dan tidak menjadi syarat kelulusan.'}{' '}
+              : 'Bahu atau pinggang belum terlihat cukup jelas; posisi hanya dibandingkan terhadap gambar kamera dan tidak menjadi syarat kelulusan.'}{' '}
             Checker belum menilai ekspresi wajah atau tata bahasa BISINDO.
           </p>
 
@@ -1549,10 +1558,9 @@ function QualitativeMetric({
   detection?: boolean;
   unassessed?: boolean;
 }) {
-  const state =
-    unassessed
-      ? 'Tidak dinilai'
-      : value >= 75
+  const state = unassessed
+    ? 'Tidak dinilai'
+    : value >= 75
       ? detection
         ? 'Stabil'
         : 'Baik'
@@ -1570,10 +1578,10 @@ function QualitativeMetric({
           unassessed
             ? 'bg-muted text-muted-foreground'
             : value >= 75
-            ? 'bg-signal-teal-soft text-emerald-800'
-            : value >= 50
-              ? 'bg-signal-yellow/25 text-amber-800'
-              : 'bg-signal-coral/10 text-signal-coral',
+              ? 'bg-signal-teal-soft text-emerald-800'
+              : value >= 50
+                ? 'bg-signal-yellow/25 text-amber-800'
+                : 'bg-signal-coral/10 text-signal-coral',
         )}
       >
         <span
@@ -1582,10 +1590,10 @@ function QualitativeMetric({
             unassessed
               ? 'bg-muted-foreground'
               : value >= 75
-              ? 'bg-signal-teal'
-              : value >= 50
-                ? 'bg-signal-yellow'
-                : 'bg-signal-coral',
+                ? 'bg-signal-teal'
+                : value >= 50
+                  ? 'bg-signal-yellow'
+                  : 'bg-signal-coral',
           )}
           aria-hidden="true"
         />

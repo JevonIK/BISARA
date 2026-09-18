@@ -1,6 +1,6 @@
 # WL-BISINDO dataset readiness audit
 
-Audit updated: 14 September 2026
+Audit updated: 18 September 2026
 
 ## Decision
 
@@ -53,8 +53,8 @@ loads these 32 references with one request and compares a passing attempt
 against every other gloss in the active curriculum.
 
 An exhaustive exemplar-against-exemplar audit covered all 1,024 target/attempt
-pairs. Single-reference scoring falsely accepted 61 different-gloss pairs;
-whole-vocabulary comparison rejected all 61, while all 32 exact matches passed.
+pairs. Single-reference scoring accepted 17 different-gloss pairs;
+whole-vocabulary comparison rejected all 17, while all 32 exact matches passed.
 Another 96 artificial finger-shape alterations were rejected. This audit is
 repeatable with `npm run audit:checker`. Because the same local exemplars serve
 as both references and attempts, these figures are regression checks, **not**
