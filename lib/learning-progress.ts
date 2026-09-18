@@ -1,4 +1,6 @@
+import { isAlphabetPracticeCompleted } from '@/lib/alphabet-data';
 import { getSigns } from '@/lib/curriculum-data';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import {
   allMissions,
   chapters,
@@ -18,6 +20,7 @@ export type LearningStageState = 'completed' | 'current' | 'locked';
 export function isMissionUnlocked(missionId: string, progress: UserProgress) {
   const index = getMissionPosition(missionId);
   return (
+    isCurriculumDebugUnlocked() ||
     index <= 0 ||
     progress.completedMissionIds.includes(allMissions[index - 1].id) ||
     progress.completedMissionIds.includes(missionId)
@@ -30,6 +33,66 @@ export function getMissionLearningState(
 ) {
   const mission =
     typeof missionOrId === 'string' ? getMission(missionOrId) : missionOrId;
+  if (mission.type === 'alphabet') {
+    const missionComplete = progress.completedMissionIds.includes(mission.id);
+    const unlocked = isMissionUnlocked(mission.id, progress);
+    const recognitionScore = progress.missionScores[mission.id] ?? 0;
+    const recognitionComplete =
+      missionComplete || recognitionScore >= RECOGNITION_PASS_SCORE;
+    const practiceComplete =
+      missionComplete ||
+      recognitionComplete ||
+      isAlphabetPracticeCompleted(mission.id);
+    const practiceStarted = practiceComplete;
+    const letterCount = mission.alphabetLetters?.length ?? 5;
+    const progressPercent = missionComplete
+      ? 100
+      : recognitionComplete
+        ? 75
+        : practiceComplete
+          ? 50
+          : 0;
+
+    let next = { href: '/missions', label: 'Selesaikan misi sebelumnya' };
+    if (unlocked) {
+      if (missionComplete) {
+        next = getNextMissionAction(mission.id);
+      } else if (recognitionComplete) {
+        next = {
+          href: `/missions/learn?mission=${mission.id}&section=recall`,
+          label: 'Lanjut ke Uji peragaan',
+        };
+      } else if (practiceComplete) {
+        next = {
+          href: `/missions/learn?mission=${mission.id}&section=recognition`,
+          label: 'Mulai uji pengenalan',
+        };
+      } else {
+        next = {
+          href: mission.href,
+          label: `Mulai tahap Amati`,
+        };
+      }
+    }
+
+    return {
+      mission,
+      missionSigns: [],
+      masteredSignIds: [],
+      masteredSignCount: 0,
+      practiceStarted,
+      practiceComplete,
+      recognitionScore,
+      recognitionComplete,
+      missionComplete,
+      conversationComplete: missionComplete,
+      productionPassedCount: missionComplete ? letterCount : 0,
+      productionSignCount: letterCount,
+      progressPercent,
+      unlocked,
+      next,
+    };
+  }
   const missionSigns = getSigns(mission.signIds);
   const masteredSignIds = missionSigns
     .filter((sign) => progress.signMastery[sign.id]?.passed)
@@ -128,6 +191,9 @@ export function getMissionReplayAction(missionOrId: Mission | string) {
     typeof missionOrId === 'string' ? getMission(missionOrId) : missionOrId;
   const missionQuery = `mission=${mission.id}`;
 
+  if (mission.type === 'alphabet') {
+    return { href: mission.href, label: 'Ulangi materi alfabet' };
+  }
   return mission.type === 'checkpoint'
     ? {
         href: `/missions/test?${missionQuery}&mode=recognition&replay=1`,

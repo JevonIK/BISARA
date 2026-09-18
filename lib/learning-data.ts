@@ -3,8 +3,9 @@ import {
   signIds as allSignIds,
   type SignId,
 } from '@/lib/curriculum-data';
+import { alphabetMissionGroups, type AlphabetLetter } from '@/lib/alphabet-data';
 
-export type MissionStatus = 'completed' | 'current' | 'locked';
+export type MissionStatus = 'completed' | 'current' | 'available' | 'locked';
 
 /** Legacy scenario content; the active flow uses recognition and optional recall. */
 export type ContextChallenge = {
@@ -27,9 +28,10 @@ export type Mission = {
   xp: number;
   status: MissionStatus;
   signIds: SignId[];
+  alphabetLetters?: readonly AlphabetLetter[];
   vocabulary: string[];
   href: string;
-  type: 'lesson' | 'checkpoint';
+  type: 'lesson' | 'checkpoint' | 'alphabet';
   contextTitle: string;
   contextChallenges: ContextChallenge[];
 };
@@ -61,7 +63,9 @@ function mission(input: MissionInput): Mission {
   return {
     ...input,
     status: 'locked',
-    vocabulary: getSigns(input.signIds).map((sign) => sign.label),
+    vocabulary: input.alphabetLetters
+      ? [...input.alphabetLetters]
+      : getSigns(input.signIds).map((sign) => sign.label),
     href: `/missions/learn?mission=${input.id}`,
     contextChallenges: input.contextChallenges.map((challenge, index) => ({
       ...challenge,
@@ -819,6 +823,31 @@ export const chapters: Chapter[] = [
         150,
       ),
     ],
+  },
+  {
+    id: 'chapter-5',
+    number: '05',
+    eyebrow: 'Belajar mengeja',
+    title: 'Alfabet dalam BISINDO',
+    description:
+      'Berlatih mengeja nama orang, tempat, atau istilah khusus yang belum memiliki simbol isyarat tersendiri.',
+    status: 'locked',
+    progress: 0,
+    missions: alphabetMissionGroups.map((group) =>
+      mission({
+        id: group.id,
+        number: group.number,
+        title: group.range,
+        description: `Amati dan ulangi video huruf ${group.range} sebelum melanjutkan.`,
+        duration: group.letters.length + 2,
+        xp: 30,
+        type: 'alphabet',
+        signIds: [],
+        alphabetLetters: group.letters,
+        contextTitle: '',
+        contextChallenges: [],
+      }),
+    ),
   },
 ];
 

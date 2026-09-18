@@ -45,7 +45,10 @@ export function MissionSectionNavigation({
     {
       id: 'amati',
       label: 'Amati',
-      href: mission.href,
+      href:
+        mission.type === 'alphabet'
+          ? `/missions/learn?mission=${mission.id}&section=amati`
+          : mission.href,
       complete: learning.practiceStarted,
       available: learning.unlocked,
     },
@@ -55,7 +58,10 @@ export function MissionSectionNavigation({
           {
             id: 'tirukan' as const,
             label: 'Tirukan',
-            href: `/missions/practice?mission=${mission.id}&sign=${mission.signIds[0]}`,
+            href:
+              mission.type === 'alphabet'
+                ? `/missions/learn?mission=${mission.id}&section=tirukan`
+                : `/missions/practice?mission=${mission.id}&sign=${mission.signIds[0]}`,
             complete: learning.practiceComplete,
             available: learning.unlocked,
           },
@@ -63,14 +69,20 @@ export function MissionSectionNavigation({
     {
       id: 'recognition',
       label: 'Uji pengenalan',
-      href: `/missions/test?mission=${mission.id}&mode=recognition`,
+      href:
+        mission.type === 'alphabet'
+          ? `/missions/learn?mission=${mission.id}&section=recognition`
+          : `/missions/test?mission=${mission.id}&mode=recognition`,
       complete: learning.recognitionComplete,
       available: learning.unlocked && learning.practiceComplete,
     },
     {
       id: 'recall',
       label: 'Uji peragaan',
-      href: `/missions/test?mission=${mission.id}&mode=recall`,
+      href:
+        mission.type === 'alphabet'
+          ? `/missions/learn?mission=${mission.id}&section=recall`
+          : `/missions/test?mission=${mission.id}&mode=recall`,
       complete: learning.missionComplete,
       available: learning.unlocked && learning.recognitionComplete,
     },

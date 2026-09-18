@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
+import { AlphabetMission } from '@/components/alphabet-mission';
 import {
   MissionHeroProgressCard,
   ToastingIllustration,
@@ -21,11 +22,26 @@ export const metadata: Metadata = {
 export default async function MissionLearningPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mission?: string }>;
+  searchParams: Promise<{
+    mission?: string;
+    section?: string;
+    replay?: string;
+  }>;
 }) {
-  const { mission: missionId } = await searchParams;
+  const { mission: missionId, section, replay } = await searchParams;
   const mission = getMission(missionId);
   const chapter = getChapterForMission(mission.id);
+  if (mission.type === 'alphabet') {
+    return (
+      <AlphabetMission
+        key={mission.id}
+        mission={mission}
+        chapter={chapter}
+        initialSection={section}
+        replay={replay === '1'}
+      />
+    );
+  }
   const missionSigns = getSigns(mission.signIds);
 
   return (

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { AppHeader } from '@/components/app-header';
 import { CameraPractice } from '@/components/camera-practice';
@@ -28,6 +29,9 @@ export default async function PracticePage({
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
+  if (mission.type === 'alphabet') {
+    redirect(`/missions/learn?mission=${mission.id}&section=tirukan`);
+  }
   const chapter = getChapterForMission(mission.id);
   const requestedSign =
     params.sign &&
