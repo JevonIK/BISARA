@@ -18,20 +18,6 @@ export function ReferenceSignVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [slowPreview, setSlowPreview] = useState(Boolean(window));
 
-  const keepPreviewOnGesture = (video: HTMLVideoElement) => {
-    // CameraPractice owns playback speed during a recording. Both preview and
-    // recording still loop, including for clips with a curated sign window.
-    if (video.dataset.practiceRecording !== 'true') {
-      video.playbackRate = slowPreview ? 0.5 : 1;
-    }
-    if (!window) return;
-    const start = window.startMs / 1000;
-    const end = window.endMs / 1000;
-    if (video.currentTime < start - 0.04 || video.currentTime >= end - 0.02) {
-      video.currentTime = start;
-    }
-  };
-
   return (
     <>
       <video
@@ -47,18 +33,20 @@ export function ReferenceSignVideo({
         controls
         onLoadedMetadata={(event) => {
           const video = event.currentTarget;
-          if (window) video.currentTime = window.startMs / 1000;
           if (video.dataset.practiceRecording !== 'true') {
             video.playbackRate = slowPreview ? 0.5 : 1;
           }
         }}
-        onPlay={(event) => keepPreviewOnGesture(event.currentTarget)}
-        onTimeUpdate={(event) => keepPreviewOnGesture(event.currentTarget)}
+        onPlay={(event) => {
+          if (event.currentTarget.dataset.practiceRecording !== 'true') {
+            event.currentTarget.playbackRate = slowPreview ? 0.5 : 1;
+          }
+        }}
       />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
           {window
-            ? 'Bagian gerakan yang dinilai diputar berulang.'
+            ? 'Video diputar berulang tanpa melompat. Fokus pada satu siklus gerakan lengkap.'
             : 'Amati gerakan dari awal sampai akhir.'}
         </span>
         <button

@@ -27,6 +27,10 @@ non-commercial prototype. It is not a training set, a representative
 signer-independent evaluation set, or sufficient evidence for calibrating a
 gesture pass threshold.
 
+`signer2_label26_sample3-practice.mp4` is a 0.66-second excerpt of the
+Keluarga sample, beginning at 0.528 seconds. The practice screen loops this
+excerpt so the visible example matches the segment assessed by the checker.
+
 | Labels | Glosses                                                            |
 | -----: | ------------------------------------------------------------------ |
 |    0–7 | Air, Belajar, Cari, Hari, Ingat, Lagi, Maaf, Makan                 |

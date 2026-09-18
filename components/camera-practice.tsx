@@ -46,6 +46,7 @@ import {
   getReferenceFrames,
   getStoredReferenceFrames,
 } from '@/lib/reference-extractor';
+import { getPracticePreviewVideoUrl } from '@/lib/reference-window';
 import { cn } from '@/lib/utils';
 
 type CameraStatus =
@@ -177,6 +178,7 @@ export function CameraPractice({
 
   // Scoring refs
   const referenceFramesRef = useRef<GestureFrame[]>([]);
+  const requiredHandCountRef = useRef<1 | 2>(1);
   const alternativeFramesPromiseRef = useRef<
     | Promise<Array<{
         label: string;
@@ -186,6 +188,8 @@ export function CameraPractice({
     | undefined
   >(undefined);
   const frameBufferRef = useRef<GestureFrame[]>([]);
+  const rawFrameBufferRef = useRef<GestureFrame[]>([]);
+  const smoothedFrameBufferRef = useRef<GestureFrame[]>([]);
   const smoothedHandsRef = useRef<HandObservation[]>([]);
   const recordingStartRef = useRef(0);
   const recordingDurationRef = useRef(FALLBACK_RECORDING_DURATION_MS);
@@ -273,6 +277,8 @@ export function CameraPractice({
     const canvas = canvasRef.current;
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
     smoothedHandsRef.current = [];
+    rawFrameBufferRef.current = [];
+    smoothedFrameBufferRef.current = [];
     alternativeFramesPromiseRef.current = undefined;
   }, []);
 
@@ -317,6 +323,8 @@ export function CameraPractice({
       scoringTimerRef.current = null;
     }
     frameBufferRef.current = [];
+    rawFrameBufferRef.current = [];
+    smoothedFrameBufferRef.current = [];
     smoothedHandsRef.current = [];
     latestPoseLandmarksRef.current = undefined;
     latestPoseAtRef.current = 0;
@@ -341,7 +349,9 @@ export function CameraPractice({
         const timing = getReferenceTiming(refFrames);
         recordingDurationRef.current = timing.durationMs;
         setRecordingDuration(timing.durationMs);
-        setRequiredHandCount(getRequiredHandCount(refFrames));
+        const handCount = getRequiredHandCount(refFrames);
+        requiredHandCountRef.current = handCount;
+        setRequiredHandCount(handCount);
         setReferenceReady(true);
       })
       .catch(() => {
@@ -449,7 +459,9 @@ export function CameraPractice({
         const timing = getReferenceTiming(refFrames);
         recordingDurationRef.current = timing.durationMs;
         setRecordingDuration(timing.durationMs);
-        setRequiredHandCount(getRequiredHandCount(refFrames));
+        const handCount = getRequiredHandCount(refFrames);
+        requiredHandCountRef.current = handCount;
+        setRequiredHandCount(handCount);
         setReferenceReady(true);
       } catch {
         // Reference extraction failed — landmark-only mode continues
@@ -547,9 +559,26 @@ export function CameraPractice({
             if (practicePhaseRef.current === 'recording') {
               const elapsed = now - recordingStartRef.current;
               if (elapsed < recordingDurationRef.current) {
+                if (isCurriculumDebugUnlocked()) {
+                  rawFrameBufferRef.current.push({
+                    timeMs: Math.round(elapsed),
+                    hands: rawHands,
+                  });
+                  smoothedFrameBufferRef.current.push({
+                    timeMs: Math.round(elapsed),
+                    hands,
+                  });
+                }
                 frameBufferRef.current.push({
                   timeMs: Math.round(elapsed),
-                  hands,
+                  // The overlay benefits from temporal smoothing, but a
+                  // rotating one-hand sign loses real finger geometry when
+                  // its landmarks are blended across different poses. Grade
+                  // the raw observation; the temporal scorer already handles
+                  // individual noisy frames. Keep smoothing for overlapping
+                  // two-hand signs, where it stabilizes hand identity.
+                  hands:
+                    requiredHandCountRef.current === 1 ? rawHands : hands,
                   poseLandmarks:
                     now - latestPoseAtRef.current <= MAX_POSE_AGE_MS
                       ? latestPoseLandmarksRef.current
@@ -773,6 +802,8 @@ export function CameraPractice({
       return;
 
     frameBufferRef.current = [];
+    rawFrameBufferRef.current = [];
+    smoothedFrameBufferRef.current = [];
     smoothedHandsRef.current = [];
     latestPoseLandmarksRef.current = undefined;
     latestPoseAtRef.current = 0;
@@ -790,7 +821,10 @@ export function CameraPractice({
       referenceVideo.dataset.practiceRecording = 'true';
       referenceVideo.loop = true;
       referenceVideo.playbackRate = PRACTICE_PLAYBACK_RATE;
-      referenceVideo.currentTime = timing.startMs / 1000;
+      referenceVideo.currentTime =
+        getPracticePreviewVideoUrl(referenceVideoUrl) === referenceVideoUrl
+          ? timing.startMs / 1000
+          : 0;
     }
 
     updatePhase('countdown');
@@ -812,10 +846,18 @@ export function CameraPractice({
       }
       setCountdown(Math.ceil(remainingMs / 1000));
     }, 100);
-  }, [beginRecording, getReferenceVideo, referenceReady, updatePhase]);
+  }, [
+    beginRecording,
+    getReferenceVideo,
+    referenceReady,
+    referenceVideoUrl,
+    updatePhase,
+  ]);
 
   const resetPractice = useCallback(() => {
     frameBufferRef.current = [];
+    rawFrameBufferRef.current = [];
+    smoothedFrameBufferRef.current = [];
     setRecordingProgress(0);
     setGestureScore(null);
     setNextAction(null);
@@ -1289,6 +1331,27 @@ export function CameraPractice({
                 {attemptDiagnostics.capturedFrames}, kedua tangan:{' '}
                 {attemptDiagnostics.twoHandFrames}.
               </p>
+              <button
+                type="button"
+                className="mt-3 font-bold text-signal-navy underline underline-offset-2"
+                onClick={() =>
+                  downloadGestureDiagnostics(
+                    signId,
+                    gestureScore,
+                    referenceFramesRef.current,
+                    rawFrameBufferRef.current,
+                    smoothedFrameBufferRef.current,
+                    frameBufferRef.current,
+                  )
+                }
+              >
+                Unduh landmark percobaan
+              </button>
+              <p className="mt-1 leading-5">
+                Berisi koordinat tangan dan skor untuk debug; tidak berisi
+                rekaman video atau wajah. File tetap di perangkatmu sampai kamu
+                memilih membagikannya.
+              </p>
             </details>
           ) : null}
 
@@ -1539,6 +1602,49 @@ function getReferenceTiming(frames: GestureFrame[]) {
       ),
     ),
   };
+}
+
+function downloadGestureDiagnostics(
+  signId: SignId,
+  displayedScore: GestureScore,
+  referenceFrames: GestureFrame[],
+  rawFrames: GestureFrame[],
+  smoothedFrames: GestureFrame[],
+  scoredFrames: GestureFrame[],
+) {
+  // Development-only, explicit local export. Pose landmarks can contain face
+  // points, so share only the hand coordinates needed to reproduce scoring.
+  const handFrames = (frames: GestureFrame[]) =>
+    frames.map((frame) => ({
+      timeMs: frame.timeMs,
+      hands: frame.hands.map(({ landmarks, handedness, confidence }) => ({
+        landmarks,
+        handedness,
+        confidence,
+      })),
+    }));
+  const payload = {
+    signId,
+    referenceWindow: getReferenceGestureWindow(referenceFrames),
+    displayedScore,
+    rawScore: rawFrames.length
+      ? scoreGesture(referenceFrames, rawFrames)
+      : null,
+    smoothedScore: smoothedFrames.length
+      ? scoreGesture(referenceFrames, smoothedFrames)
+      : null,
+    rawFrames: handFrames(rawFrames),
+    smoothedFrames: handFrames(smoothedFrames),
+    scoredFrames: handFrames(scoredFrames),
+  };
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+  );
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `bisara-${signId}-landmark-debug.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function practiceResultLabel(score: GestureScore, previouslyMastered: boolean) {

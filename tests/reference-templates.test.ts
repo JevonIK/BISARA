@@ -14,9 +14,13 @@ import {
   hasUsableReference,
   scoreGesture,
   scoreGestureWithAlternatives,
+  smoothLiveHandObservations,
   type GestureFrame,
 } from '../lib/gesture-scoring.ts';
-import { selectReferenceWindow } from '../lib/reference-window.ts';
+import {
+  getPracticePreviewVideoUrl,
+  selectReferenceWindow,
+} from '../lib/reference-window.ts';
 
 type Manifest = {
   version: string;
@@ -38,9 +42,84 @@ function reference(id: (typeof signIds)[number]) {
 void test('Keluarga reference starts at the performed sign, after setup', () => {
   const frames = reference('keluarga');
   assert.equal(frames[0].timeMs, 528);
-  assert.equal(frames.at(-1)?.timeMs, 1518);
+  assert.equal(frames.at(-1)?.timeMs, 1122);
   const attempt = structuredClone(frames);
   assert.equal(scoreGesture(frames, attempt).passed, true);
+});
+
+void test('Keluarga practice loops the same excerpt as the checker', async () => {
+  const source = getSign('keluarga').videoSrc;
+  const preview = getPracticePreviewVideoUrl(`${source}?v=test`);
+  assert.ok(preview.endsWith('signer2_label26_sample3-practice.mp4?v=test'));
+  assert.notEqual(preview, `${source}?v=test`);
+  const bytes = await readFile(new URL(`../public${preview.split('?')[0]}`, import.meta.url));
+  assert.ok(bytes.byteLength > 1000);
+});
+
+void test('Keluarga accepts one complete articulation cycle', () => {
+  const frames = reference('keluarga');
+  const oneCycle = frames.slice(0, -1);
+  const correct = scoreGesture(frames, oneCycle);
+  assert.equal(correct.passed, true, JSON.stringify(correct));
+});
+
+void test('Keluarga accepts a complete sweep performed three times slower', () => {
+  const frames = reference('keluarga');
+  const slower = frames.flatMap((frame, index) =>
+    [0, 1, 2].map((repeat) => ({
+      ...frame,
+      timeMs: (index * 3 + repeat) * 66,
+    })),
+  );
+  const result = scoreGesture(frames, slower);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga finger movement is not tied to one wrist angle', () => {
+  const frames = reference('keluarga');
+  const angle = (50 * Math.PI) / 180;
+  const rotated = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => {
+          const x = point.x - wrist.x;
+          const y = point.y - wrist.y;
+          return {
+            ...point,
+            x: wrist.x + x * Math.cos(angle) - y * Math.sin(angle),
+            y: wrist.y + x * Math.sin(angle) + y * Math.cos(angle),
+          };
+        }),
+      };
+    }),
+  }));
+  const result = scoreGesture(frames, rotated);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga accepts the opposite signing hand', () => {
+  const frames = reference('keluarga');
+  const result = scoreGesture(frames, mirrorDominantHand(frames));
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga finger articulation survives live camera smoothing', () => {
+  const frames = reference('keluarga');
+  let previousHands: GestureFrame['hands'] = [];
+  const cameraFrames = frames.map((frame) => {
+    const hands = smoothLiveHandObservations(frame.hands, previousHands);
+    previousHands = hands;
+    return { ...frame, hands };
+  });
+  const result = scoreGesture(frames, cameraFrames);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 85, JSON.stringify(result));
 });
 
 void test('Keluarga grades finger motion, not incidental wrist jitter', () => {

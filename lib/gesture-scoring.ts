@@ -187,7 +187,43 @@ export function smoothLiveHandObservations(
       wrist.y - previousWrist.y,
     );
     const movementRatio = wristMovement / palmScale;
-    const motionAlpha = Math.min(0.82, 0.35 + movementRatio * 0.8);
+    const fingertipSteps = [8, 12, 16, 20].map((index) => {
+      const currentTip = hand.landmarks[index];
+      const previousTip = previous.landmarks[index];
+      return [
+        currentTip.x - wrist.x - (previousTip.x - previousWrist.x),
+        currentTip.y - wrist.y - (previousTip.y - previousWrist.y),
+      ] as Vector2;
+    });
+    const movingFingertips = fingertipSteps.filter(
+      (step) => Math.hypot(...step) > palmScale * 0.3,
+    );
+    const totalFingertipTravel = movingFingertips.reduce(
+      (total, step) => total + Math.hypot(...step),
+      0,
+    );
+    const commonDirection = totalFingertipTravel
+      ? Math.hypot(
+          movingFingertips.reduce((sum, step) => sum + step[0], 0),
+          movingFingertips.reduce((sum, step) => sum + step[1], 0),
+        ) / totalFingertipTravel
+      : 0;
+    // A one-hand sign can articulate several fingers while keeping its wrist
+    // still. That is real movement, not four independent tracking spikes.
+    // Preserve it without weakening the single-joint and two-hand overlap
+    // spike filter below.
+    const coordinatedFingerMotion =
+      currentHands.length === 1 &&
+      previousHands.length === 1 &&
+      movingFingertips.length >= 3 &&
+      commonDirection >= 0.7;
+    const fingerMovementRatio = coordinatedFingerMotion
+      ? totalFingertipTravel / movingFingertips.length / palmScale
+      : 0;
+    const motionAlpha = Math.min(
+      0.82,
+      0.35 + Math.max(movementRatio, fingerMovementRatio) * 0.8,
+    );
     const otherHand = currentHands.find((_, index) => index !== currentIndex);
     const otherWrist = otherHand?.landmarks[0];
     const handsOverlap =
@@ -219,9 +255,10 @@ export function smoothLiveHandObservations(
         // Overlap failures usually move an individual joint much farther than
         // the wrist or its neighboring palm. Hold most of the prior skeleton
         // for that single frame, while genuine whole-hand motion stays quick.
-        const isJointSpike = handsOverlap
-          ? relativeJump > palmScale * 0.35 && wristMovement < palmScale * 0.7
-          : relativeJump > palmScale * 0.75 && wristMovement < palmScale * 0.5;
+        const isJointSpike = !coordinatedFingerMotion &&
+          (handsOverlap
+            ? relativeJump > palmScale * 0.35 && wristMovement < palmScale * 0.7
+            : relativeJump > palmScale * 0.75 && wristMovement < palmScale * 0.5);
         const alpha = isJointSpike ? (handsOverlap ? 0.08 : 0.15) : motionAlpha;
         return {
           x: previousLandmark.x + (landmark.x - previousLandmark.x) * alpha,
@@ -448,7 +485,10 @@ function getAttemptWindows(
     const windows: PreparedFrame[][] = [sequence];
     const step = Math.max(1, Math.floor(sequence.length / 20));
     for (let start = 0; start < sequence.length; start += step) {
-      for (const factor of [0.75, 1, 1.35, 1.8]) {
+      // The preview can be watched at half speed; a learner may perform the
+      // same short sweep over two to three reference durations. Keep a full
+      // contiguous candidate instead of grading only its first half.
+      for (const factor of [0.75, 1, 1.35, 1.8, 2.4, 3.2]) {
         const targetEnd = sequence[start].timeMs + referenceDuration * factor;
         const end = sequence.findIndex(
           (frame, index) => index > start && frame.timeMs >= targetEnd,
@@ -1999,23 +2039,37 @@ function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
 }
 
 function fingertipOffsets(sequence: PreparedFrame[]) {
-  const handScale = median(
-    sequence.flatMap((frame) => frame.hands.map((hand) => hand.screenScale)),
-  );
   return sequence.map((frame) =>
     frame.hands.map((hand) => {
       const tips = [8, 12, 16, 20].map(
         (index) => hand.physicalLandmarks[index],
       );
+      const wrist = hand.physicalWrist;
+      const mirror = hand.handedness === 'left' ? -1 : 1;
+      const fingertipOffset: Vector2 = [
+        (average(tips.map((tip) => tip[0])) - wrist[0]) * mirror,
+        average(tips.map((tip) => tip[1])) - wrist[1],
+      ];
+      const palmWidth = Math.hypot(
+        hand.physicalLandmarks[5][0] - hand.physicalLandmarks[17][0],
+        hand.physicalLandmarks[5][1] - hand.physicalLandmarks[17][1],
+      );
+      const palmScale = Math.max(
+        0.001,
+        (palmWidth + hand.screenScale) / 2,
+      );
+      // Finger articulation belongs in the hand's own coordinate system.
+      // An equally valid wrist angle rotates its screen-space tip trajectory;
+      // comparing that trajectory to a single signer made Keluarga fail even
+      // when handshape and palm orientation were acceptable.
       return {
         handedness: hand.handedness,
         x:
-          ((average(tips.map((tip) => tip[0])) - hand.physicalWrist[0]) *
-            (hand.handedness === 'left' ? -1 : 1)) /
-          handScale,
+          dot2(fingertipOffset, [hand.orientation[0], hand.orientation[1]]) /
+          palmScale,
         y:
-          (average(tips.map((tip) => tip[1])) - hand.physicalWrist[1]) /
-          handScale,
+          dot2(fingertipOffset, [hand.orientation[2], hand.orientation[3]]) /
+          palmScale,
       };
     }),
   );
@@ -2050,7 +2104,11 @@ function isFingerMotionDominantGesture(sequence: PreparedFrame[]) {
     Math.ceil(sequence.length * 0.75),
   );
   const wristExtent = motionExtent(central);
-  const fingerExtent = fingertipMotionExtent(central);
+  // A short complete flex/reopen cycle can place its extension peak just
+  // outside the middle half, especially after resampling. Use the entire
+  // performed sign for finger articulation while the central wrist check
+  // still excludes an entry/exit hand lift.
+  const fingerExtent = fingertipMotionExtent(sequence);
   // With a stationary wrist and articulating fingers, the wrist trajectory is
   // tracker jitter rather than the lexical movement. Keluarga's reference is
   // one such sign; the condition is derived from the reference, not its label.
@@ -2357,7 +2415,7 @@ function feedbackFor(
     movement: indexApproachDominant
       ? 'Mulai dengan kedua telunjuk terpisah, lalu dekatkan sampai bertemu dan tahan sesaat.'
       : fingerMotionDominant
-        ? 'Gerakkan jari seperti contoh sambil menjaga pergelangan di depan dada.'
+        ? 'Ikuti gerak jari dan putaran pergelangan dari awal sampai akhir contoh.'
         : gestureKind === 'pose'
           ? 'Pertahankan bentuk dan posisi akhir tanda selama rekaman.'
           : 'Ikuti arah serta lintasan gerakan dari awal sampai akhir.',

@@ -21,7 +21,10 @@ import { MissionSectionNavigation } from '@/components/mission-section-navigatio
 import { Badge } from '@/components/ui/badge';
 import { getSign, isSignId, versionedSignVideo } from '@/lib/curriculum-data';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
-import { getCuratedReferenceWindow } from '@/lib/reference-window';
+import {
+  getCuratedReferenceWindow,
+  getPracticePreviewVideoUrl,
+} from '@/lib/reference-window';
 
 export const metadata: Metadata = {
   title: 'Latihan Kamera BISINDO',
@@ -145,7 +148,7 @@ export default async function PracticePage({
               <ReferenceSignVideo
                 key={sign.id}
                 id={referenceVideoId}
-                src={referenceVideoUrl}
+                src={getPracticePreviewVideoUrl(referenceVideoUrl)}
                 label={sign.label}
                 window={getCuratedReferenceWindow(referenceVideoUrl)}
               />
