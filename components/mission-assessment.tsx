@@ -382,14 +382,14 @@ export function MissionAssessment({
                 </div>
 
                 <span className="mt-3 text-xs font-black uppercase tracking-wider text-[#E54D2E]">
-                  HASIL TES
+                  {isCheckpoint ? 'HASIL TES' : 'HASIL LATIHAN'}
                 </span>
 
                 <span className="mt-1 text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 leading-none">
                   {score}
                 </span>
 
-                <CelebrationStars starCount={3} />
+                {isCheckpoint ? <CelebrationStars starCount={3} /> : null}
               </div>
             </div>
 
@@ -404,7 +404,9 @@ export function MissionAssessment({
               </h2>
 
               <p className="mt-3 text-xs sm:text-sm font-medium leading-relaxed text-slate-600 max-w-xl">
-                Luar biasa. Kamu mengenali seluruh tanda dalam tes ini. Skor terbaik tersimpan adalah {bestScore}.
+                Luar biasa. Kamu mengenali seluruh tanda dalam{' '}
+                {isCheckpoint ? 'tes' : 'latihan'} ini. Skor terbaik tersimpan
+                adalah {bestScore}.
               </p>
 
               {/* Question Pills: 01, 02, 03, 04, 05 */}
@@ -473,14 +475,14 @@ export function MissionAssessment({
               </div>
 
               <span className="mt-3 text-xs font-black uppercase tracking-wider text-[#E54D2E]">
-                HASIL TES
+                {isCheckpoint ? 'HASIL TES' : 'HASIL LATIHAN'}
               </span>
 
               <span className="mt-1 text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 leading-none">
                 {score}
               </span>
 
-              <CelebrationStars starCount={stars} />
+              {isCheckpoint ? <CelebrationStars starCount={stars} /> : null}
             </div>
           </div>
 
