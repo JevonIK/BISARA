@@ -10,6 +10,7 @@ import {
   hasUsableReference,
   scoreGesture,
 } from '../lib/gesture-scoring.ts';
+import { selectReferenceWindow } from '../lib/reference-window.ts';
 
 const manifest = JSON.parse(
   await readFile(
@@ -28,7 +29,7 @@ const frames = definitions.map(({ videoSrc, label }) => {
   if (!reference || !hasUsableReference(reference)) {
     throw new Error(`Landmark referensi ${label} tidak tersedia/valid.`);
   }
-  return reference;
+  return selectReferenceWindow(filename, reference);
 });
 if (Object.keys(manifest.frames).length !== definitions.length) {
   throw new Error('Jumlah template tidak sama dengan jumlah kosakata.');

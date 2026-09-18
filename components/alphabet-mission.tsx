@@ -1002,6 +1002,10 @@ function StageRecall({
         <p className="mt-3 text-xs text-muted-foreground">
           Tunjukkan bentuk huruf ini di depan kamera cerminmu.
         </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Kamera ini belum memeriksa ketepatan huruf secara otomatis. Lanjutkan
+          hanya setelah kamu membandingkan gerakanmu dengan materi sebelumnya.
+        </p>
       </div>
 
       {/* Live Camera View */}

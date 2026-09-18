@@ -1,6 +1,7 @@
 import type { HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 
 import { SIGN_VIDEO_VERSION } from '@/lib/curriculum-data';
+import { selectReferenceWindow } from '@/lib/reference-window';
 import {
   hasUsableReference,
   selectBodyPoseLandmarks,
@@ -55,7 +56,7 @@ export async function getStoredReferenceFrames(
   if (!frames || !hasUsableReference(frames)) {
     throw new Error(`Template gerakan tidak valid: ${filename ?? videoUrl}`);
   }
-  return frames;
+  return selectReferenceWindow(videoUrl, frames);
 }
 
 /**
@@ -101,6 +102,7 @@ export async function getBodyAnchoredReferenceFrames(
               x: landmark.x,
               y: landmark.y,
               z: landmark.z,
+              visibility: landmark.visibility,
             })),
           ),
           frame.hands,
@@ -169,13 +171,14 @@ export async function getReferenceFrames(
       const extractor = await getExtractorLandmarker();
       try {
         const frames = await extractFramesFromVideo(videoUrl, extractor);
-        if (!hasUsableReference(frames)) {
+        const selectedFrames = selectReferenceWindow(videoUrl, frames);
+        if (!hasUsableReference(selectedFrames)) {
           throw new Error(
             'Referensi gerakan tidak memiliki cukup landmark tangan yang valid.',
           );
         }
-        referenceCache.set(videoUrl, frames);
-        return frames;
+        referenceCache.set(videoUrl, selectedFrames);
+        return selectedFrames;
       } catch (error) {
         extractorPromise = null;
         extractor.close();

@@ -194,8 +194,8 @@ const signRows = [
     'keluarga',
     'Keluarga',
     26,
-    'Lintasan gerak',
-    'Pertahankan bentuk jari sambil mengikuti lintasan di depan tubuh.',
+    'Gerak jari',
+    'Gunakan satu tangan di depan dada dengan jari mengarah ke bawah. Perhatikan gerak jari pada contoh, bukan hanya perpindahan pergelangan.',
   ],
   [
     'rumah',

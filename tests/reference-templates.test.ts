@@ -14,8 +14,13 @@ import {
   hasUsableReference,
   scoreGesture,
   scoreGestureWithAlternatives,
+  smoothLiveHandObservations,
   type GestureFrame,
 } from '../lib/gesture-scoring.ts';
+import {
+  getPracticePreviewVideoUrl,
+  selectReferenceWindow,
+} from '../lib/reference-window.ts';
 
 type Manifest = {
   version: string;
@@ -31,8 +36,288 @@ const manifest = JSON.parse(
 
 function reference(id: (typeof signIds)[number]) {
   const filename = getSign(id).videoSrc.split('/').at(-1)!;
-  return manifest.frames[filename];
+  return selectReferenceWindow(filename, manifest.frames[filename]);
 }
+
+void test('Keluarga reference starts at the performed sign, after setup', () => {
+  const frames = reference('keluarga');
+  assert.equal(frames[0].timeMs, 528);
+  assert.equal(frames.at(-1)?.timeMs, 1122);
+  const attempt = structuredClone(frames);
+  assert.equal(scoreGesture(frames, attempt).passed, true);
+});
+
+void test('Keluarga practice loops the same excerpt as the checker', async () => {
+  const source = getSign('keluarga').videoSrc;
+  const preview = getPracticePreviewVideoUrl(`${source}?v=test`);
+  assert.ok(preview.endsWith('signer2_label26_sample3-practice.mp4?v=test'));
+  assert.notEqual(preview, `${source}?v=test`);
+  const bytes = await readFile(
+    new URL(`../public${preview.split('?')[0]}`, import.meta.url),
+  );
+  assert.ok(bytes.byteLength > 1000);
+});
+
+void test('Keluarga accepts one complete articulation cycle', () => {
+  const frames = reference('keluarga');
+  const oneCycle = frames.slice(0, -1);
+  const correct = scoreGesture(frames, oneCycle);
+  assert.equal(correct.passed, true, JSON.stringify(correct));
+});
+
+void test('Keluarga accepts a complete sweep performed three times slower', () => {
+  const frames = reference('keluarga');
+  const slower = frames.flatMap((frame, index) =>
+    [0, 1, 2].map((repeat) => ({
+      ...frame,
+      timeMs: (index * 3 + repeat) * 66,
+    })),
+  );
+  const result = scoreGesture(frames, slower);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga finger movement is not tied to one wrist angle', () => {
+  const frames = reference('keluarga');
+  const angle = (50 * Math.PI) / 180;
+  const rotated = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => {
+          const x = point.x - wrist.x;
+          const y = point.y - wrist.y;
+          return {
+            ...point,
+            x: wrist.x + x * Math.cos(angle) - y * Math.sin(angle),
+            y: wrist.y + x * Math.sin(angle) + y * Math.cos(angle),
+          };
+        }),
+      };
+    }),
+  }));
+  const result = scoreGesture(frames, rotated);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga accepts the opposite signing hand', () => {
+  const frames = reference('keluarga');
+  const result = scoreGesture(frames, mirrorDominantHand(frames));
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+function scaleKeluargaPalmSweep(frames: GestureFrame[], factor: number) {
+  const palmAngle = (hand: GestureFrame['hands'][number]) =>
+    Math.atan2(
+      hand.landmarks[5].y - hand.landmarks[17].y,
+      hand.landmarks[5].x - hand.landmarks[17].x,
+    );
+  const startingAngle = palmAngle(frames[0].hands[0]);
+  return frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      const rotation = (factor - 1) * (palmAngle(hand) - startingAngle);
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => {
+          const x = point.x - wrist.x;
+          const y = point.y - wrist.y;
+          return {
+            ...point,
+            x: wrist.x + x * Math.cos(rotation) - y * Math.sin(rotation),
+            y: wrist.y + x * Math.sin(rotation) + y * Math.cos(rotation),
+          };
+        }),
+      };
+    }),
+  }));
+}
+
+void test('Keluarga accepts a smaller but complete wrist sweep', () => {
+  const frames = reference('keluarga');
+  const result = scoreGesture(frames, scaleKeluargaPalmSweep(frames, 0.55));
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga accepts straight fingers seen with shorter projected lengths', () => {
+  const frames = reference('keluarga');
+  const foreshortened = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const landmarks = structuredClone(hand.landmarks);
+      for (const finger of [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+      ]) {
+        const base = landmarks[finger[0]];
+        for (const index of finger.slice(1)) {
+          landmarks[index].x = base.x + (landmarks[index].x - base.x) * 0.7;
+          landmarks[index].y = base.y + (landmarks[index].y - base.y) * 0.7;
+        }
+      }
+      return { ...hand, landmarks };
+    }),
+  }));
+  const result = scoreGesture(frames, foreshortened);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.handshape >= 75, JSON.stringify(result));
+});
+
+void test('Keluarga requires the wrist sweep rather than just the finger pose', () => {
+  const frames = reference('keluarga');
+  for (const factor of [0, -1]) {
+    const result = scoreGesture(frames, scaleKeluargaPalmSweep(frames, factor));
+    assert.equal(result.passed, false, JSON.stringify(result));
+    assert.ok(result.movement < 70, JSON.stringify(result));
+  }
+});
+
+void test('Keluarga finger articulation survives live camera smoothing', () => {
+  const frames = reference('keluarga');
+  let previousHands: GestureFrame['hands'] = [];
+  const cameraFrames = frames.map((frame) => {
+    const hands = smoothLiveHandObservations(frame.hands, previousHands);
+    previousHands = hands;
+    return { ...frame, hands };
+  });
+  const result = scoreGesture(frames, cameraFrames);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 85, JSON.stringify(result));
+});
+
+void test('Keluarga grades finger motion, not incidental wrist jitter', () => {
+  const frames = reference('keluarga');
+  const firstHand = frames[0].hands[0];
+  const steadyWrist = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const deltaX = firstHand.landmarks[0].x - hand.landmarks[0].x;
+      const deltaY = firstHand.landmarks[0].y - hand.landmarks[0].y;
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => ({
+          ...point,
+          x: point.x + deltaX,
+          y: point.y + deltaY,
+        })),
+      };
+    }),
+  }));
+  const genuineMotion = scoreGesture(frames, steadyWrist);
+  assert.equal(genuineMotion.passed, true, JSON.stringify(genuineMotion));
+  assert.ok(genuineMotion.movement >= 70, JSON.stringify(genuineMotion));
+
+  const staticFingers = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const deltaX = hand.landmarks[0].x - firstHand.landmarks[0].x;
+      const deltaY = hand.landmarks[0].y - firstHand.landmarks[0].y;
+      return {
+        ...hand,
+        landmarks: firstHand.landmarks.map((point) => ({
+          ...point,
+          x: point.x + deltaX,
+          y: point.y + deltaY,
+        })),
+      };
+    }),
+  }));
+  const copiedWristPath = scoreGesture(frames, staticFingers);
+  assert.equal(copiedWristPath.passed, false, JSON.stringify(copiedWristPath));
+  assert.equal(copiedWristPath.criticalMismatch, 'movement');
+});
+
+void test('Keluarga can pass once within a longer recording without accepting another sign', () => {
+  const frames = reference('keluarga');
+  const rest = reference('makan').find((frame) => frame.hands.length === 1);
+  assert.ok(rest);
+  const at = (frame: GestureFrame, timeMs: number) => ({
+    ...structuredClone(frame),
+    timeMs,
+  });
+  const attempt = [
+    ...Array.from({ length: 10 }, (_, index) => at(rest, index * 66)),
+    ...frames.map((frame, index) => at(frame, (index + 10) * 66)),
+    ...Array.from({ length: 15 }, (_, index) => at(rest, (index + 26) * 66)),
+  ];
+  const correct = scoreGesture(frames, attempt);
+  assert.equal(correct.passed, true, JSON.stringify(correct));
+  assert.equal(correct.criticalMismatch, null, JSON.stringify(correct));
+
+  const otherSign = scoreGesture(frames, reference('makan'));
+  assert.equal(otherSign.passed, false, JSON.stringify(otherSign));
+});
+
+void test('Keluarga tolerates hidden inner joints but still checks visible fingertips', () => {
+  const frames = reference('keluarga');
+  const noisyInnerJoints = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point, index) =>
+        [2, 3, 6, 7, 10, 11, 14, 15, 18, 19].includes(index)
+          ? {
+              ...point,
+              x: point.x + 0.025 * (index % 2 ? 1 : -1),
+              y: point.y + 0.025 * (index % 3 ? 1 : -1),
+            }
+          : point,
+      ),
+    })),
+  }));
+  const recovered = scoreGesture(frames, noisyInnerJoints);
+  assert.equal(recovered.passed, true, JSON.stringify(recovered));
+
+  const changedFingertips = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point, index) =>
+        [8, 12, 16, 20].includes(index)
+          ? { ...point, ...hand.landmarks[index - 3] }
+          : point,
+      ),
+    })),
+  }));
+  const differentShape = scoreGesture(frames, changedFingertips);
+  assert.equal(differentShape.passed, false, JSON.stringify(differentShape));
+  assert.equal(differentShape.criticalMismatch, 'handshape');
+  assert.ok(differentShape.handshapeEvidence);
+  assert.ok(
+    differentShape.handshapeEvidence.rawScore >= differentShape.handshape,
+  );
+  assert.ok(differentShape.movement >= 70, JSON.stringify(differentShape));
+});
+
+void test('Keluarga tolerates chest placement variance but rejects another body region', () => {
+  const frames = withBodyPose(reference('keluarga'));
+  const chestVariation = scoreGesture(
+    frames,
+    shiftHandsVertically(frames, -0.1),
+  );
+  assert.equal(chestVariation.positionRelativeToBody, true);
+  assert.ok(chestVariation.position >= 60, JSON.stringify(chestVariation));
+  assert.equal(chestVariation.passed, true, JSON.stringify(chestVariation));
+
+  const differentRegion = scoreGesture(
+    frames,
+    shiftHandsVertically(frames, -0.2),
+  );
+  assert.equal(differentRegion.positionRelativeToBody, true);
+  assert.ok(differentRegion.position < 60, JSON.stringify(differentRegion));
+  assert.equal(differentRegion.criticalMismatch, 'position');
+  assert.equal(differentRegion.passed, false, JSON.stringify(differentRegion));
+});
 
 function mirrorDominantHand(frames: GestureFrame[]) {
   return frames.map((frame) => ({
@@ -250,10 +535,7 @@ void test('Teman tolerates bounded inner-joint noise while hands overlap', () =>
       point.y += handScale * 0.18 * -direction;
     }
   }
-  const alternatives = getSigns(signIds)
-    .filter((sign) => sign.id !== 'teman')
-    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
-  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+  const score = scoreGesture(frames, attempt);
   assert.equal(score.passed, true, JSON.stringify(score));
   assert.ok(score.handshape >= 85, JSON.stringify(score));
 });
@@ -278,7 +560,10 @@ void test('Teman ignores simultaneous hidden-joint drift while preserving finger
     }
   }
 
-  const score = scoreGesture(frames, attempt);
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'teman')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
   assert.equal(score.passed, true, JSON.stringify(score));
   assert.ok(score.handshape >= 85, JSON.stringify(score));
 });
@@ -316,6 +601,34 @@ void test('Teman grades sustained hand contact instead of exact wrist spacing', 
   const separatedHands = scoreGesture(frames, scaleTwoHandSpacing(frames, 1.7));
   assert.equal(separatedHands.passed, false, JSON.stringify(separatedHands));
   assert.equal(separatedHands.criticalMismatch, 'coordination');
+});
+
+void test('Teman does not reject an intact contact sign for unobservable palm orientation', () => {
+  const frames = reference('teman');
+  const angle = Math.PI / 3;
+  const attempt = structuredClone(frames).map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point) => {
+        const x = point.x - 0.5;
+        const y = point.y - 0.55;
+        return {
+          ...point,
+          x: 0.5 + x * Math.cos(angle) - y * Math.sin(angle),
+          y: 0.55 + x * Math.sin(angle) + y * Math.cos(angle),
+        };
+      }),
+    })),
+  }));
+  const alternatives = getSigns(signIds)
+    .filter((sign) => sign.id !== 'teman')
+    .map((sign) => ({ label: sign.label, frames: reference(sign.id) }));
+  const score = scoreGestureWithAlternatives(frames, attempt, alternatives);
+  assert.equal(score.orientationAssessable, false);
+  assert.ok(score.orientation < 50, JSON.stringify(score));
+  assert.equal(score.passed, true, JSON.stringify(score));
+  assert.ok(score.movement >= 70 && score.coordination >= 90);
 });
 
 void test('Teman follows the fingers approaching despite a different wrist path', () => {

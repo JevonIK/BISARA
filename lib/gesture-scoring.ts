@@ -1,4 +1,9 @@
-export type Point3 = { x: number; y: number; z: number };
+export type Point3 = {
+  x: number;
+  y: number;
+  z: number;
+  visibility?: number;
+};
 export type HandObservation = {
   landmarks: Point3[];
   worldLandmarks?: Point3[];
@@ -22,6 +27,7 @@ export type GestureScore = {
   handshape: number;
   position: number;
   orientation: number;
+  orientationAssessable: boolean;
   movement: number;
   coordination: number;
   detectionQuality: number;
@@ -33,6 +39,11 @@ export type GestureScore = {
   positionRelativeToBody: boolean;
   criticalMismatch: GestureComponent | null;
   confusableWith: string | null;
+  handshapeEvidence?: {
+    rawScore: number;
+    matchingFrameRatio: number;
+    requiredMatchingFrameRatio: number;
+  };
 };
 
 type Vector2 = [number, number];
@@ -76,6 +87,7 @@ const MIN_TWO_HAND_COORDINATION_SCORE = 90;
 const MIN_ALTERNATIVE_ADVANTAGE = 3;
 const MIN_BODY_POSITION_COVERAGE = 0.8;
 const MAX_BODY_OWNER_ERROR = 0.9;
+const MIN_BODY_ANCHOR_VISIBILITY = 0.5;
 const SEQUENCE_SAMPLES = 32;
 const MIN_VISIBLE_FRAMES = 6;
 const MIN_COVERAGE = 0.6;
@@ -100,6 +112,9 @@ const INTER_HAND_CONTACT_DISTANCE = 0.75;
 const MIN_REFERENCE_CONTACT_RATIO = 0.55;
 const MIN_ATTEMPT_CONTACT_RATIO = 0.4;
 const CONTACT_SIGN_BODY_POSITION_DEAD_ZONE = 0.22;
+// A one-hand sign articulated mostly by the fingers can be performed a little
+// higher or lower in front of the torso without changing its meaning.
+const FINGER_MOTION_BODY_POSITION_DEAD_ZONE = 0.15;
 const MAX_CONTACT_FINGER_SPAN_ERROR = 0.18;
 const MIN_CONTACT_FINGER_SPAN_MATCH_RATIO = 0.3;
 
@@ -177,7 +192,43 @@ export function smoothLiveHandObservations(
       wrist.y - previousWrist.y,
     );
     const movementRatio = wristMovement / palmScale;
-    const motionAlpha = Math.min(0.82, 0.35 + movementRatio * 0.8);
+    const fingertipSteps = [8, 12, 16, 20].map((index) => {
+      const currentTip = hand.landmarks[index];
+      const previousTip = previous.landmarks[index];
+      return [
+        currentTip.x - wrist.x - (previousTip.x - previousWrist.x),
+        currentTip.y - wrist.y - (previousTip.y - previousWrist.y),
+      ] as Vector2;
+    });
+    const movingFingertips = fingertipSteps.filter(
+      (step) => Math.hypot(...step) > palmScale * 0.3,
+    );
+    const totalFingertipTravel = movingFingertips.reduce(
+      (total, step) => total + Math.hypot(...step),
+      0,
+    );
+    const commonDirection = totalFingertipTravel
+      ? Math.hypot(
+          movingFingertips.reduce((sum, step) => sum + step[0], 0),
+          movingFingertips.reduce((sum, step) => sum + step[1], 0),
+        ) / totalFingertipTravel
+      : 0;
+    // A one-hand sign can articulate several fingers while keeping its wrist
+    // still. That is real movement, not four independent tracking spikes.
+    // Preserve it without weakening the single-joint and two-hand overlap
+    // spike filter below.
+    const coordinatedFingerMotion =
+      currentHands.length === 1 &&
+      previousHands.length === 1 &&
+      movingFingertips.length >= 3 &&
+      commonDirection >= 0.7;
+    const fingerMovementRatio = coordinatedFingerMotion
+      ? totalFingertipTravel / movingFingertips.length / palmScale
+      : 0;
+    const motionAlpha = Math.min(
+      0.82,
+      0.35 + Math.max(movementRatio, fingerMovementRatio) * 0.8,
+    );
     const otherHand = currentHands.find((_, index) => index !== currentIndex);
     const otherWrist = otherHand?.landmarks[0];
     const handsOverlap =
@@ -209,9 +260,12 @@ export function smoothLiveHandObservations(
         // Overlap failures usually move an individual joint much farther than
         // the wrist or its neighboring palm. Hold most of the prior skeleton
         // for that single frame, while genuine whole-hand motion stays quick.
-        const isJointSpike = handsOverlap
-          ? relativeJump > palmScale * 0.35 && wristMovement < palmScale * 0.7
-          : relativeJump > palmScale * 0.75 && wristMovement < palmScale * 0.5;
+        const isJointSpike =
+          !coordinatedFingerMotion &&
+          (handsOverlap
+            ? relativeJump > palmScale * 0.35 && wristMovement < palmScale * 0.7
+            : relativeJump > palmScale * 0.75 &&
+              wristMovement < palmScale * 0.5);
         const alpha = isJointSpike ? (handsOverlap ? 0.08 : 0.15) : motionAlpha;
         return {
           x: previousLandmark.x + (landmark.x - previousLandmark.x) * alpha,
@@ -296,9 +350,8 @@ export function scoreGesture(
   // Visibility gaps have already reduced quality above. An undetected frame has
   // no hand geometry to compare; treating it as a shape/orientation error makes
   // even the demo fail when one extraction briefly loses tracking.
-  const sampledReference = resampleSequence(reference);
   const direct = scoreAttemptWindows(
-    sampledReference,
+    reference,
     visibleAttemptFrames,
     detectionQuality,
   );
@@ -317,7 +370,7 @@ export function scoreGesture(
       : direct;
   }
   const swapped = scoreAttemptWindows(
-    sampledReference,
+    reference,
     selectRequiredHands(
       swapHandedness(rawAttempt),
       requiredHandCount,
@@ -389,10 +442,11 @@ function scoreAttemptWindows(
   attempt: PreparedFrame[],
   detectionQuality: number,
 ) {
-  return getAttemptWindows(attempt)
+  const sampledReference = resampleSequence(reference);
+  return getAttemptWindows(attempt, reference)
     .map((window) =>
       scorePrepared(
-        reference,
+        sampledReference,
         resampleSequence(window),
         detectionQuality,
         window,
@@ -402,14 +456,64 @@ function scoreAttemptWindows(
       if (result.passed !== best.passed) return result.passed ? result : best;
       if (result.overall !== best.overall)
         return result.overall > best.overall ? result : best;
-      return weightedComponentScore(result, result.requiredHandCount) >
-        weightedComponentScore(best, best.requiredHandCount)
+      return weightedComponentScore(
+        result,
+        result.requiredHandCount,
+        result.orientationAssessable,
+      ) >
+        weightedComponentScore(
+          best,
+          best.requiredHandCount,
+          best.orientationAssessable,
+        )
         ? result
         : best;
     });
 }
 
-function getAttemptWindows(sequence: PreparedFrame[]) {
+function getAttemptWindows(
+  sequence: PreparedFrame[],
+  reference: PreparedFrame[],
+) {
+  const referenceDuration =
+    reference[reference.length - 1].timeMs - reference[0].timeMs;
+  const attemptDuration =
+    sequence[sequence.length - 1].timeMs - sequence[0].timeMs;
+  if (
+    referenceDuration <= 1500 &&
+    attemptDuration > referenceDuration * 1.8 &&
+    (isFingerMotionDominantGesture(reference) ||
+      isPalmRotationDominantGesture(reference))
+  ) {
+    // A short finger-articulated sign can occupy only one of several seconds
+    // recorded for preparation and a final hold. Comparing most of the whole
+    // recording rejects a correctly performed sign because the hand rests in
+    // a different shape before and after it. Find one continuous attempt of
+    // comparable duration; movement and handshape gates still apply to it.
+    const windows: PreparedFrame[][] = [sequence];
+    const step = Math.max(1, Math.floor(sequence.length / 20));
+    for (let start = 0; start < sequence.length; start += step) {
+      // The preview can be watched at half speed; a learner may perform the
+      // same short sweep over two to three reference durations. Keep a full
+      // contiguous candidate instead of grading only its first half.
+      for (const factor of [0.75, 1, 1.35, 1.8, 2.4, 3.2]) {
+        const targetEnd = sequence[start].timeMs + referenceDuration * factor;
+        const end = sequence.findIndex(
+          (frame, index) => index > start && frame.timeMs >= targetEnd,
+        );
+        if (end < 0) continue;
+        const candidate = sequence.slice(start, end + 1);
+        if (
+          candidate.length >= MIN_VISIBLE_FRAMES &&
+          hasEnoughDuration(candidate)
+        ) {
+          windows.push(candidate);
+        }
+      }
+    }
+    return windows;
+  }
+
   const minimumFrames = Math.max(
     MIN_VISIBLE_FRAMES,
     Math.ceil(sequence.length * MIN_ATTEMPT_WINDOW_RATIO),
@@ -461,6 +565,25 @@ function scorePrepared(
   const contactDominant = hasSustainedInterHandContact(reference);
   const indexApproachDominant =
     contactDominant && hasIndexFingerApproach(reference);
+  const fingerMotionDominant =
+    requiredHandCount === 1 && isFingerMotionDominantGesture(reference);
+  const palmRotationDominant =
+    requiredHandCount === 1 && isPalmRotationDominantGesture(reference);
+  // A contact reference may show almost no unobstructed palm. MediaPipe's
+  // inferred palm axes then come from overlapping fingers and are not reliable
+  // evidence for rejecting a learner. Require enough separated frames on both
+  // sides before grading orientation; keep handshape, approach and contact as
+  // the decisive evidence when those frames do not exist.
+  const separatedReference = contactDominant
+    ? reference.filter((frame) => !hasInterHandContact(frame))
+    : reference;
+  const separatedAttempt = contactDominant
+    ? attempt.filter((frame) => !hasInterHandContact(frame))
+    : attempt;
+  const orientationAssessable =
+    !contactDominant ||
+    (separatedReference.length >= MIN_VISIBLE_FRAMES &&
+      separatedAttempt.length >= MIN_VISIBLE_FRAMES);
   const positionRelativeToBody =
     hasBodyPositionCoverage(reference) && hasBodyPositionCoverage(attempt);
   const referenceMovement = movementSequence(reference);
@@ -472,15 +595,23 @@ function scorePrepared(
       positionRelativeToBody,
       positionRelativeToBody && requiredHandCount === 2 && contactDominant
         ? CONTACT_SIGN_BODY_POSITION_DEAD_ZONE
-        : 0,
+        : positionRelativeToBody && fingerMotionDominant
+          ? FINGER_MOTION_BODY_POSITION_DEAD_ZONE
+          : 0,
     );
   const handshapeMatch = robustHandshapeMetrics(
     reference,
     attempt,
     requiredHandCount,
     contactDominant,
+    fingerMotionDominant,
+    palmRotationDominant,
   );
-  const rawHandshapeScore = errorToScore(handshapeMatch.error, 0.7);
+  const handshapeTolerance = palmRotationDominant ? 0.8 : 0.7;
+  const rawHandshapeScore = errorToScore(
+    handshapeMatch.error,
+    handshapeTolerance,
+  );
   const minimumHandshapeMatchRatio = handshapeMatch.minimumMatchRatio;
   const handshapeFrameMatchRatio = handshapeMatch.matchRatio;
   // Keep the displayed component aligned with the pass gate. A brief match
@@ -498,7 +629,11 @@ function scorePrepared(
       requiredHandCount === 2 ? 0.45 : 0.3,
     ),
     orientation: errorToScore(
-      robustPoseError(reference, attempt, compareOrientation),
+      robustPoseError(
+        orientationAssessable ? separatedReference : reference,
+        orientationAssessable ? separatedAttempt : attempt,
+        compareOrientation,
+      ),
       0.62,
     ),
     movement: errorToScore(
@@ -506,11 +641,15 @@ function scorePrepared(
         ? poseHoldError(reference, rawAttempt)
         : indexApproachDominant
           ? contactApproachError(reference, attempt)
-          : Math.max(
-              dtwError(referenceMovement, attemptMovement, compareMovement),
-              movementDirectionError(referenceMovement, attemptMovement),
-              movementExtentError(referenceMovement, attemptMovement),
-            ),
+          : palmRotationDominant
+            ? palmRotationError(reference, attempt)
+            : fingerMotionDominant
+              ? fingerMotionError(reference, attempt)
+              : Math.max(
+                  dtwError(referenceMovement, attemptMovement, compareMovement),
+                  movementDirectionError(referenceMovement, attemptMovement),
+                  movementExtentError(referenceMovement, attemptMovement),
+                ),
       0.35,
     ),
     coordination: errorToScore(
@@ -521,13 +660,21 @@ function scorePrepared(
 
   // Coordination is not evidence for a one-hand sign. Renormalize the useful
   // components instead of letting an automatic 100 inflate its total.
-  const weighted = weightedComponentScore(components, requiredHandCount);
+  const weighted = weightedComponentScore(
+    components,
+    requiredHandCount,
+    orientationAssessable,
+  );
   // Coverage is already enforced before scoring. Multiplying by it again would
   // punish detector occlusion twice, especially when two hands overlap.
   const weightedScore = roundScore(weighted);
-  const weakest = weakestComponent(components);
+  const weakest = weakestComponent({
+    ...components,
+    orientation: orientationAssessable ? components.orientation : 100,
+  });
   const weakestCore = weakestComponent({
     ...components,
+    orientation: orientationAssessable ? components.orientation : 100,
     position: positionRelativeToBody ? components.position : 100,
     coordination: requiredHandCount === 2 ? components.coordination : 100,
   });
@@ -551,7 +698,8 @@ function scorePrepared(
         : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
             components.movement < MIN_TWO_HAND_JOINT_MOVEMENT_SCORE
           ? 'movement'
-          : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
+          : orientationAssessable &&
+              components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
               components.orientation < MIN_TWO_HAND_ORIENTATION_SCORE
             ? 'coordination'
             : null
@@ -580,6 +728,7 @@ function scorePrepared(
   return {
     overall,
     ...components,
+    orientationAssessable,
     detectionQuality,
     assessable: true,
     passed: overall >= PASS_THRESHOLD,
@@ -590,19 +739,35 @@ function scorePrepared(
       positionRelativeToBody,
       contactDominant,
       indexApproachDominant,
+      fingerMotionDominant,
+      palmRotationDominant,
     ),
     gestureKind,
     requiredHandCount,
     positionRelativeToBody,
     criticalMismatch: criticalWeakness,
     confusableWith: null,
+    handshapeEvidence: {
+      rawScore: rawHandshapeScore,
+      matchingFrameRatio: handshapeFrameMatchRatio,
+      requiredMatchingFrameRatio: minimumHandshapeMatchRatio,
+    },
   };
 }
 
 function weightedComponentScore(
   components: Components,
   requiredHandCount: 1 | 2,
+  orientationAssessable = true,
 ) {
+  if (!orientationAssessable) {
+    const weighted =
+      components.handshape * 0.35 +
+      components.movement * 0.25 +
+      components.position * 0.1 +
+      components.coordination * 0.1;
+    return weighted / 0.8;
+  }
   return requiredHandCount === 2
     ? components.handshape * 0.35 +
         components.movement * 0.25 +
@@ -1108,7 +1273,11 @@ function bodyAnchorGeometry(
   const rightHip = landmarks[24];
   if (
     [leftShoulder, rightShoulder, leftHip, rightHip].some(
-      (point) => !point || ![point.x, point.y, point.z].every(Number.isFinite),
+      (point) =>
+        !point ||
+        ![point.x, point.y, point.z].every(Number.isFinite) ||
+        (point.visibility !== undefined &&
+          point.visibility < MIN_BODY_ANCHOR_VISIBILITY),
     )
   )
     return null;
@@ -1351,6 +1520,8 @@ function robustHandshapeMetrics(
   attempt: PreparedFrame[],
   requiredHandCount: 1 | 2,
   contactDominant: boolean,
+  fingerMotionDominant: boolean,
+  palmRotationDominant: boolean,
 ) {
   // The meaningful handshape of a contact sign is the shape at contact. Setup
   // frames often contain a relaxed/closed hand and previously allowed a wrong
@@ -1382,13 +1553,21 @@ function robustHandshapeMetrics(
     const metrics = robustPoseMetrics(
       shapeReference,
       shapeAttempt,
-      compareHandshape,
+      (referenceFrame, attemptFrame) =>
+        compareHandshape(
+          referenceFrame,
+          attemptFrame,
+          fingerMotionDominant ? 0.08 : 0,
+          palmRotationDominant,
+        ),
     );
     return {
       error: metrics.error,
       matchRatio:
         metrics.nearestErrors.filter(
-          (error) => errorToScore(error, 0.7) >= MIN_HANDSHAPE_SCORE,
+          (error) =>
+            errorToScore(error, palmRotationDominant ? 0.8 : 0.7) >=
+            MIN_HANDSHAPE_SCORE,
         ).length / metrics.nearestErrors.length,
       minimumMatchRatio: MIN_HANDSHAPE_MATCH_RATIO,
     };
@@ -1500,12 +1679,22 @@ function hasSustainedHandOverlap(sequence: PreparedFrame[]) {
   return overlappingFrames.length / twoHandFrames.length >= 0.5;
 }
 
-function compareHandshape(a: PreparedFrame, b: PreparedFrame) {
+function compareHandshape(
+  a: PreparedFrame,
+  b: PreparedFrame,
+  singleHandOcclusionPenalty = 0,
+  palmRotationDominant = false,
+) {
   if (a.hands.length < 2) {
     const source = a.hands[0];
     const matched = b.hands[0];
     return source && matched
-      ? handshapeDistance(source.shape, matched.shape, 0)
+      ? handshapeDistance(
+          source.shape,
+          matched.shape,
+          singleHandOcclusionPenalty,
+          palmRotationDominant,
+        )
       : 4;
   }
   // One incorrect hand must not be concealed by a perfect other hand.
@@ -1523,6 +1712,7 @@ function handshapeDistance(
   reference: number[],
   attempt: number[],
   occlusionRecoveryPenalty: number,
+  palmRotationDominant = false,
 ) {
   if (
     reference.length !== HANDSHAPE_FEATURE_COUNT ||
@@ -1602,6 +1792,17 @@ function handshapeDistance(
   // matching extension pattern to recover from noisy inner joints, while the
   // largest per-finger mismatch keeps a missing/extra extended finger strict.
   const tipDirectionDistance = Math.sqrt(tipDirectionSquared / 10);
+  if (palmRotationDominant) {
+    // During a palm/wrist sweep, different camera depth and palm proportions
+    // change wrist-to-tip radii even when the fingers keep the same shape.
+    // Compare each finger's own straightness plus its direction instead. The
+    // largest extension mismatch still rejects a missing/extra open finger.
+    return Math.max(
+      Math.sqrt(extensionSquared / 5),
+      maxExtensionDifference * 0.8,
+      tipDirectionDistance * 0.25,
+    );
+  }
   const extensionPatternDistance = Math.max(
     Math.sqrt(extensionSquared / 5),
     maxExtensionDifference * 0.8,
@@ -1878,6 +2079,245 @@ function movementSequence(sequence: PreparedFrame[]): MovementFrame[] {
   });
 }
 
+function fingertipOffsets(sequence: PreparedFrame[]) {
+  return sequence.map((frame) =>
+    frame.hands.map((hand) => {
+      const tips = [8, 12, 16, 20].map(
+        (index) => hand.physicalLandmarks[index],
+      );
+      const wrist = hand.physicalWrist;
+      const mirror = hand.handedness === 'left' ? -1 : 1;
+      const fingertipOffset: Vector2 = [
+        (average(tips.map((tip) => tip[0])) - wrist[0]) * mirror,
+        average(tips.map((tip) => tip[1])) - wrist[1],
+      ];
+      const palmWidth = Math.hypot(
+        hand.physicalLandmarks[5][0] - hand.physicalLandmarks[17][0],
+        hand.physicalLandmarks[5][1] - hand.physicalLandmarks[17][1],
+      );
+      const palmScale = Math.max(0.001, (palmWidth + hand.screenScale) / 2);
+      // Finger articulation belongs in the hand's own coordinate system.
+      // An equally valid wrist angle rotates its screen-space tip trajectory;
+      // comparing that trajectory to a single signer made Keluarga fail even
+      // when handshape and palm orientation were acceptable.
+      return {
+        handedness: hand.handedness,
+        x:
+          dot2(fingertipOffset, [hand.orientation[0], hand.orientation[1]]) /
+          palmScale,
+        y:
+          dot2(fingertipOffset, [hand.orientation[2], hand.orientation[3]]) /
+          palmScale,
+      };
+    }),
+  );
+}
+
+function fingertipMotionExtent(sequence: PreparedFrame[]) {
+  const offsets = fingertipOffsets(sequence).flat();
+  if (offsets.length < MIN_VISIBLE_FRAMES) return 0;
+  return Math.hypot(
+    percentile(
+      offsets.map((point) => point.x),
+      0.9,
+    ) -
+      percentile(
+        offsets.map((point) => point.x),
+        0.1,
+      ),
+    percentile(
+      offsets.map((point) => point.y),
+      0.9,
+    ) -
+      percentile(
+        offsets.map((point) => point.y),
+        0.1,
+      ),
+  );
+}
+
+function isFingerMotionDominantGesture(sequence: PreparedFrame[]) {
+  const central = sequence.slice(
+    Math.floor(sequence.length * 0.25),
+    Math.ceil(sequence.length * 0.75),
+  );
+  const wristExtent = motionExtent(central);
+  // A short complete flex/reopen cycle can place its extension peak just
+  // outside the middle half, especially after resampling. Use the entire
+  // performed sign for finger articulation while the central wrist check
+  // still excludes an entry/exit hand lift.
+  const fingerExtent = fingertipMotionExtent(sequence);
+  // With a stationary wrist and articulating fingers, the wrist trajectory is
+  // tracker jitter rather than the lexical movement. Keluarga's reference is
+  // one such sign; the condition is derived from the reference, not its label.
+  return (
+    wristExtent < 1 && fingerExtent > 1.2 && fingerExtent > wristExtent * 2
+  );
+}
+
+type PalmRotationProfile = {
+  angles: number[];
+  start: number;
+  minimum: number;
+  maximum: number;
+  end: number;
+};
+
+function palmRotationProfile(
+  sequence: PreparedFrame[],
+): PalmRotationProfile | null {
+  const hands = sequence.flatMap((frame) => frame.hands.slice(0, 1));
+  if (hands.length < MIN_VISIBLE_FRAMES) return null;
+  const angles: number[] = [];
+  for (const hand of hands) {
+    // The index-to-pinky MCP axis remains observable when the fingers point
+    // toward the camera. It tracks a wrist sweep more reliably than the
+    // foreshortened fingertip path used for finger articulation.
+    const angle = Math.atan2(hand.orientation[1], hand.orientation[0]);
+    const previous = angles.at(-1);
+    angles.push(
+      previous === undefined
+        ? angle
+        : previous +
+            Math.atan2(Math.sin(angle - previous), Math.cos(angle - previous)),
+    );
+  }
+  const filtered = angles.map((_, index) =>
+    median(
+      angles.slice(Math.max(0, index - 1), Math.min(angles.length, index + 2)),
+    ),
+  );
+  const edgeCount = Math.max(2, Math.ceil(filtered.length * 0.12));
+  return {
+    angles: filtered,
+    start: median(filtered.slice(0, edgeCount)),
+    minimum: percentile(filtered, 0.1),
+    maximum: percentile(filtered, 0.9),
+    end: median(filtered.slice(-edgeCount)),
+  };
+}
+
+function isPalmRotationDominantGesture(sequence: PreparedFrame[]) {
+  if (!isFingerMotionDominantGesture(sequence)) return false;
+  const profile = palmRotationProfile(sequence);
+  if (!profile) return false;
+  const negativeSweep = profile.start - profile.minimum;
+  const positiveSweep = profile.maximum - profile.start;
+  const direction = negativeSweep >= positiveSweep ? -1 : 1;
+  const peak = direction < 0 ? profile.minimum : profile.maximum;
+  const sweep = Math.max(negativeSweep, positiveSweep);
+  const returned = direction * (peak - profile.end);
+  return sweep >= 0.8 && returned >= sweep * 0.45;
+}
+
+function palmRotationError(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+) {
+  const expected = palmRotationProfile(reference);
+  const performed = palmRotationProfile(attempt);
+  if (!expected || !performed) return 4;
+  const direction =
+    expected.start - expected.minimum >= expected.maximum - expected.start
+      ? -1
+      : 1;
+  const peak = direction < 0 ? expected.minimum : expected.maximum;
+  const attemptPeak = direction < 0 ? performed.minimum : performed.maximum;
+  const referenceSweep = direction * (peak - expected.start);
+  const attemptSweep = Math.max(0, direction * (attemptPeak - performed.start));
+  const referenceReturn = direction * (peak - expected.end);
+  const attemptReturn = Math.max(0, direction * (attemptPeak - performed.end));
+  if (attemptSweep < 0.25) return 4;
+
+  // Compare the turn relative to each signer's own starting wrist angle.
+  // Amplitude and return are retained as independent gates, so a stationary
+  // open hand or a turn in the opposite direction cannot satisfy the sign.
+  const normalized = (profile: PalmRotationProfile) =>
+    profile.angles.map(
+      (angle) => (direction * (angle - profile.start)) / referenceSweep,
+    );
+  const pathError =
+    dtwError(normalized(expected), normalized(performed), (a, b) =>
+      Math.abs(a - b),
+    ) * 0.14;
+  const sweepError =
+    Math.abs(Math.log((attemptSweep + 0.1) / (referenceSweep + 0.1))) * 0.12;
+  const returnError =
+    referenceReturn > 0
+      ? (Math.max(0, referenceReturn * 0.55 - attemptReturn) /
+          referenceReturn) *
+        0.3
+      : 0;
+  return Math.max(pathError, sweepError, returnError);
+}
+
+function fingerMotionSequence(sequence: PreparedFrame[]): MovementFrame[] {
+  const offsets = fingertipOffsets(sequence);
+  const points = offsets.map((hands, index) => {
+    const hand = hands[0];
+    if (!hand) return null;
+    const neighbors = offsets
+      .slice(Math.max(0, index - 1), Math.min(offsets.length, index + 2))
+      .flatMap((neighbor) =>
+        neighbor.filter((item) => item.handedness === hand.handedness),
+      );
+    return {
+      handedness: hand.handedness,
+      x: median(neighbors.map((neighbor) => neighbor.x)),
+      y: median(neighbors.map((neighbor) => neighbor.y)),
+    };
+  });
+  const visible = points.filter((point) => point !== null);
+  if (!visible.length) return sequence.map(() => ({ hands: [] }));
+  const centerX = median(visible.map((point) => point.x));
+  const centerY = median(visible.map((point) => point.y));
+  const extent = Math.hypot(
+    percentile(
+      visible.map((point) => point.x),
+      0.9,
+    ) -
+      percentile(
+        visible.map((point) => point.x),
+        0.1,
+      ),
+    percentile(
+      visible.map((point) => point.y),
+      0.9,
+    ) -
+      percentile(
+        visible.map((point) => point.y),
+        0.1,
+      ),
+  );
+  const pathScale = Math.max(POSE_DOMINANT_CENTRAL_EXTENT, extent);
+  return points.map((point) => ({
+    hands: point
+      ? [
+          {
+            handedness: point.handedness,
+            trajectory: [
+              (point.x - centerX) / pathScale,
+              (point.y - centerY) / pathScale,
+            ],
+            extent,
+          },
+        ]
+      : [],
+  }));
+}
+
+function fingerMotionError(
+  reference: PreparedFrame[],
+  attempt: PreparedFrame[],
+) {
+  const referenceMotion = fingerMotionSequence(reference);
+  const attemptMotion = fingerMotionSequence(attempt);
+  return Math.max(
+    dtwError(referenceMotion, attemptMotion, compareMovement),
+    movementExtentError(referenceMotion, attemptMotion),
+  );
+}
+
 function isPoseDominantGesture(sequence: PreparedFrame[]) {
   const start = Math.floor(sequence.length * 0.25);
   const end = Math.ceil(sequence.length * 0.75);
@@ -2093,11 +2533,15 @@ function feedbackFor(
   positionRelativeToBody: boolean,
   contactDominant: boolean,
   indexApproachDominant: boolean,
+  fingerMotionDominant: boolean,
+  palmRotationDominant: boolean,
 ) {
   const advice = {
     handshape: contactDominant
       ? 'Bentuk kedua telunjuk seperti contoh dan pastikan ujungnya terlihat saat bertemu.'
-      : 'Periksa kembali bentuk dan jarak antarruas jari.',
+      : fingerMotionDominant
+        ? 'Bentuk jari yang terbaca kamera berbeda dari contoh. Pastikan ujung jari terlihat, lalu ikuti bentuk awal dan akhir pada video lambat.'
+        : 'Periksa kembali bentuk dan jarak antarruas jari.',
     position: positionRelativeToBody
       ? 'Sesuaikan letak tangan terhadap kepala, bahu, dan dada dengan contoh.'
       : 'Sesuaikan posisi tangan di dalam bingkai dengan video contoh.',
@@ -2105,11 +2549,16 @@ function feedbackFor(
       'Putar telapak dan pergelangan lebih dekat ke orientasi contoh.',
     movement: indexApproachDominant
       ? 'Mulai dengan kedua telunjuk terpisah, lalu dekatkan sampai bertemu dan tahan sesaat.'
-      : gestureKind === 'pose'
-        ? 'Pertahankan bentuk dan posisi akhir tanda selama rekaman.'
-        : 'Ikuti arah serta lintasan gerakan dari awal sampai akhir.',
+      : palmRotationDominant
+        ? 'Putar pergelangan seperti contoh, lalu kembalikan tangan ke arah awal.'
+        : fingerMotionDominant
+          ? 'Ikuti gerak jari dan putaran pergelangan dari awal sampai akhir contoh.'
+          : gestureKind === 'pose'
+            ? 'Pertahankan bentuk dan posisi akhir tanda selama rekaman.'
+            : 'Ikuti arah serta lintasan gerakan dari awal sampai akhir.',
     coordination: 'Samakan waktu dan jarak gerak kedua tangan.',
   }[weakest];
+  if (overall >= 95) return 'Gerakan sangat sesuai dengan contoh.';
   if (overall >= 88) return `Gerakan sangat dekat dengan contoh. ${advice}`;
   if (overall >= PASS_THRESHOLD)
     return `Gerakan melewati ambang latihan. ${advice}`;
@@ -2127,6 +2576,7 @@ function emptyScore(
     handshape: 0,
     position: 0,
     orientation: 0,
+    orientationAssessable: false,
     movement: 0,
     coordination: 0,
     detectionQuality,
