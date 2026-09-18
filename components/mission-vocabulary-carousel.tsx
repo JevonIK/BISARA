@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { SignDefinition } from '@/lib/curriculum-data';
 import { versionedSignVideo } from '@/lib/curriculum-data';
@@ -15,23 +15,61 @@ export function MissionVocabularyCarousel({
   mission: Mission;
   signs: SignDefinition[];
 }) {
-  const [startIndex, setStartIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activeIndices, setActiveIndices] = useState<number[]>([0, 1]);
 
   const itemsPerPage = 2;
   const canGoNext = signs.length > itemsPerPage;
 
   const handleNext = () => {
-    if (!canGoNext) return;
-    setStartIndex((prev) => (prev + 1) % signs.length);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const card = container.firstElementChild as HTMLElement | null;
+    if (!card) return;
+    const cardWidth = card.offsetWidth;
+    const gap = 16;
+    const step = cardWidth + gap;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+
+    if (container.scrollLeft >= maxScroll - 10) {
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      container.scrollBy({ left: step, behavior: 'smooth' });
+    }
   };
 
-  // Get current active visible signs (showing up to 2 items)
-  const visibleSigns =
-    signs.length <= itemsPerPage
-      ? signs
-      : [signs[startIndex], signs[(startIndex + 1) % signs.length]];
+  const scrollToSign = (index: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const card = container.children[index] as HTMLElement | undefined;
+    if (card) {
+      container.scrollTo({
+        left: card.offsetLeft - container.offsetLeft,
+        behavior: 'smooth',
+      });
+    }
+  };
 
-  const visibleSignIds = visibleSigns.map((s) => s.id);
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const scrollLeft = container.scrollLeft;
+    const card = container.firstElementChild as HTMLElement | null;
+    if (!card) return;
+    const cardWidth = card.offsetWidth;
+    const gap = 16;
+    const itemWidth = cardWidth + gap;
+    if (itemWidth <= 0) return;
+
+    const primaryIndex = Math.round(scrollLeft / itemWidth);
+    const secondaryIndex = Math.min(signs.length - 1, primaryIndex + 1);
+    const nextIndices = [primaryIndex, secondaryIndex];
+
+    setActiveIndices((prev) => {
+      if (prev[0] === nextIndices[0] && prev[1] === nextIndices[1]) return prev;
+      return nextIndices;
+    });
+  };
 
   return (
     <section className="mt-8 grid grid-cols-1 lg:grid-cols-[330px_1fr] xl:grid-cols-[360px_1fr] gap-8 items-start">
@@ -57,12 +95,12 @@ export function MissionVocabularyCarousel({
         {/* Vocabulary Pills Grid */}
         <div className="mt-6 grid grid-cols-2 gap-2.5">
           {signs.map((sign, index) => {
-            const isVisible = visibleSignIds.includes(sign.id);
+            const isVisible = activeIndices.includes(index);
             return (
               <button
                 key={sign.id}
                 type="button"
-                onClick={() => setStartIndex(index)}
+                onClick={() => scrollToSign(index)}
                 className={cn(
                   'rounded-xl border-2 px-3 py-2.5 text-center text-sm font-black transition-all cursor-pointer select-none',
                   isVisible
@@ -78,7 +116,7 @@ export function MissionVocabularyCarousel({
       </div>
 
       {/* Right: Video Demonstration Carousel matching Image 0 */}
-      <div className="flex flex-col justify-between">
+      <div className="flex flex-col justify-between min-w-0">
         <div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
             Amati setiap tanda sebelum menirukan :
@@ -88,19 +126,22 @@ export function MissionVocabularyCarousel({
           </p>
         </div>
 
-        {/* Video Display Row with Next button strictly on the right side */}
-        <div className="mt-6 flex items-center gap-3 sm:gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-            {visibleSigns.map((sign) => (
+        {/* Video Display Row with smooth horizontal scroll and next button on right */}
+        <div className="mt-6 flex items-center gap-3 sm:gap-4 min-w-0">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-1 min-w-0 py-1"
+          >
+            {signs.map((sign) => (
               <div
                 key={sign.id}
-                className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-black shadow-inner border border-black/10"
+                className="relative aspect-[16/10] w-full sm:w-[calc((100%-16px)/2)] min-w-full sm:min-w-[calc((100%-16px)/2)] shrink-0 snap-start overflow-hidden rounded-2xl bg-black shadow-inner border border-black/10"
               >
                 <span className="absolute top-3.5 left-3.5 z-10 rounded-full bg-black/65 px-3 py-1 text-xs font-bold text-white backdrop-blur-xs">
                   {sign.label}
                 </span>
                 <video
-                  key={sign.id}
                   src={versionedSignVideo(sign.videoSrc)}
                   aria-label={`Demonstrasi tanda ${sign.label}`}
                   className="size-full object-cover"
