@@ -9,6 +9,8 @@ export const alphabetMissionGroups = [
 
 export type AlphabetLetter = (typeof alphabetMissionGroups)[number]['letters'][number];
 
+export const ALPHABET_TEMPLATE_VERSION = 'alphabet-2026-09-18-2';
+
 /** Original filenames from the supplied Mendeley Data archive; see docs/alphabet-dataset.md. */
 const sourceVideos: Record<AlphabetLetter, string> = {
   A: 'A_040.MOV', B: 'B_037.MOV', C: 'C_008.MOV', D: 'D_009.MOV', E: 'E_012.MOV',

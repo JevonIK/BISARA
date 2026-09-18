@@ -36,10 +36,16 @@ recognition, and perform signs from memory without an example.
   `signMastery[id]` fields. The API schema accepts these in the existing JSONB
   column; no database migration is required. Restart/rebuild the API before
   syncing the new production pass field.
-- Chapter 5 is a reference-video lesson for spelling names and places. Learners
-  watch each letter clip, then finish the mission; alphabet letters are not
-  scored by the camera checker. The existing completed mission IDs store its
-  progress without a new database table.
+- Chapter 5 teaches A–Z from one selected video per letter. Tirukan and Uji
+  peragaan now use a local hand-landmark checker that compares finger shape,
+  orientation, and, for two-hand letters, the relationship between hands.
+  Either signing hand can be used. A letter must pass before the learner advances.
+  All 26 reference templates are precomputed from the selected video clips;
+  the checker also compares with other letters before accepting an attempt.
+  Motion is not a passing criterion because the selected clips do not isolate
+  a consistent motion cycle for every letter. This prototype has not been validated as a BISINDO
+  classifier; camera accuracy and signing variation still need user testing.
+  The existing completed mission IDs store progress without a new database table.
 
 The milestones below describe earlier iterations; the current flow above
 supersedes their scenario-completion and review requirements.

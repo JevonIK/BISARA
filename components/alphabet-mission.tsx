@@ -1,11 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  Camera,
-  CameraOff,
   Check,
   Clock3,
   Lightbulb,
@@ -20,6 +18,7 @@ import {
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
+import { AlphabetCameraChecker } from '@/components/alphabet-camera-checker';
 import {
   MissionHeroProgress,
   MissionStageList,
@@ -44,34 +43,11 @@ import { recordMissionCompletion, recordMissionRecognition } from '@/lib/progres
 import { calculateStars } from '@/lib/scoring';
 import { cn } from '@/lib/utils';
 
-const letterTips: Record<string, string> = {
-  A: 'Bentuk genggaman tangan dengan ibu jari tegak di samping telunjuk.',
-  B: 'Empat jari tegak rapat dengan ibu jari terlipat di depan telapak.',
-  C: 'Lengkungkan jari-jari tangan membentuk busur C menghadap ke samping.',
-  D: 'Telunjuk tegak ke atas, ujung jari lainnya bertemu dengan ibu jari membentuk lingkaran.',
-  E: 'Jari-jari ditekuk ke bawah dengan ujung jari menyentuh ibu jari.',
-  F: 'Ujung ibu jari dan telunjuk bersentuhan membentuk lingkaran, tiga jari lainnya tegak.',
-  G: 'Telunjuk dan ibu jari mendatar sejajar menunjuk ke samping.',
-  H: 'Telunjuk dan jari tengah mendatar sejajar menunjuk ke samping.',
-  I: 'Kelingking tegak ke atas, jari lainnya mengepal rapi.',
-  J: 'Gunakan kelingking untuk melukis bentuk huruf J di udara.',
-  K: 'Telunjuk tegak, jari tengah miring ke depan, ibu jari di antara keduanya.',
-  L: 'Bentuk sudut siku huruf L menggunakan ibu jari dan telunjuk.',
-  M: 'Tiga jari terlipat rapat di atas ibu jari yang terselip di bawah.',
-  N: 'Dua jari terlipat di atas ibu jari yang terselip di bawah.',
-  O: 'Seluruh ujung jari bertemu dengan ibu jari membentuk lingkaran bulat O.',
-  P: 'Arahkan bentuk huruf K menghadap ke bawah.',
-  Q: 'Arahkan bentuk huruf G menghadap ke bawah.',
-  R: 'Silangkan jari tengah di atas telunjuk yang tegak lurus.',
-  S: 'Genggam tangan rapat dengan ibu jari melintang di depan jari-jari lainnya.',
-  T: 'Ibu jari diselipkan di antara telunjuk dan jari tengah yang mengepal.',
-  U: 'Telunjuk dan jari tengah tegak rapat ke atas.',
-  V: 'Telunjuk dan jari tengah terbuka membentuk huruf V.',
-  W: 'Tiga jari tengah tegak terbuka membentuk huruf W.',
-  X: 'Telunjuk ditekuk seperti kait melengkung.',
-  Y: 'Ibu jari dan kelingking terbuka melebar membentuk huruf Y.',
-  Z: 'Gunakan jari telunjuk untuk menggambar bentuk huruf Z di udara.',
+const letterTips: Partial<Record<AlphabetLetter, string>> = {
+  J: 'Amati bentuk awal, arah, dan lintasan tangan sepanjang video contoh.',
+  Z: 'Amati bentuk awal, arah, dan lintasan tangan sepanjang video contoh.',
 };
+const defaultLetterTip = 'Ikuti jumlah tangan, bentuk jari, arah, dan hubungan kedua tangan sesuai video contoh.';
 
 const subscribeHydration = () => () => undefined;
 const clientReady = () => true;
@@ -397,63 +373,15 @@ function StageTirukan({
 }) {
   const [selectedLetter, setSelectedLetter] = useState<AlphabetLetter>(videos[0].letter);
   const [practiced, setPracticed] = useState<Set<AlphabetLetter>>(() => new Set());
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   const currentVideo = useMemo(
     () => videos.find((v) => v.letter === selectedLetter) ?? videos[0],
     [videos, selectedLetter],
   );
 
-  const startCamera = useCallback(async () => {
-    try {
-      setCameraError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraActive(true);
-    } catch {
-      setCameraError('Kamera tidak dapat diakses atau izin ditolak.');
-      setCameraActive(false);
-    }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraActive(false);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
-
-  const handleMarkPracticed = (letter: AlphabetLetter) => {
-    const updated = new Set(practiced).add(letter);
-    setPracticed(updated);
-    // Move to next unpracticed letter if any
-    const nextUnpracticed = videos.find((v) => !updated.has(v.letter));
-    if (nextUnpracticed) {
-      setSelectedLetter(nextUnpracticed.letter);
-    }
-  };
+  const handlePassed = useCallback(() => {
+    setPracticed((previous) => new Set(previous).add(selectedLetter));
+  }, [selectedLetter]);
 
   const allPracticed = videos.length > 0 && videos.every((v) => practiced.has(v.letter));
 
@@ -467,8 +395,8 @@ function StageTirukan({
           Tirukan bentuk dan gerakan huruf
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Perhatikan video contoh di sisi kiri, aktifkan kamera cermin di sisi kanan untuk melihat
-          tanganmu, dan tirukan bentuk huruf sampai kamu merasa yakin.
+          Perhatikan video contoh, lalu peragakan huruf di depan kamera. Setiap huruf perlu lulus
+          checker sebelum tahap berikutnya terbuka.
         </p>
       </header>
 
@@ -494,7 +422,7 @@ function StageTirukan({
           </button>
         ))}
         <span className="ml-auto text-xs font-bold text-muted-foreground">
-          {practiced.size} dari {videos.length} huruf ditirukan
+          {practiced.size} dari {videos.length} huruf sesuai
         </span>
       </div>
 
@@ -528,83 +456,22 @@ function StageTirukan({
           </video>
           <div className="p-4 bg-muted/40 flex items-start gap-2.5 text-xs text-muted-foreground">
             <Lightbulb className="size-4 shrink-0 text-amber-500 mt-0.5" />
-            <span>{letterTips[selectedLetter] ?? 'Tirukan bentuk jari sesuai video contoh.'}</span>
+            <span>{letterTips[selectedLetter] ?? defaultLetterTip}</span>
           </div>
         </section>
 
-        {/* Right: Live Camera Feed (Mirror) */}
-        <section className="overflow-hidden border border-signal-navy/10 bg-card flex flex-col justify-between">
-          <div className="border-b border-signal-navy/10 p-4 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
-                Kamera Cermin
-              </span>
-              <h3 className="text-xl font-black text-signal-navy">Cek Posisi Tangan</h3>
-            </div>
+        <div>
+          <AlphabetCameraChecker letter={selectedLetter} videoSrc={currentVideo.videoSrc} onPass={handlePassed} />
+          {practiced.has(selectedLetter) && videos.some((video) => !practiced.has(video.letter)) && (
             <Button
-              size="sm"
-              variant={cameraActive ? 'outline' : 'default'}
-              onClick={cameraActive ? stopCamera : () => { void startCamera(); }}
-              className="rounded-full gap-2 text-xs font-bold"
+              type="button"
+              onClick={() => setSelectedLetter(videos.find((video) => !practiced.has(video.letter))!.letter)}
+              className="mt-4 w-full rounded-full bg-signal-navy font-bold text-white"
             >
-              {cameraActive ? (
-                <>
-                  <CameraOff className="size-3.5" /> Matikan kamera
-                </>
-              ) : (
-                <>
-                  <Camera className="size-3.5" /> Nyalakan kamera
-                </>
-              )}
+              Huruf berikutnya <ArrowRight className="ml-2 size-4" />
             </Button>
-          </div>
-
-          <div className="relative aspect-video w-full bg-slate-950 flex items-center justify-center overflow-hidden">
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              className={cn(
-                'w-full h-full object-cover -scale-x-100',
-                !cameraActive && 'hidden',
-              )}
-            >
-              <track kind="captions" />
-            </video>
-            {!cameraActive && (
-              <div className="p-6 text-center max-w-xs text-white/70 space-y-3">
-                <Camera className="size-10 mx-auto text-white/40" />
-                <p className="text-xs leading-relaxed">
-                  {cameraError ??
-                    'Aktifkan kamera untuk melihat tanganmu saat menirukan gerakan huruf.'}
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => { void startCamera(); }}
-                  className="rounded-full bg-signal-teal text-signal-navy text-xs font-bold hover:bg-signal-teal/90"
-                >
-                  Nyalakan kamera
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="p-4 bg-muted/40 border-t border-signal-navy/10 flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground">
-              {practiced.has(selectedLetter)
-                ? `Huruf ${selectedLetter} sudah ditandai selesai.`
-                : `Tirukan bentuk huruf ${selectedLetter} lalu tandai.`}
-            </span>
-            <Button
-              size="sm"
-              onClick={() => handleMarkPracticed(selectedLetter)}
-              className="rounded-full bg-signal-navy text-white text-xs font-bold"
-            >
-              <Check className="size-3.5 mr-1" />
-              {practiced.has(selectedLetter) ? 'Sudah ditirukan' : 'Tandai sudah ditirukan'}
-            </Button>
-          </div>
-        </section>
+          )}
+        </div>
       </div>
 
       {/* Completion Banner */}
@@ -612,11 +479,11 @@ function StageTirukan({
         <div>
           <p className="font-bold text-signal-navy">
             {allPracticed
-              ? 'Seluruh huruf dalam misi ini telah kamu tirukan!'
-              : `Latihan selesai ${practiced.size} dari ${videos.length} huruf.`}
+              ? 'Seluruh huruf dalam misi ini sudah sesuai dengan contoh.'
+              : `${practiced.size} dari ${videos.length} huruf sudah sesuai.`}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Setelah menirukan semua huruf, lanjutkan ke Uji pengenalan untuk menguji ingatanmu.
+            Setelah semua huruf lulus checker, lanjutkan ke Uji pengenalan.
           </p>
         </div>
         <Button
@@ -854,65 +721,14 @@ function StageRecall({
   const [step, setStep] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [passedLetters, setPassedLetters] = useState<Set<AlphabetLetter>>(() => new Set());
 
   const currentLetter = videos[step]?.letter;
   const currentVideo = videos[step];
 
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraActive(true);
-    } catch {
-      setCameraActive(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const videoEl = videoRef.current;
-    async function init() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-        setCameraActive(true);
-      } catch {
-        if (!cancelled) setCameraActive(false);
-      }
-    }
-    void init();
-    return () => {
-      cancelled = true;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (videoEl) {
-        videoEl.srcObject = null;
-      }
-    };
-  }, []);
+  const handlePassed = useCallback(() => {
+    if (currentLetter) setPassedLetters((previous) => new Set(previous).add(currentLetter));
+  }, [currentLetter]);
 
   const handleNextLetter = () => {
     setShowHint(false);
@@ -1003,38 +819,11 @@ function StageRecall({
           Tunjukkan bentuk huruf ini di depan kamera cerminmu.
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Kamera ini belum memeriksa ketepatan huruf secara otomatis. Lanjutkan
-          hanya setelah kamu membandingkan gerakanmu dengan materi sebelumnya.
+          Luluskan huruf ini dengan checker untuk melanjutkan.
         </p>
       </div>
 
-      {/* Live Camera View */}
-      <div className="relative aspect-video w-full overflow-hidden border border-signal-navy/10 bg-black rounded-2xl">
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className={cn(
-            'w-full h-full object-cover -scale-x-100',
-            !cameraActive && 'hidden',
-          )}
-        >
-          <track kind="captions" />
-        </video>
-        {!cameraActive && (
-          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-white/70 space-y-2">
-            <CameraOff className="size-10 text-white/40" />
-            <p className="text-xs">Kamera tidak aktif.</p>
-            <Button
-              size="sm"
-              onClick={() => { void startCamera(); }}
-              className="rounded-full bg-signal-teal text-signal-navy text-xs font-bold"
-            >
-              Nyalakan kamera
-            </Button>
-          </div>
-        )}
-      </div>
+      <AlphabetCameraChecker letter={currentLetter} videoSrc={currentVideo.videoSrc} onPass={handlePassed} />
 
       {/* Hint toggle if stuck */}
       <div>
@@ -1049,7 +838,7 @@ function StageRecall({
         {showHint && currentVideo && (
           <div className="mt-4 p-4 border border-signal-navy/10 bg-muted/40 rounded-xl space-y-3">
             <p className="text-xs text-muted-foreground">
-              {letterTips[currentLetter] ?? 'Amati video di bawah ini:'}
+              {letterTips[currentLetter] ?? defaultLetterTip}
             </p>
             <video
               src={currentVideo.videoSrc}
@@ -1069,11 +858,12 @@ function StageRecall({
       <div className="flex justify-end pt-4 border-t border-signal-navy/10">
         <Button
           onClick={handleNextLetter}
+          disabled={!passedLetters.has(currentLetter)}
           className="rounded-full bg-signal-teal px-8 py-3 text-base font-black text-signal-navy hover:bg-signal-teal/90"
         >
           {step + 1 < videos.length ? (
             <>
-              Saya sudah peragakan <ArrowRight className="size-4 ml-1" />
+              Huruf berikutnya <ArrowRight className="size-4 ml-1" />
             </>
           ) : (
             <>
