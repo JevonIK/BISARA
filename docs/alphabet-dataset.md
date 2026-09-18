@@ -16,6 +16,14 @@ all examined candidates had H.264 (`avc1`) video. The 26 choices below were
 visually reviewed at the beginning, middle, and end for visible hands, stable
 framing, and legible movement. This is a teaching subset, not a training set
 or a validated regional/linguistic reference for automated assessment.
+The prototype camera checker now compares each attempt with precomputed hand
+landmarks from the selected clip. Many source letters use two hands, so the
+checker uses each clip's detected hand count rather than ASL alphabet rules.
+J and Z movement is not a passing gate because these short clips do not isolate
+a consistent full motion cycle. All 26 clips passed a template self-check, and
+the 26×26 example comparison rejected every different letter after comparing
+other references. These are internal checks; they do not establish sensitivity
+or specificity across signers, cameras, or BISINDO variants.
 
 | Letter | Source file | Letter | Source file | Letter | Source file |
 | :--- | :--- | :--- | :--- | :--- | :--- |

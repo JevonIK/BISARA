@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Info, RotateCcw, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -55,53 +55,6 @@ export default async function PracticePage({
       ? `/missions/test?mission=${params.returnMission}&mode=recall`
       : null;
   const replayMode = params.replay === '1';
-
-  const exampleCard = (
-    <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
-      <div>
-        <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
-          CONTOH TANDA
-        </span>
-        <div className="mt-4 overflow-hidden rounded-2xl bg-black aspect-[4/3] relative">
-          <video
-            id={referenceVideoId}
-            className="size-full object-cover"
-            src={referenceVideoUrl}
-            aria-label={`Video contoh tanda ${sign.label}`}
-            autoPlay
-            loop
-            muted
-            playsInline
-            controls
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 border-t border-slate-100 pt-5">
-        <span className="text-xs font-black uppercase tracking-wider text-slate-900 block">
-          AMATI SECARA MENYELURUH
-        </span>
-        <ul className="mt-3.5 space-y-2.5 text-xs sm:text-sm font-black text-slate-800">
-          <li className="flex items-center gap-2.5">
-            <span className="size-2 rounded-full bg-[#00D5D1] shrink-0" />
-            <span>Bentuk tangan</span>
-          </li>
-          <li className="flex items-center gap-2.5">
-            <span className="size-2 rounded-full bg-[#FFAE00] shrink-0" />
-            <span>Posisi terhadap tubuh</span>
-          </li>
-          <li className="flex items-center gap-2.5">
-            <span className="size-2 rounded-full bg-[#E54D2E] shrink-0" />
-            <span>Arah telapak</span>
-          </li>
-          <li className="flex items-center gap-2.5">
-            <span className="size-2 rounded-full bg-[#1E293B] shrink-0" />
-            <span>Ekspresi Wajah</span>
-          </li>
-        </ul>
-      </div>
-    </aside>
-  );
 
   return (
     <main className="min-h-screen bg-[#FFE8A3] pb-28">

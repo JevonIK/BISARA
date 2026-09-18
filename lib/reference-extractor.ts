@@ -1,6 +1,8 @@
 import type { HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 
 import { SIGN_VIDEO_VERSION } from '@/lib/curriculum-data';
+import { ALPHABET_TEMPLATE_VERSION } from '@/lib/alphabet-data';
+import type { AlphabetReferenceSet } from '@/lib/alphabet-scoring';
 import { selectReferenceWindow } from '@/lib/reference-window';
 import {
   hasUsableReference,
@@ -18,14 +20,46 @@ const TEMPLATES_URL = `/data/gesture-templates-v1.json?v=${SIGN_VIDEO_VERSION}`;
 type StoredTemplates = {
   version: string;
   frames: Record<string, GestureFrame[]>;
+  variants?: Record<string, GestureFrame[][]>;
 };
 
 const referenceCache = new Map<string, GestureFrame[]>();
 const bodyReferenceCache = new Map<string, GestureFrame[]>();
 const inFlightReferences = new Map<string, Promise<GestureFrame[]>>();
 let storedTemplatesPromise: Promise<StoredTemplates> | null = null;
+let storedAlphabetPromise: Promise<StoredTemplates> | null = null;
 let extractorPromise: Promise<HandLandmarker> | null = null;
 let extractionTail: Promise<void> = Promise.resolve();
+
+export function getAlphabetReferenceSet(): Promise<AlphabetReferenceSet> {
+  if (!storedAlphabetPromise) {
+    storedAlphabetPromise = fetch(`/data/alphabet-templates-v1.json?v=${ALPHABET_TEMPLATE_VERSION}`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Template alfabet tidak tersedia.');
+        const manifest = (await response.json()) as StoredTemplates;
+        if (manifest.version !== ALPHABET_TEMPLATE_VERSION || !manifest.frames || !manifest.variants) {
+          throw new Error('Versi template alfabet tidak sesuai.');
+        }
+        return manifest;
+      }).catch((error) => {
+        storedAlphabetPromise = null;
+        throw error;
+      });
+  }
+  return storedAlphabetPromise.then((manifest) => ({
+    frames: manifest.frames,
+    variants: manifest.variants ?? {},
+  }));
+}
+
+export async function getAlphabetReferenceFrames(videoUrl: string): Promise<GestureFrame[]> {
+  const filename = new URL(videoUrl, window.location.href).pathname.split('/').at(-1) ?? '';
+  const frames = (await getAlphabetReferenceSet()).frames[filename];
+  if (!frames || !hasUsableReference(frames)) {
+    throw new Error(`Template alfabet tidak valid: ${filename}`);
+  }
+  return frames;
+}
 
 function getStoredTemplates(): Promise<StoredTemplates> {
   if (!storedTemplatesPromise) {
@@ -138,7 +172,10 @@ async function getExtractorLandmarker(): Promise<HandLandmarker> {
         minHandDetectionConfidence: 0.35,
         minHandPresenceConfidence: 0.35,
       });
-    })();
+    })().catch((error) => {
+      extractorPromise = null;
+      throw error;
+    });
   }
   return extractorPromise;
 }
@@ -203,6 +240,7 @@ export async function getReferenceFrames(
 async function extractFramesFromVideo(
   videoUrl: string,
   landmarker: HandLandmarker,
+  interval = 0.066,
 ): Promise<GestureFrame[]> {
   const video = document.createElement('video');
   video.crossOrigin = 'anonymous';
@@ -215,7 +253,6 @@ async function extractFramesFromVideo(
     await loadVideo(video, videoUrl);
 
     const duration = video.duration;
-    const interval = 0.066; // ~15 fps sampling
     const frames: GestureFrame[] = [];
 
     for (let t = 0; t < duration; t += interval) {
