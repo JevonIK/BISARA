@@ -19,7 +19,7 @@ import { useProgress } from '@/hooks/use-progress';
 import { chapters, getChapterForMission } from '@/lib/learning-data';
 import {
   getCurrentMission,
-  getMissionLearningState,
+  getMissionActiveStageHref,
   getPrototypeMissionCount,
 } from '@/lib/learning-progress';
 
@@ -30,7 +30,6 @@ export default function Home() {
   const currentChapterIndex = chapters.findIndex(
     (chapter) => chapter.id === currentChapter.id,
   );
-  const missionState = getMissionLearningState(currentMission, progress);
   const completedMissions = getPrototypeMissionCount(progress);
   const badgeCount = [
     completedMissions > 0,
@@ -101,7 +100,7 @@ export default function Home() {
 
                   <div className="mt-6">
                     <Link
-                      href={missionState.next.href}
+                      href={getMissionActiveStageHref(currentMission, progress)}
                       className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-6 py-3 text-sm font-black text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
                     >
                       <Play className="size-4 fill-slate-900" />

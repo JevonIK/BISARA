@@ -267,10 +267,10 @@ export function MissionSectionNavigation({
           </Link>
         ) : (
           <Link
-            href="/missions"
+            href="/"
             className="inline-flex min-h-10 items-center gap-2 rounded-full border border-signal-navy/15 px-4 py-2 text-sm font-bold text-signal-navy hover:bg-muted"
           >
-            <ArrowLeft className="size-4" /> Kembali ke perjalanan
+            <ArrowLeft className="size-4" /> Kembali ke beranda
           </Link>
         )}
         {next ? (

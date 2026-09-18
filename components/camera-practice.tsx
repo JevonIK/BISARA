@@ -895,13 +895,13 @@ export function CameraPractice({
             kosakata yang dirancang.
           </p>
           <Link
-            href="/missions"
+            href="/"
             className={cn(
               buttonVariants({ size: 'lg' }),
               'mt-7 rounded-full bg-signal-navy px-6 font-extrabold text-white',
             )}
           >
-            Kembali ke perjalanan <ArrowRight className="size-4" />
+            Kembali ke beranda <ArrowRight className="size-4" />
           </Link>
         </div>
       </section>

@@ -105,8 +105,8 @@ export function MissionAssessment({
       <Gate
         title="Misi masih terkunci"
         description="Selesaikan misi sebelumnya agar urutan belajar dan pengulangan materi tetap terjaga."
-        href="/missions"
-        action="Kembali ke perjalanan"
+        href="/"
+        action="Kembali ke beranda"
       />
     );
   if (view === 'recognition' && !learning.practiceComplete)

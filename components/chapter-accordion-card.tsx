@@ -9,8 +9,7 @@ import {
 } from '@/lib/learning-data';
 import {
   getChapterProgress,
-  getMissionLearningState,
-  getMissionReplayAction,
+  getMissionActiveStageHref,
   isMissionUnlocked,
 } from '@/lib/learning-progress';
 import type { UserProgress } from '@/lib/progress-storage';
@@ -111,7 +110,7 @@ export function ChapterAccordionCard({
     chapter.missions[0];
 
   const startHref = isUnlocked
-    ? getMissionLearningState(firstUnfinishedMission, progress).next.href
+    ? getMissionActiveStageHref(firstUnfinishedMission, progress)
     : '#';
 
   return (
@@ -258,10 +257,7 @@ export function ChapterAccordionCard({
                   mission.id,
                 );
                 const isCurrent = currentMission.id === mission.id;
-                const replay = isCompleted ? getMissionReplayAction(mission) : null;
-                const targetHref = isCompleted
-                  ? replay?.href ?? mission.href
-                  : getMissionLearningState(mission, progress).next.href;
+                const targetHref = getMissionActiveStageHref(mission, progress);
 
                 return (
                   <div

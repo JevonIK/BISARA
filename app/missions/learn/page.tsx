@@ -34,7 +34,7 @@ export default async function MissionLearningPage({
       <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8 lg:py-5">
         {/* Back Link */}
         <Link
-          href="/missions"
+          href="/"
           className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-slate-950 transition-colors"
         >
           <ArrowLeft className="size-4" /> Kembali ke beranda
