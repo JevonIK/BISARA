@@ -93,32 +93,34 @@ export function MissionSectionNavigation({
       : null;
 
   if (variant === 'bottom-bar') {
-    if (!ready) {
-      return (
-        <nav
-          aria-label={`Navigasi bagian misi ${mission.title}`}
-          className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FFAE00] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-4 px-6"
-        >
-          <div className="mx-auto max-w-xl flex items-center justify-center py-6 text-xs font-bold text-slate-400">
-            Memuat tahapan misi…
-          </div>
-        </nav>
-      );
-    }
+    const halfColPercent = 100 / (stages.length * 2);
 
     return (
       <nav
         aria-label={`Navigasi bagian misi ${mission.title}`}
-        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FFAE00] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-4 px-6"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FFAE00] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-4 px-2 sm:px-6"
       >
-        <div className="mx-auto max-w-xl relative flex items-center justify-between pt-1">
+        <div
+          className="mx-auto max-w-xl relative grid pt-1"
+          style={{
+            gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))`,
+          }}
+        >
           {/* Continuous dark connecting line passing through circle centers */}
-          <div className="absolute top-[28px] left-8 right-8 h-[2px] bg-[#5B6370] z-0" />
+          <div
+            className="absolute top-[28px] h-[2px] bg-[#5B6370] z-0 pointer-events-none"
+            style={{
+              left: `${halfColPercent}%`,
+              right: `${halfColPercent}%`,
+            }}
+          />
 
           {stages.map((stage) => {
             const isCurrent = stage.id === section;
-            const isDone = !isCurrent && stage.complete;
-            const isAvailable = !isCurrent && !isDone && stage.available;
+            const isDone = ready ? !isCurrent && stage.complete : false;
+            const isAvailable = ready
+              ? !isCurrent && !isDone && stage.available
+              : false;
 
             const iconElement = isCurrent ? (
               <Hand className="size-5 text-slate-950" />
@@ -168,10 +170,10 @@ export function MissionSectionNavigation({
                   {iconElement}
                 </span>
 
-                <span className="mt-2 text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors">
+                <span className="mt-2 text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap">
                   {stage.label}
                 </span>
-                <span className="text-[11px] font-semibold text-slate-500">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 whitespace-nowrap">
                   {subtext}
                 </span>
               </>
@@ -180,17 +182,17 @@ export function MissionSectionNavigation({
             return (
               <div
                 key={stage.id}
-                className="relative z-10 flex flex-col items-center text-center"
+                className="relative z-10 flex w-full flex-col items-center text-center"
               >
                 {canNavigate ? (
                   <Link
                     href={stage.href}
-                    className="group flex flex-col items-center text-center focus:outline-none"
+                    className="group flex w-full flex-col items-center text-center focus:outline-none"
                   >
                     {stageContent}
                   </Link>
                 ) : (
-                  <div className="flex flex-col items-center text-center">
+                  <div className="flex w-full flex-col items-center text-center">
                     {stageContent}
                   </div>
                 )}
