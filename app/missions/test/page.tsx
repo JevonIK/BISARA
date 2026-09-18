@@ -42,13 +42,8 @@ export default async function MissionTestPage({
 
         {/* Dynamic header matching attachment */}
         {mission.type === 'checkpoint' ? (
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#E54D2E]">
-              <Flag className="size-4" /> TES BAB {chapter.number.replace(/^0/, '')}
-            </span>
-            <span className="rounded-full border border-[#E54D2E] bg-white px-3 py-0.5 text-xs font-black text-[#E54D2E]">
-              {isRecall ? 'Uji Peragaan' : 'Uji Pengenalan'}
-            </span>
+          <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm font-black uppercase tracking-wider text-[#E54D2E]">
+            <Flag className="size-4 fill-[#E54D2E]" /> TES BAB {chapter.number.replace(/^0/, '')}
           </div>
         ) : (
           <div>
