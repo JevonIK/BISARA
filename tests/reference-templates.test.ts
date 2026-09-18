@@ -52,7 +52,9 @@ void test('Keluarga practice loops the same excerpt as the checker', async () =>
   const preview = getPracticePreviewVideoUrl(`${source}?v=test`);
   assert.ok(preview.endsWith('signer2_label26_sample3-practice.mp4?v=test'));
   assert.notEqual(preview, `${source}?v=test`);
-  const bytes = await readFile(new URL(`../public${preview.split('?')[0]}`, import.meta.url));
+  const bytes = await readFile(
+    new URL(`../public${preview.split('?')[0]}`, import.meta.url),
+  );
   assert.ok(bytes.byteLength > 1000);
 });
 
@@ -107,6 +109,77 @@ void test('Keluarga accepts the opposite signing hand', () => {
   const result = scoreGesture(frames, mirrorDominantHand(frames));
   assert.equal(result.passed, true, JSON.stringify(result));
   assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+function scaleKeluargaPalmSweep(frames: GestureFrame[], factor: number) {
+  const palmAngle = (hand: GestureFrame['hands'][number]) =>
+    Math.atan2(
+      hand.landmarks[5].y - hand.landmarks[17].y,
+      hand.landmarks[5].x - hand.landmarks[17].x,
+    );
+  const startingAngle = palmAngle(frames[0].hands[0]);
+  return frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const wrist = hand.landmarks[0];
+      const rotation = (factor - 1) * (palmAngle(hand) - startingAngle);
+      return {
+        ...hand,
+        landmarks: hand.landmarks.map((point) => {
+          const x = point.x - wrist.x;
+          const y = point.y - wrist.y;
+          return {
+            ...point,
+            x: wrist.x + x * Math.cos(rotation) - y * Math.sin(rotation),
+            y: wrist.y + x * Math.sin(rotation) + y * Math.cos(rotation),
+          };
+        }),
+      };
+    }),
+  }));
+}
+
+void test('Keluarga accepts a smaller but complete wrist sweep', () => {
+  const frames = reference('keluarga');
+  const result = scoreGesture(frames, scaleKeluargaPalmSweep(frames, 0.55));
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+});
+
+void test('Keluarga accepts straight fingers seen with shorter projected lengths', () => {
+  const frames = reference('keluarga');
+  const foreshortened = frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => {
+      const landmarks = structuredClone(hand.landmarks);
+      for (const finger of [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+      ]) {
+        const base = landmarks[finger[0]];
+        for (const index of finger.slice(1)) {
+          landmarks[index].x = base.x + (landmarks[index].x - base.x) * 0.7;
+          landmarks[index].y = base.y + (landmarks[index].y - base.y) * 0.7;
+        }
+      }
+      return { ...hand, landmarks };
+    }),
+  }));
+  const result = scoreGesture(frames, foreshortened);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.handshape >= 75, JSON.stringify(result));
+});
+
+void test('Keluarga requires the wrist sweep rather than just the finger pose', () => {
+  const frames = reference('keluarga');
+  for (const factor of [0, -1]) {
+    const result = scoreGesture(frames, scaleKeluargaPalmSweep(frames, factor));
+    assert.equal(result.passed, false, JSON.stringify(result));
+    assert.ok(result.movement < 70, JSON.stringify(result));
+  }
 });
 
 void test('Keluarga finger articulation survives live camera smoothing', () => {
@@ -219,6 +292,11 @@ void test('Keluarga tolerates hidden inner joints but still checks visible finge
   const differentShape = scoreGesture(frames, changedFingertips);
   assert.equal(differentShape.passed, false, JSON.stringify(differentShape));
   assert.equal(differentShape.criticalMismatch, 'handshape');
+  assert.ok(differentShape.handshapeEvidence);
+  assert.ok(
+    differentShape.handshapeEvidence.rawScore >= differentShape.handshape,
+  );
+  assert.ok(differentShape.movement >= 70, JSON.stringify(differentShape));
 });
 
 void test('Keluarga tolerates chest placement variance but rejects another body region', () => {

@@ -577,8 +577,7 @@ export function CameraPractice({
                   // the raw observation; the temporal scorer already handles
                   // individual noisy frames. Keep smoothing for overlapping
                   // two-hand signs, where it stabilizes hand identity.
-                  hands:
-                    requiredHandCountRef.current === 1 ? rawHands : hands,
+                  hands: requiredHandCountRef.current === 1 ? rawHands : hands,
                   poseLandmarks:
                     now - latestPoseAtRef.current <= MAX_POSE_AGE_MS
                       ? latestPoseLandmarksRef.current
@@ -1231,6 +1230,53 @@ export function CameraPractice({
             </h2>
           </div>
 
+          {isCurriculumDebugUnlocked() && !gestureScore.passed ? (
+            <div className="mb-5 border border-signal-coral/40 bg-signal-coral/5 p-3">
+              <p className="text-xs font-bold leading-5 text-signal-navy">
+                Diagnostik percobaan ini: bentuk tangan {gestureScore.handshape}
+                /100; syarat yang menahan kelulusan:{' '}
+                {gestureScore.criticalMismatch ?? 'skor total'}.
+              </p>
+              {gestureScore.handshapeEvidence ? (
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Skor bentuk mentah {gestureScore.handshapeEvidence.rawScore};
+                  frame yang cocok{' '}
+                  {Math.round(
+                    gestureScore.handshapeEvidence.matchingFrameRatio * 100,
+                  )}
+                  % (minimum{' '}
+                  {Math.round(
+                    gestureScore.handshapeEvidence.requiredMatchingFrameRatio *
+                      100,
+                  )}
+                  %).
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  downloadGestureDiagnostics(
+                    signId,
+                    gestureScore,
+                    referenceFramesRef.current,
+                    rawFrameBufferRef.current,
+                    smoothedFrameBufferRef.current,
+                    frameBufferRef.current,
+                  )
+                }
+                className="mt-3 w-full border-signal-navy/20 bg-white font-bold text-signal-navy hover:bg-white/80"
+              >
+                Unduh data percobaan yang gagal
+              </Button>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                Unduh sebelum mencoba lagi. File berisi koordinat tangan dan
+                skor, tanpa rekaman video atau wajah; tetap di perangkatmu
+                sampai kamu membagikannya.
+              </p>
+            </div>
+          ) : null}
+
           {gestureScore.assessable ? (
             <div className="space-y-3">
               <QualitativeMetric
@@ -1331,27 +1377,24 @@ export function CameraPractice({
                 {attemptDiagnostics.capturedFrames}, kedua tangan:{' '}
                 {attemptDiagnostics.twoHandFrames}.
               </p>
-              <button
-                type="button"
-                className="mt-3 font-bold text-signal-navy underline underline-offset-2"
-                onClick={() =>
-                  downloadGestureDiagnostics(
-                    signId,
-                    gestureScore,
-                    referenceFramesRef.current,
-                    rawFrameBufferRef.current,
-                    smoothedFrameBufferRef.current,
-                    frameBufferRef.current,
-                  )
-                }
-              >
-                Unduh landmark percobaan
-              </button>
-              <p className="mt-1 leading-5">
-                Berisi koordinat tangan dan skor untuk debug; tidak berisi
-                rekaman video atau wajah. File tetap di perangkatmu sampai kamu
-                memilih membagikannya.
-              </p>
+              {gestureScore.passed ? (
+                <button
+                  type="button"
+                  className="mt-3 font-bold text-signal-navy underline underline-offset-2"
+                  onClick={() =>
+                    downloadGestureDiagnostics(
+                      signId,
+                      gestureScore,
+                      referenceFramesRef.current,
+                      rawFrameBufferRef.current,
+                      smoothedFrameBufferRef.current,
+                      frameBufferRef.current,
+                    )
+                  }
+                >
+                  Unduh landmark percobaan
+                </button>
+              ) : null}
             </details>
           ) : null}
 
@@ -1626,6 +1669,7 @@ function downloadGestureDiagnostics(
   const payload = {
     signId,
     referenceWindow: getReferenceGestureWindow(referenceFrames),
+    referenceFrames: handFrames(referenceFrames),
     displayedScore,
     rawScore: rawFrames.length
       ? scoreGesture(referenceFrames, rawFrames)
