@@ -119,13 +119,13 @@ export function ReviewQuest() {
               : 'Setelah mencoba latihan tanda, materi itu akan masuk daftar review. Tidak ada kosakata baru yang diujikan di sini.'}
           </p>
           <Link
-            href="/missions"
+            href="/"
             className={cn(
               buttonVariants(),
               'mt-5 rounded-full bg-signal-navy text-white',
             )}
           >
-            Lanjutkan perjalanan
+            Kembali ke beranda
           </Link>
         </section>
       )}

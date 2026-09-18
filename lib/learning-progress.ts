@@ -134,7 +134,7 @@ export function getMissionLearningState(
         : Math.min(55, basePractice);
   const missionQuery = `mission=${mission.id}`;
   const next = !isMissionUnlocked(mission.id, progress)
-    ? { href: '/missions', label: 'Selesaikan misi sebelumnya' }
+    ? { href: '/', label: 'Selesaikan misi sebelumnya' }
     : nextSign && !practiceComplete
       ? {
           href: `/missions/practice?${missionQuery}&sign=${nextSign.id}`,
@@ -203,6 +203,55 @@ export function getMissionReplayAction(missionOrId: Mission | string) {
         href: `/missions/practice?${missionQuery}&sign=${mission.signIds[0]}&replay=1`,
         label: 'Ulangi misi dari awal',
       };
+}
+
+/**
+ * Returns the exact stage URL corresponding to where the learner is currently at
+ * in this mission:
+ * - Completed -> Replay action href
+ * - Checkpoint -> Uji pengenalan (or Uji peragaan if recognition completed)
+ * - Standard mission:
+ *   - Practice not started yet -> Tahap Amati (`/missions/learn?mission=...`)
+ *   - Practice in progress -> Tahap Tirukan (`/missions/practice?mission=...&sign=...`)
+ *   - Practice complete -> Uji pengenalan (`/missions/test?mission=...&mode=recognition`)
+ *   - Recognition complete -> Uji peragaan (`/missions/test?mission=...&mode=recall`)
+ */
+export function getMissionActiveStageHref(
+  missionOrId: Mission | string,
+  progress: UserProgress,
+): string {
+  const mission =
+    typeof missionOrId === 'string' ? getMission(missionOrId) : missionOrId;
+  const learning = getMissionLearningState(mission, progress);
+  const isCompleted = progress.completedMissionIds.includes(mission.id);
+
+  if (isCompleted) {
+    const replay = getMissionReplayAction(mission);
+    return replay.href;
+  }
+
+  if (mission.type === 'checkpoint') {
+    return learning.recognitionComplete
+      ? `/missions/test?mission=${mission.id}&mode=recall`
+      : `/missions/test?mission=${mission.id}&mode=recognition`;
+  }
+
+  if (!learning.practiceStarted) {
+    return mission.href;
+  }
+
+  if (!learning.practiceComplete) {
+    const nextSign = learning.missionSigns.find(
+      (sign) => !progress.signMastery[sign.id]?.passed,
+    );
+    return `/missions/practice?mission=${mission.id}&sign=${nextSign?.id ?? mission.signIds[0]}`;
+  }
+
+  if (!learning.recognitionComplete) {
+    return `/missions/test?mission=${mission.id}&mode=recognition`;
+  }
+
+  return `/missions/test?mission=${mission.id}&mode=recall`;
 }
 
 export function getBerkenalanLearningState(progress: UserProgress) {
