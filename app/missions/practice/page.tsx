@@ -6,15 +6,10 @@ import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
 import { CameraPractice } from '@/components/camera-practice';
 import { PracticeSignProgress } from '@/components/practice-sign-progress';
-import { ReferenceSignVideo } from '@/components/reference-sign-video';
 import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { Badge } from '@/components/ui/badge';
 import { getSign, isSignId, versionedSignVideo } from '@/lib/curriculum-data';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
-import {
-  getCuratedReferenceWindow,
-  getPracticePreviewVideoUrl,
-} from '@/lib/reference-window';
 
 export const metadata: Metadata = {
   title: 'Latihan Kamera BISINDO',
@@ -147,68 +142,18 @@ export default async function PracticePage({
           />
         ) : null}
 
-        <section className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="order-2 space-y-5 lg:order-1">
-            <div className="border-t-4 border-signal-teal bg-card p-6">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
-                Contoh tanda
-              </p>
-              <ReferenceSignVideo
-                key={sign.id}
-                id={referenceVideoId}
-                src={getPracticePreviewVideoUrl(referenceVideoUrl)}
-                label={sign.label}
-                window={getCuratedReferenceWindow(referenceVideoUrl)}
-              />
-              <p className="mt-6 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-                Fokus pengamatan
-              </p>
-              <ul className="mt-3 space-y-3 text-sm font-bold text-signal-navy">
-                <li>• Bentuk dan jarak antarjari</li>
-                <li>• {sign.focus}</li>
-                <li>• Arah telapak dan titik akhir</li>
-              </ul>
-              <p className="mt-4 border-t border-signal-navy/10 pt-4 text-xs leading-5 text-muted-foreground">
-                {sign.note}
-              </p>
-            </div>
-            <div className="border border-signal-navy/10 bg-card p-6">
-              <div className="flex gap-3">
-                <Info className="mt-0.5 size-5 shrink-0 text-emerald-700" />
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Skor membandingkan gerakanmu dengan satu contoh per tanda
-                  serta kosakata lain dalam kurikulum. Hasilnya belum merupakan
-                  sertifikasi kemampuan BISINDO.
-                </p>
-              </div>
-            </div>
-          </aside>
-          <div className="order-1 lg:order-2">
-            <CameraPractice
-              key={sign.id}
-              signId={sign.id}
-              signLabel={sign.label}
-              referenceVideoUrl={referenceVideoUrl}
-              referenceVideoElementId={referenceVideoId}
-              missionId={mission.id}
-              missionSignIds={mission.signIds}
-              reviewMode={reviewMode}
-            />
-          </div>
-        </section>
-
-        <section className="mt-8 flex gap-3 border border-signal-navy/10 bg-card p-6">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-700" />
-          <div>
-            <h2 className="text-sm font-black text-signal-navy">
-              Privasi latihan kamera
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Frame diproses pada perangkat untuk menghasilkan landmark dan
-              tidak diunggah atau disimpan oleh BISARA.
-            </p>
-          </div>
-        </section>
+        {/* 3-Column Practice Area (Contoh Tanda + Kamera + Kalibrasi/Hasil) */}
+        <CameraPractice
+          key={sign.id}
+          signId={sign.id}
+          signLabel={sign.label}
+          referenceVideoUrl={referenceVideoUrl}
+          referenceVideoElementId={referenceVideoId}
+          missionId={mission.id}
+          missionSignIds={mission.signIds}
+          reviewMode={reviewMode}
+          exampleCard={exampleCard}
+        />
       </div>
 
       {/* Fixed Bottom Timeline Navigation */}

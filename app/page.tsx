@@ -28,9 +28,6 @@ export default function Home() {
   const progress = useProgress();
   const currentMission = getCurrentMission(progress);
   const currentChapter = getChapterForMission(currentMission.id);
-  const currentChapterIndex = chapters.findIndex(
-    (chapter) => chapter.id === currentChapter.id,
-  );
   const completedMissions = getPrototypeMissionCount(progress);
   const badgeCount = [
     completedMissions > 0,
