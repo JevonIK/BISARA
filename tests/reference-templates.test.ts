@@ -337,6 +337,40 @@ function mirrorDominantHand(frames: GestureFrame[]) {
   }));
 }
 
+void test('one-hand tracking follows the learner when another hand flashes into view', () => {
+  const frames = reference('dengar');
+  const mirrored = mirrorDominantHand(frames);
+  const attempt = mirrored.map((frame, index) => {
+    if (index !== Math.floor(mirrored.length / 2) || !frame.hands.length)
+      return frame;
+    const extra = structuredClone(frame.hands[0]);
+    extra.handedness = extra.handedness === 'Left' ? 'Right' : 'Left';
+    extra.landmarks = extra.landmarks.map((point) => ({
+      ...point,
+      x: Math.min(0.99, point.x + 0.2),
+    }));
+    return { ...frame, hands: [...frame.hands, extra] };
+  });
+  const result = scoreGesture(frames, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('a held pose cannot outscore a completed motion using incompatible totals', () => {
+  const motionReference = reference('dengar');
+  const heldPose = reference('malam');
+  const target = { ...scoreGesture(motionReference, motionReference), overall: 80 };
+  assert.equal(target.gestureKind, 'motion');
+  assert.equal(scoreGesture(heldPose, heldPose).gestureKind, 'pose');
+  const result = scoreGestureWithAlternatives(
+    motionReference,
+    heldPose,
+    [{ label: 'Malam', frames: heldPose }],
+    target,
+  );
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.equal(result.confusableWith, null);
+});
+
 function scaleTwoHandSpacing(frames: GestureFrame[], factor: number) {
   return structuredClone(frames).map((frame) => {
     if (frame.hands.length !== 2) return frame;
@@ -442,6 +476,41 @@ void test('all 32 signs tolerate small landmark jitter', () => {
       true,
       `${id}: a small tracking fluctuation should not fail the correct sign`,
     );
+  }
+});
+
+void test('signs after mission 1 tolerate signing hand, tempo, framing, and brief tracking changes', () => {
+  const missionOne = new Set(['saya', 'siapa', 'teman', 'terima-kasih', 'maaf']);
+  for (const id of signIds) {
+    if (missionOne.has(id)) continue;
+    const frames = reference(id);
+    const slower = frames.flatMap((frame, index) => [0, 1].map((repeat) => ({
+      ...frame,
+      timeMs: (index * 2 + repeat) * 66,
+    })));
+    const reframed = frames.map((frame) => ({
+      ...frame,
+      hands: frame.hands.map((hand) => ({
+        ...hand,
+        landmarks: hand.landmarks.map((point) => ({
+          ...point,
+          x: 0.5 + (point.x - 0.5) * 0.88 + 0.05,
+          y: 0.5 + (point.y - 0.5) * 0.88 - 0.04,
+        })),
+      })),
+    }));
+    const briefTrackingGap = frames.map((frame, index) =>
+      index % 7 === 0 ? { ...frame, hands: [] } : frame,
+    );
+    for (const [variation, attempt] of [
+      ['opposite hand', mirrorDominantHand(frames)],
+      ['slower', slower],
+      ['camera position', reframed],
+      ['brief tracking gap', briefTrackingGap],
+    ] as const) {
+      const result = scoreGesture(frames, attempt);
+      assert.equal(result.passed, true, `${id} / ${variation}: ${JSON.stringify(result)}`);
+    }
   }
 });
 

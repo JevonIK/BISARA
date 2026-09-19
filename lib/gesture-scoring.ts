@@ -309,7 +309,12 @@ export function scoreGesture(
   const directAttempt = selectRequiredHands(
     rawAttempt,
     requiredHandCount,
-    primaryHandedness,
+    // The learner may sign with the opposite hand. If a one-hand recording
+    // briefly detects a second hand, keep following the learner's dominant
+    // track instead of jumping to the hand used by the reference signer.
+    requiredHandCount === 1
+      ? getPrimaryHandedness(rawAttempt)
+      : primaryHandedness,
   );
   const visibleAttemptFrames = directAttempt.filter(
     (frame) => frame.hands.length === requiredHandCount,
@@ -407,6 +412,10 @@ export function scoreGestureWithAlternatives(
     )
       continue;
     const score = scoreGesture(frames, attemptFrames);
+    // Pose-only templates can score a held frame as perfect movement, while
+    // motion templates must match an actual path. Their totals are not
+    // comparable; a static alternative must not veto a completed motion.
+    if (score.gestureKind !== target.gestureKind) continue;
     if (
       score.assessable &&
       score.passed &&
@@ -443,6 +452,7 @@ function scoreAttemptWindows(
   detectionQuality: number,
 ) {
   const sampledReference = resampleSequence(reference);
+  const palmRotationDominant = isPalmRotationDominantGesture(sampledReference);
   return getAttemptWindows(attempt, reference)
     .map((window) =>
       scorePrepared(
@@ -460,11 +470,13 @@ function scoreAttemptWindows(
         result,
         result.requiredHandCount,
         result.orientationAssessable,
+        palmRotationDominant,
       ) >
         weightedComponentScore(
           best,
           best.requiredHandCount,
           best.orientationAssessable,
+          palmRotationDominant,
         )
         ? result
         : best;
@@ -664,6 +676,7 @@ function scorePrepared(
     components,
     requiredHandCount,
     orientationAssessable,
+    palmRotationDominant,
   );
   // Coverage is already enforced before scoring. Multiplying by it again would
   // punish detector occlusion twice, especially when two hands overlap.
@@ -759,7 +772,17 @@ function weightedComponentScore(
   components: Components,
   requiredHandCount: 1 | 2,
   orientationAssessable = true,
+  palmRotationDominant = false,
 ) {
+  if (palmRotationDominant && requiredHandCount === 1 && orientationAssessable) {
+    // Palm rotation is already graded as movement. Giving the absolute palm
+    // angle its usual weight penalizes a correct sweep twice when the signer
+    // starts with a slightly different wrist angle.
+    return components.handshape * 0.43 +
+      components.movement * 0.34 +
+      components.orientation * 0.13 +
+      components.position * 0.1;
+  }
   if (!orientationAssessable) {
     const weighted =
       components.handshape * 0.35 +
@@ -1888,16 +1911,25 @@ function coordinationSequenceError(
       ? 0
       : (requiredContactRatio - attemptContactRatio) * 0.8;
   }
-  const distanceProfile = (sequence: PreparedFrame[]) =>
-    sequence.flatMap((frame) => {
+  const distanceProfile = (sequence: PreparedFrame[]) => {
+    // A palm seen edge-on can make its per-frame scale nearly zero, turning an
+    // otherwise ordinary wrist gap into a huge one-frame spike. Use one robust
+    // scale for the whole gesture, as with the other motion comparisons.
+    const scale = Math.max(0.001, median(sequence.flatMap((frame) =>
+      frame.hands.length === 2
+        ? frame.hands.map((hand) => hand.screenScale)
+        : [],
+    )));
+    return sequence.flatMap((frame) => {
       if (frame.hands.length < 2) return [];
       return [
         distanceArrays(
           frame.hands[0].physicalWrist,
           frame.hands[1].physicalWrist,
-        ) / average([frame.hands[0].screenScale, frame.hands[1].screenScale]),
+        ) / scale,
       ];
     });
+  };
   const referenceDistances = distanceProfile(reference);
   const attemptDistances = distanceProfile(attempt);
   if (!referenceDistances.length || !attemptDistances.length) return 4;
@@ -2222,33 +2254,38 @@ function palmRotationError(
       ? -1
       : 1;
   const peak = direction < 0 ? expected.minimum : expected.maximum;
-  const attemptPeak = direction < 0 ? performed.minimum : performed.maximum;
   const referenceSweep = direction * (peak - expected.start);
-  const attemptSweep = Math.max(0, direction * (attemptPeak - performed.start));
   const referenceReturn = direction * (peak - expected.end);
-  const attemptReturn = Math.max(0, direction * (attemptPeak - performed.end));
-  if (attemptSweep < 0.25) return 4;
-
   // Compare the turn relative to each signer's own starting wrist angle.
-  // Amplitude and return are retained as independent gates, so a stationary
-  // open hand or a turn in the opposite direction cannot satisfy the sign.
-  const normalized = (profile: PalmRotationProfile) =>
+  // The same physical articulation can trace the opposite screen rotation
+  // when performed with the opposite signing hand. Only consider that second
+  // direction across handedness; a same-hand reversed sweep remains wrong.
+  const referenceHand = reference.find((frame) => frame.hands.length)?.hands[0];
+  const attemptHand = attempt.find((frame) => frame.hands.length)?.hands[0];
+  const directions = referenceHand && attemptHand &&
+    referenceHand.handedness !== attemptHand.handedness
+    ? [direction, -direction]
+    : [direction];
+  const normalized = (profile: PalmRotationProfile, sweepDirection: number) =>
     profile.angles.map(
-      (angle) => (direction * (angle - profile.start)) / referenceSweep,
+      (angle) => (sweepDirection * (angle - profile.start)) / referenceSweep,
     );
-  const pathError =
-    dtwError(normalized(expected), normalized(performed), (a, b) =>
-      Math.abs(a - b),
+  return Math.min(...directions.map((attemptDirection) => {
+    const attemptPeak = attemptDirection < 0 ? performed.minimum : performed.maximum;
+    const attemptSweep = Math.max(0, attemptDirection * (attemptPeak - performed.start));
+    const attemptReturn = Math.max(0, attemptDirection * (attemptPeak - performed.end));
+    if (attemptSweep < 0.25) return 4;
+    const pathError = dtwError(
+      normalized(expected, direction),
+      normalized(performed, attemptDirection),
+      (a, b) => Math.abs(a - b),
     ) * 0.14;
-  const sweepError =
-    Math.abs(Math.log((attemptSweep + 0.1) / (referenceSweep + 0.1))) * 0.12;
-  const returnError =
-    referenceReturn > 0
-      ? (Math.max(0, referenceReturn * 0.55 - attemptReturn) /
-          referenceReturn) *
-        0.3
+    const sweepError = Math.abs(Math.log((attemptSweep + 0.1) / (referenceSweep + 0.1))) * 0.12;
+    const returnError = referenceReturn > 0
+      ? (Math.max(0, referenceReturn * 0.55 - attemptReturn) / referenceReturn) * 0.3
       : 0;
-  return Math.max(pathError, sweepError, returnError);
+    return Math.max(pathError, sweepError, returnError);
+  }));
 }
 
 function fingerMotionSequence(sequence: PreparedFrame[]): MovementFrame[] {
@@ -2559,9 +2596,9 @@ function feedbackFor(
     coordination: 'Samakan waktu dan jarak gerak kedua tangan.',
   }[weakest];
   if (overall >= 95) return 'Gerakan sangat sesuai dengan contoh.';
-  if (overall >= 88) return `Gerakan sangat dekat dengan contoh. ${advice}`;
+  if (overall >= 88) return 'Gerakan sangat dekat dengan contoh.';
   if (overall >= PASS_THRESHOLD)
-    return `Gerakan melewati ambang latihan. ${advice}`;
+    return 'Gerakan sesuai untuk latihan ini.';
   return `Tanda belum sesuai dengan contoh. ${advice}`;
 }
 

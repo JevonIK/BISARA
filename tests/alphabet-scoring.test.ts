@@ -125,6 +125,24 @@ void test('26 contoh lolos dengan tangan bercermin dan perubahan posisi kamera',
   }
 });
 
+void test('deteksi ganda tangan yang sama tidak menggagalkan huruf dua tangan', () => {
+  const frames = manifest.frames['f.mp4'];
+  const duplicated = frames.map((frame) => frame.hands.length === 2 ? {
+    ...frame,
+    hands: [...frame.hands, { ...frame.hands[0], landmarks: structuredClone(frame.hands[0].landmarks) }],
+  } : frame);
+  assert.equal(scoreAlphabetGesture('F', frames, duplicated).passed, true);
+
+  const extraDistinct = frames.map((frame) => frame.hands.length === 2 ? {
+    ...frame,
+    hands: [...frame.hands, {
+      ...frame.hands[0],
+      landmarks: frame.hands[0].landmarks.map((point) => ({ ...point, x: point.x + 0.3 })),
+    }],
+  } : frame);
+  assert.equal(scoreAlphabetGesture('F', frames, extraDistinct).assessable, false);
+});
+
 void test('26 × 26 contoh: semua contoh sendiri lulus, huruf lain tidak', () => {
   for (const target of alphabetVideos) {
     const targetFrames = manifest.frames[target.videoSrc.split('/').at(-1)!];

@@ -40,10 +40,10 @@ recognition, and perform signs from memory without an example.
   peragaan now use a local hand-landmark checker that compares finger shape,
   orientation, and, for two-hand letters, the relationship between hands.
   Either signing hand can be used. A letter must pass before the learner advances.
-  All 26 reference templates are precomputed from the selected video clips;
+  Three reference templates per letter are precomputed from the supplied dataset;
   the checker also compares with other letters before accepting an attempt.
-  Motion is not a passing criterion because the selected clips do not isolate
-  a consistent motion cycle for every letter. This prototype has not been validated as a BISINDO
+  J requires a visible vertical sweep; Z's full path is not gated because its
+  clips do not isolate a consistent motion cycle. This prototype has not been validated as a BISINDO
   classifier; camera accuracy and signing variation still need user testing.
   The existing completed mission IDs store progress without a new database table.
 
@@ -176,6 +176,16 @@ Vocabulary alternatives act as negative examples after the prompted sign has
 passed. An alternative rejects the result only when it beats the prompted sign
 by at least three points; tiny frame-to-frame score changes no longer contradict
 an otherwise passing component panel.
+
+For one-hand signs with a wrist sweep, the movement score checks the turn and
+return on either signing hand while retaining the shape and visibility gates.
+For non-contact two-hand signs, coordination uses a stable hand scale across
+the recording so one foreshortened palm frame cannot distort the wrist gap.
+The two supplied Keluarga camera captures pass after these corrections. A
+regression test also checks hand choice, slower tempo, camera framing, and brief
+tracking gaps for the 27 words outside Misi 1. To audit further local exports
+without adding their landmarks to the repository, run
+`npm run audit:captures -- /path/to/landmark-debug.json`.
 
 This remains a prototype similarity checker based on one exemplar per gloss,
 not a trained or validated BISINDO classifier. If stable body landmarks are not

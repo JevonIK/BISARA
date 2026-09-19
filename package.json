@@ -12,6 +12,7 @@
     "lint": "oxlint",
     "format": "oxfmt",
     "audit:checker": "node --experimental-strip-types scripts/audit-gesture-checker.mjs",
+    "audit:captures": "node --experimental-strip-types scripts/audit-user-gesture-captures.mjs",
     "test:sync": "node scripts/test-account-sync.mjs"
   },
   "dependencies": {
