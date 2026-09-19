@@ -3,12 +3,12 @@
 import {
   Check,
   ChevronRight,
+  Clock3,
   Flag,
   LockKeyhole,
   Map,
   Play,
   Sparkles,
-  Star,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -222,10 +222,7 @@ function MissionRow({ mission }: { mission: Mission }) {
       </span>
       <span className="hidden shrink-0 text-right sm:block">
         <span className="flex items-center justify-end gap-1 text-xs font-bold text-signal-navy">
-          <Star className="size-3.5 text-amber-500" fill="currentColor" />+
-          {mission.xp} XP
-        </span>
-        <span className="mt-1 block text-xs text-muted-foreground">
+          <Clock3 className="size-3.5 text-signal-teal" />
           {mission.duration} menit
         </span>
         {replay ? (

@@ -118,12 +118,13 @@ export async function authenticate(
   mode: 'login' | 'register',
   fields: { email: string; password: string; displayName?: string },
 ) {
-  await apiRequest<AccountUser>(`/auth/${mode}`, {
+  const user = await apiRequest<AccountUser>(`/auth/${mode}`, {
     method: 'POST',
     body: JSON.stringify(fields),
   });
   announceAuthChange();
   await refreshAccount();
+  return state.user ?? user;
 }
 
 export async function logoutAccount() {

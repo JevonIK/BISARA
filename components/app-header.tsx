@@ -86,11 +86,11 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
             <span>{progress.streak > 0 ? progress.streak : 7} hari</span>
           </div>
           <Link
-            href="/account"
+            href={account.user ? '/profil' : '/account'}
             className="grid h-9 min-w-9 place-items-center rounded-full bg-slate-900 px-5 text-xs font-black text-white shadow-xs outline-none ring-offset-2 transition-transform hover:scale-105 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={
               account.user
-                ? `Buka akun ${account.user.displayName}`
+                ? `Buka profil ${account.user.displayName}`
                 : 'Masuk ke akun'
             }
           >

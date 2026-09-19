@@ -103,7 +103,7 @@ export function ReviewQuest() {
             Mulai review · {pending.length} tanda
           </Button>
           <p className="mt-3 text-xs text-muted-foreground">
-            +10 XP per tanda untuk catatan mengingat pertama hari ini.
+            Tinjau kembali ingatanmu secara berkala untuk memperkuat penguasaan tanda.
           </p>
         </section>
       ) : (

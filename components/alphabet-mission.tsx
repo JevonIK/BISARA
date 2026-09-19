@@ -10,7 +10,6 @@ import {
   LockKeyhole,
   RotateCcw,
   Sparkles,
-  Star,
   Target,
   Trophy,
   X,
@@ -139,10 +138,6 @@ export function AlphabetMission({
                 <span className="flex items-center gap-2">
                   <Clock3 className="size-4 text-signal-teal" />
                   {mission.duration} menit
-                </span>
-                <span className="flex items-center gap-2">
-                  <Star className="size-4 text-signal-yellow" fill="currentColor" />
-                  +{mission.xp} XP
                 </span>
                 <span className="flex items-center gap-2">
                   <Target className="size-4 text-signal-coral" />
@@ -752,8 +747,7 @@ function StageRecall({
           </h2>
           <p className="mt-3 text-base text-muted-foreground">
             Selamat! Kamu telah menyelesaikan seluruh 4 tahap materi{' '}
-            <strong className="text-signal-navy">Huruf {mission.title}</strong> dan memperoleh +
-            {mission.xp} XP!
+            <strong className="text-signal-navy">Huruf {mission.title}</strong>!
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-4">

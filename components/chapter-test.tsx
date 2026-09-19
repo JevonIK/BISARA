@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Award,
   Check,
   CircleAlert,
   Flag,
@@ -73,7 +74,6 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
   const [conversationChoice, setConversationChoice] = useState('');
   const [conversationFeedback, setConversationFeedback] = useState('');
   const [conversationPassed, setConversationPassed] = useState(false);
-  const [conversationXp, setConversationXp] = useState(20);
 
   const startTranslationTest = () => {
     setQuestionIndex(0);
@@ -134,9 +134,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
     if (!conversationPassed) return;
 
     if (conversationIndex === conversationTurns.length - 1) {
-      const wasFirstCompletion = userProgress.conversationCompletions === 0;
       recordConversationCompletion();
-      setConversationXp(wasFirstCompletion ? 20 : 0);
       setView('conversation-result');
       return;
     }
@@ -418,13 +416,13 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
         <div className="grid min-h-[430px] place-items-center bg-signal-teal p-8 text-center text-signal-navy">
           <div>
             <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-navy text-signal-teal">
-              <MessageCircleMore className="size-10" />
+              <Award className="size-10" />
             </span>
             <p className="mt-7 text-xs font-black uppercase tracking-[0.15em]">
               Skenario selesai
             </p>
-            <p className="mt-2 text-5xl font-black tracking-[-0.06em]">
-              +{conversationXp} XP
+            <p className="mt-2 text-3xl font-black tracking-tight">
+              Lencana Diraih
             </p>
           </div>
         </div>
@@ -478,7 +476,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
         eyebrow="Mode 02"
         title="Latihan penerapan"
         description="Pahami tanda dari lawan bicara, lalu pilih respons satu tanda yang sesuai dengan situasi."
-        meta="3 giliran · +20 XP pertama"
+        meta="3 giliran · simulasi interaktif"
         icon={MessageCircleMore}
         color="coral"
         onStart={startConversation}
