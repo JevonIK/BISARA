@@ -53,10 +53,14 @@ loads these 32 references with one request and compares a passing attempt
 against every other gloss in the active curriculum.
 
 An exhaustive exemplar-against-exemplar audit covered all 1,024 target/attempt
-pairs. Single-reference scoring accepted 17 different-gloss pairs;
-whole-vocabulary comparison rejected all 17, while all 32 exact matches passed.
-Another 96 artificial finger-shape alterations were rejected. This audit is
-repeatable with `npm run audit:checker`. Because the same local exemplars serve
+pairs. Single-reference scoring accepted 55 different-gloss pairs;
+whole-vocabulary comparison rejected all 55, while all 32 exact matches passed.
+Another 96 artificial finger-shape alterations were rejected. Transformations
+of the 27 words outside Misi 1 also passed for opposite signing hand, slower
+tempo, shifted camera framing, and brief tracking gaps. Repeat the pairwise
+audit with `npm run audit:checker` and the variation checks with
+`node --experimental-strip-types --test tests/reference-templates.test.ts`.
+Because the same local exemplars serve
 as both references and attempts, these figures are regression checks, **not**
 real-user accuracy, signer-independent validation, or a measured false-accept
 rate in deployment.

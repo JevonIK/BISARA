@@ -1,5 +1,5 @@
 import { isAlphabetPracticeCompleted } from '@/lib/alphabet-data';
-import { getSigns } from '@/lib/curriculum-data';
+import { getSigns, type SignId } from '@/lib/curriculum-data';
 import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import {
   allMissions,
@@ -282,7 +282,7 @@ export function getChapterProgress(chapterId: string, progress: UserProgress) {
 }
 
 export function getChapterOneProgress(progress: UserProgress) {
-  return getChapterProgress('chapter-1', progress);
+  return getChapterProgress(chapters[0].id, progress);
 }
 
 export function getCurrentMission(progress: UserProgress) {
@@ -292,3 +292,51 @@ export function getCurrentMission(progress: UserProgress) {
     ) ?? allMissions.at(-1)!
   );
 }
+
+/**
+ * Checks whether a specific sign in a mission's camera practice is unlocked.
+ * A sign is unlocked if:
+ * 1. Curriculum debug is active, OR
+ * 2. The mission is already completed (allowing free review), OR
+ * 3. It is the first sign of the mission (index 0), OR
+ * 4. ALL signs preceding it in the mission have been passed (signMastery[id].passed === true).
+ */
+export function isMissionSignUnlocked(
+  signId: string,
+  missionSignIds: string[],
+  progress: UserProgress,
+  missionId?: string,
+): boolean {
+  if (isCurriculumDebugUnlocked()) return true;
+  if (missionId && progress.completedMissionIds.includes(missionId)) return true;
+
+  const signIndex = missionSignIds.indexOf(signId);
+  if (signIndex <= 0) return true;
+
+  for (let i = 0; i < signIndex; i++) {
+    const prevId = missionSignIds[i];
+    if (!progress.signMastery[prevId as SignId]?.passed) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Checks whether all signs in a mission have been passed, enabling the final
+ * practice / assessment stage ("Latihan").
+ */
+export function isMissionPracticeComplete(
+  missionSignIds: string[],
+  progress: UserProgress,
+  missionId?: string,
+): boolean {
+  if (isCurriculumDebugUnlocked()) return true;
+  if (missionId && progress.completedMissionIds.includes(missionId)) return true;
+
+  return missionSignIds.every(
+    (id) => Boolean(progress.signMastery[id as SignId]?.passed),
+  );
+}
+

@@ -12,6 +12,14 @@ import { getAlphabetReferenceFrames, getAlphabetReferenceSet } from '@/lib/refer
 
 const WASM_ROOT = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
 const HAND_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+const HAND_CONNECTIONS: Array<[number, number]> = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12],
+  [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [17, 18], [18, 19], [19, 20],
+  [0, 17],
+];
 
 type Phase = 'idle' | 'countdown' | 'recording' | 'scoring' | 'result';
 
@@ -25,6 +33,7 @@ export function AlphabetCameraChecker({
   onPass: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const referenceRef = useRef<GestureFrame[]>([]);
@@ -63,6 +72,8 @@ export function AlphabetCameraChecker({
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+    const canvas = canvasRef.current;
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
     landmarkerRef.current?.close();
     landmarkerRef.current = null;
     setCameraActive(false);
@@ -137,6 +148,7 @@ export function AlphabetCameraChecker({
           handedness: detection.handedness[index]?.[0]?.categoryName ?? 'Right',
           confidence: detection.handedness[index]?.[0]?.score ?? 0,
         }));
+        if (canvasRef.current) drawHandLandmarks(canvasRef.current, video, hands);
         setHandCount((previous) => previous === hands.length ? previous : hands.length);
         if (phaseRef.current === 'recording') {
           capturedRef.current.push({ timeMs: Math.round(now - recordStartRef.current), hands });
@@ -226,6 +238,7 @@ export function AlphabetCameraChecker({
       </div>
       <div className="relative aspect-video bg-slate-950">
         <video ref={videoRef} playsInline muted className={`h-full w-full -scale-x-100 object-cover ${cameraActive ? '' : 'invisible'}`}><track kind="captions" /></video>
+        <canvas ref={canvasRef} className={`pointer-events-none absolute inset-0 h-full w-full -scale-x-100 ${cameraActive ? '' : 'invisible'}`} aria-hidden="true" />
         {!cameraActive && <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-white/70">{error ?? 'Aktifkan kamera untuk memeriksa gerakan huruf.'}</div>}
         {cameraActive && phase === 'countdown' && <div className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-7xl font-black text-white" aria-live="polite">{countdown}</div>}
         {cameraActive && phase === 'recording' && <div className="absolute left-4 top-4 rounded-full bg-signal-coral px-4 py-2 text-xs font-black text-white">● Merekam gerakan</div>}
@@ -245,4 +258,36 @@ export function AlphabetCameraChecker({
       </div>
     </section>
   );
+}
+
+function drawHandLandmarks(canvas: HTMLCanvasElement, video: HTMLVideoElement, hands: HandObservation[]) {
+  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  }
+  const context = canvas.getContext('2d');
+  if (!context) return;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+
+  for (const { landmarks } of hands) {
+    context.strokeStyle = '#55c7b5';
+    context.lineWidth = Math.max(3, canvas.width / 320);
+    for (const [startIndex, endIndex] of HAND_CONNECTIONS) {
+      const start = landmarks[startIndex];
+      const end = landmarks[endIndex];
+      if (!start || !end) continue;
+      context.beginPath();
+      context.moveTo(start.x * canvas.width, start.y * canvas.height);
+      context.lineTo(end.x * canvas.width, end.y * canvas.height);
+      context.stroke();
+    }
+    for (const [index, landmark] of landmarks.entries()) {
+      context.beginPath();
+      context.fillStyle = index === 0 ? '#f4c95d' : '#ff6f61';
+      context.arc(landmark.x * canvas.width, landmark.y * canvas.height, index === 0 ? 7 : 5, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
 }

@@ -36,6 +36,12 @@ const tips = [4, 8, 12, 16, 20];
 // Z clips do not isolate a repeatable path, so Z is assessed by hand form.
 const movingTip: Partial<Record<AlphabetLetter, number>> = { J: 20 };
 const directionalLetters = new Set<AlphabetLetter>(['G', 'H', 'J', 'P', 'Q', 'Z']);
+const MIN_ALTERNATIVE_ADVANTAGE = 3;
+// D and P have a similar two-hand silhouette in the available references.
+// Camera perspective can make P score slightly higher than a valid D, so
+// only let P veto D when the separation is decisive. P itself keeps the
+// regular arbitration rule.
+const MIN_P_OVER_D_ADVANTAGE = 10;
 
 function distance(a: Point3, b: Point3): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -77,8 +83,22 @@ function selectedPoses(frames: GestureFrame[], requiredHands: 1 | 2, reference =
   const seed = singleHandExamples[Math.floor(singleHandExamples.length / 2)];
   return frames.flatMap((frame) => {
     if (requiredHands === 2) {
-      if (frame.hands.length !== 2) return [];
-      const poses = frame.hands.map(getPose);
+      let hands = frame.hands;
+      if (hands.length === 3) {
+        // The tracker can return the same physical hand twice. Only remove a
+        // near-identical, same-handedness detection; never treat three distinct
+        // hands as a valid two-hand sign.
+        const duplicatePair = [[0, 1], [0, 2], [1, 2]]
+          .filter(([a, b]) => hands[a].handedness === hands[b].handedness)
+          .map(([a, b]) => ({ a, b, gap: distance(hands[a].landmarks[0], hands[b].landmarks[0]) }))
+          .sort((a, b) => a.gap - b.gap)[0];
+        if (!duplicatePair || duplicatePair.gap >= 0.08) return [];
+        const discard = hands[duplicatePair.a].confidence < hands[duplicatePair.b].confidence
+          ? duplicatePair.a : duplicatePair.b;
+        hands = hands.filter((_, index) => index !== discard);
+      }
+      if (hands.length !== 2) return [];
+      const poses = hands.map(getPose);
       return poses.every((pose): pose is HandPose => pose !== null)
         ? [{ timeMs: frame.timeMs, poses }]
         : [];
@@ -209,13 +229,17 @@ export function scoreAlphabetGesture(
     );
   }
   const orientationThreshold = directionalLetters.has(letter) ? 67 : 50;
-  const passed = best.shape >= (requiredHands === 2 ? 68 : 72)
+  // The defining feature of I is the extended little finger. Its projected
+  // length changes sharply with camera angle, while the cross-letter check
+  // below still prevents another alphabet pose from being accepted as I.
+  const shapeThreshold = requiredHands === 2 ? 68 : letter === 'I' ? 58 : letter === 'R' ? 70 : 72;
+  const passed = best.shape >= shapeThreshold
     && best.orientation >= orientationThreshold
     && (requiredHands === 1 || best.coordination >= 55)
     && (movement === null || movement >= 90);
   const feedback = passed
     ? `Gerakan huruf ${letter} sesuai dengan contoh.`
-    : best.shape < (requiredHands === 2 ? 68 : 72)
+    : best.shape < shapeThreshold
       ? 'Bentuk dan jarak antarjari masih berbeda dari contoh. Perjelas ujung jari lalu coba lagi.'
       : best.orientation < orientationThreshold
         ? 'Arah tangan belum seperti contoh. Putar pergelangan lalu coba lagi.'
@@ -235,7 +259,7 @@ export function scoreAlphabetWithAlternatives(
   const filename = `${letter.toLowerCase()}.mp4`;
   const rank = (assessment: AlphabetAssessment) => assessment.coordination === null
     ? assessment.shape * 0.85 + assessment.orientation * 0.15
-    : assessment.shape * 0.6 + assessment.orientation * 0.1 + assessment.coordination * 0.3;
+    : assessment.shape * 0.85 + assessment.orientation * 0.05 + assessment.coordination * 0.1;
   const best = (candidateLetter: AlphabetLetter, candidates: GestureFrame[][]) => candidates
     .map((frames) => scoreAlphabetGesture(candidateLetter, frames, attemptFrames))
     .sort((a, b) => Number(b.passed) - Number(a.passed) || rank(b) - rank(a))[0];
@@ -250,7 +274,10 @@ export function scoreAlphabetWithAlternatives(
       strongest = { letter: otherLetter, score };
     }
   }
-  if (strongest && rank(strongest.score) >= rank(target) + 3) {
+  const minimumAdvantage = letter === 'D' && strongest?.letter === 'P'
+    ? MIN_P_OVER_D_ADVANTAGE
+    : MIN_ALTERNATIVE_ADVANTAGE;
+  if (strongest && rank(strongest.score) >= rank(target) + minimumAdvantage) {
     return {
       ...target,
       passed: false,
