@@ -630,6 +630,9 @@ function scorePrepared(
     (medianReferenceHandScale < LOW_RESOLUTION_REFERENCE_HAND_SCALE ||
       (medianReferenceHandScale < MARGINALLY_LOW_REFERENCE_HAND_SCALE &&
         !hasReliableOrientationCoverage(reference)));
+  const degradedTwoHandReference =
+    requiredHandCount === 2 &&
+    medianReferenceHandScale < MARGINALLY_LOW_REFERENCE_HAND_SCALE;
   // A contact reference may show almost no unobstructed palm. MediaPipe's
   // inferred palm axes then come from overlapping fingers and are not reliable
   // evidence for rejecting a learner. Require enough separated frames on both
@@ -673,6 +676,7 @@ function scorePrepared(
     palmRotationDominant,
     indexApproachDominant,
     rawAttempt,
+    degradedTwoHandReference,
   );
   const handshapeTolerance = palmRotationDominant ? 0.8 : 0.7;
   const rawHandshapeScore = errorToScore(
@@ -768,6 +772,10 @@ function scorePrepared(
       0.24,
     ),
   };
+  const duplicatedSecondHand =
+    requiredHandCount === 2 &&
+    hasSustainedCopiedHandSkeleton(attempt) &&
+    !hasSustainedCopiedHandSkeleton(reference);
 
   // Coordination is not evidence for a one-hand sign. Renormalize the useful
   // components instead of letting an automatic 100 inflate its total.
@@ -813,7 +821,9 @@ function scorePrepared(
       ? components.handshape <
         (contactDominant
           ? MIN_CONTACT_HANDSHAPE_SCORE
-          : MIN_TWO_HAND_SHAPE_SCORE)
+          : degradedTwoHandReference
+            ? MIN_HANDSHAPE_SCORE
+            : MIN_TWO_HAND_SHAPE_SCORE)
         ? 'handshape'
         : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
             components.movement < MIN_TWO_HAND_JOINT_MOVEMENT_SCORE
@@ -827,20 +837,22 @@ function scorePrepared(
   const contactMismatch =
     contactDominant &&
     components.coordination < MIN_TWO_HAND_COORDINATION_SCORE;
-  const criticalWeakness = contactMismatch
+  const criticalWeakness = duplicatedSecondHand
     ? 'coordination'
-    : handshapeMismatch
-      ? 'handshape'
-      : twoHandWeakness
-        ? twoHandWeakness
-        : positionRelativeToBody &&
-            components.position < MIN_BODY_POSITION_SCORE
-          ? 'position'
-          : components.movement < minimumMovementScore
-            ? 'movement'
-            : components[weakestCore] < MIN_COMPONENT_SCORE
-              ? weakestCore
-              : null;
+    : contactMismatch
+      ? 'coordination'
+      : handshapeMismatch
+        ? 'handshape'
+        : twoHandWeakness
+          ? twoHandWeakness
+          : positionRelativeToBody &&
+              components.position < MIN_BODY_POSITION_SCORE
+            ? 'position'
+            : components.movement < minimumMovementScore
+              ? 'movement'
+              : components[weakestCore] < MIN_COMPONENT_SCORE
+                ? weakestCore
+                : null;
   const overall = criticalWeakness
     ? Math.min(PASS_THRESHOLD - 1, weightedScore)
     : lowResolutionReference
@@ -1737,6 +1749,7 @@ function robustHandshapeMetrics(
   palmRotationDominant: boolean,
   indexApproachDominant: boolean,
   stabilityAttempt: PreparedFrame[],
+  degradedTwoHandReference: boolean,
 ) {
   // The meaningful handshape of a contact sign is the shape at contact. Setup
   // frames often contain a relaxed/closed hand and previously allowed a wrong
@@ -1778,6 +1791,7 @@ function robustHandshapeMetrics(
           attemptFrame,
           fingerMotionDominant ? 0.08 : 0,
           palmRotationDominant,
+          degradedTwoHandReference,
         ),
     );
     return {
@@ -1788,7 +1802,9 @@ function robustHandshapeMetrics(
             errorToScore(error, palmRotationDominant ? 0.8 : 0.7) >=
             MIN_HANDSHAPE_SCORE,
         ).length / metrics.nearestErrors.length,
-      minimumMatchRatio: MIN_HANDSHAPE_MATCH_RATIO,
+      minimumMatchRatio: degradedTwoHandReference
+        ? 0.2
+        : MIN_HANDSHAPE_MATCH_RATIO,
     };
   }
 
@@ -1991,6 +2007,7 @@ function compareHandshape(
   b: PreparedFrame,
   singleHandOcclusionPenalty = 0,
   palmRotationDominant = false,
+  allowTwoHandPerspectiveRecovery = false,
 ) {
   if (a.hands.length < 2) {
     const source = a.hands[0];
@@ -2012,7 +2029,15 @@ function compareHandshape(
       const matched = b.hands.find(
         (candidate) => candidate.handedness === hand.handedness,
       );
-      return matched ? handshapeDistance(hand.shape, matched.shape, 0.08) : 4;
+      return matched
+        ? handshapeDistance(
+            hand.shape,
+            matched.shape,
+            0.08,
+            false,
+            allowTwoHandPerspectiveRecovery,
+          )
+        : 4;
     }),
   );
 }
@@ -2232,27 +2257,63 @@ function coordinationSequenceError(
   const referenceDistances = distanceProfile(reference);
   const attemptDistances = distanceProfile(attempt);
   if (!referenceDistances.length || !attemptDistances.length) return 4;
+  // Shoulder width, arm length, and distance from the camera change the
+  // absolute wrist gap even when the two hands perform the same relationship.
+  // Compare the spacing profile relative to each signer's own median gap.
+  const normalizeDistances = (distances: number[]) => {
+    const center = Math.max(0.001, median(distances));
+    return distances.map((distance) => distance / center);
+  };
+  const normalizedReferenceDistances = normalizeDistances(referenceDistances);
+  const normalizedAttemptDistances = normalizeDistances(attemptDistances);
   // A tracking gap can leave a sparse subset of otherwise valid distances.
   // Grade each observed attempt distance against the nearest reference state;
   // the two wrist trajectories still enforce that the full motion occurred.
   const nearestStateError = average(
-    attemptDistances.map((distance) =>
+    normalizedAttemptDistances.map((distance) =>
       Math.min(
-        ...referenceDistances.map((reference) =>
+        ...normalizedReferenceDistances.map((reference) =>
           Math.abs(reference - distance),
         ),
       ),
     ),
   );
-  const referenceDelta = linearTrend(referenceDistances);
-  const attemptDelta = linearTrend(attemptDistances);
+  const referenceDelta = linearTrend(normalizedReferenceDistances);
+  const attemptDelta = linearTrend(normalizedAttemptDistances);
   const oppositeSpacingDirection =
-    Math.abs(referenceDelta) >= 0.2 &&
-    Math.abs(attemptDelta) >= 0.2 &&
+    Math.abs(referenceDelta) >= 0.04 &&
+    Math.abs(attemptDelta) >= 0.04 &&
     Math.sign(referenceDelta) !== Math.sign(attemptDelta);
-  return oppositeSpacingDirection
+  const profileExtent = (distances: number[]) =>
+    percentile(distances, 0.9) - percentile(distances, 0.1);
+  const referenceExtent = profileExtent(normalizedReferenceDistances);
+  const attemptExtent = profileExtent(normalizedAttemptDistances);
+  const missingRelativeMotion =
+    referenceExtent >= 0.02 && attemptExtent < referenceExtent * 0.35;
+  return oppositeSpacingDirection || missingRelativeMotion
     ? Math.max(0.4, nearestStateError)
     : nearestStateError;
+}
+
+function hasSustainedCopiedHandSkeleton(sequence: PreparedFrame[]) {
+  const comparable = sequence.flatMap((frame) => {
+    if (frame.hands.length !== 2) return [];
+    const [first, second] = frame.hands;
+    const normalize = (hand: PreparedHand) => {
+      const wrist = hand.physicalLandmarks[0];
+      return hand.physicalLandmarks.flatMap(([x, y]) => [
+        (x - wrist[0]) / hand.screenScale,
+        (y - wrist[1]) / hand.screenScale,
+      ]);
+    };
+    return [vectorRms(normalize(first), normalize(second))];
+  });
+  return (
+    comparable.length >= MIN_VISIBLE_FRAMES &&
+    comparable.filter((distance) => distance <= 0.025).length /
+      comparable.length >=
+      0.6
+  );
 }
 
 function hasSustainedInterHandContact(sequence: PreparedFrame[]) {

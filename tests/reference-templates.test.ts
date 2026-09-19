@@ -988,6 +988,57 @@ void test('Teman accepts normal chest-level placement variance but rejects anoth
   assert.equal(differentRegion.passed, false, JSON.stringify(differentRegion));
 });
 
+void test('Bagaimana tolerates signer spacing and stable projected inner joints', () => {
+  const frames = reference('bagaimana');
+  const attempt = structuredClone(frames);
+  for (const frame of attempt) {
+    if (frame.hands.length !== 2) continue;
+    const wrists = frame.hands.map((hand) => hand.landmarks[0]);
+    const centerX = (wrists[0].x + wrists[1].x) / 2;
+    const centerY = (wrists[0].y + wrists[1].y) / 2;
+    for (const hand of frame.hands) {
+      const wrist = hand.landmarks[0];
+      const shiftX = (wrist.x - centerX) * 0.5;
+      const shiftY = (wrist.y - centerY) * 0.5;
+      const handScale = Math.hypot(
+        wrist.x - hand.landmarks[9].x,
+        wrist.y - hand.landmarks[9].y,
+      );
+      for (const point of hand.landmarks) {
+        point.x += shiftX;
+        point.y += shiftY;
+      }
+      for (const finger of [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+      ]) {
+        const base = hand.landmarks[finger[0]];
+        const tip = hand.landmarks[finger[3]];
+        const dx = tip.x - base.x;
+        const dy = tip.y - base.y;
+        const length = Math.max(0.001, Math.hypot(dx, dy));
+        const normalX = -dy / length;
+        const normalY = dx / length;
+        for (const [index, direction] of [
+          [finger[1], 1],
+          [finger[2], -1],
+        ] as const) {
+          hand.landmarks[index].x += normalX * handScale * 0.3 * direction;
+          hand.landmarks[index].y += normalY * handScale * 0.3 * direction;
+        }
+      }
+    }
+  }
+
+  const result = scoreGesture(frames, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.handshape >= 75, JSON.stringify(result));
+  assert.ok(result.coordination >= 90, JSON.stringify(result));
+});
+
 void test('all four two-hand signs reject a changed second hand', () => {
   for (const id of ['motor', 'bagaimana', 'teman', 'rumah'] as const) {
     const frames = reference(id);
