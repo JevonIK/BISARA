@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Award,
   Bookmark,
@@ -20,6 +20,7 @@ import { useAccount } from '@/hooks/use-account';
 import { useProgress } from '@/hooks/use-progress';
 import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import { chapters, getChapterForMission } from '@/lib/learning-data';
+import { cn } from '@/lib/utils';
 import {
   getBadgeCount,
   getCurrentMission,
@@ -35,6 +36,14 @@ export default function Home() {
   const completedMissions = getPrototypeMissionCount(progress);
   const badgeCount = getBadgeCount(progress);
   const [welcomeAlert, setWelcomeAlert] = useState<string | null>(null);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+
+  const dismissAlert = useCallback(() => {
+    setIsAlertVisible(false);
+    setTimeout(() => {
+      setWelcomeAlert(null);
+    }, 500);
+  }, []);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('bisara_welcome_user');
@@ -49,18 +58,21 @@ export default function Home() {
       const username = stored || account.user?.displayName || 'Sahabat BISARA';
       const showTimer = setTimeout(() => {
         setWelcomeAlert(username);
+        requestAnimationFrame(() => {
+          setIsAlertVisible(true);
+        });
       }, 10);
       return () => clearTimeout(showTimer);
     }
   }, [account.user?.displayName]);
 
   useEffect(() => {
-    if (!welcomeAlert) return;
+    if (!welcomeAlert || !isAlertVisible) return;
     const timer = setTimeout(() => {
-      setWelcomeAlert(null);
-    }, 7000);
+      dismissAlert();
+    }, 6000);
     return () => clearTimeout(timer);
-  }, [welcomeAlert]);
+  }, [welcomeAlert, isAlertVisible, dismissAlert]);
 
   const [expandedChapterIds, setExpandedChapterIds] = useState<
     Record<string, boolean>
@@ -91,33 +103,43 @@ export default function Home() {
       <AppHeader active="home" />
 
       <div className="mx-auto max-w-7xl px-5 py-6 sm:py-8 lg:px-8 lg:py-10">
-        {/* Welcome Alert after Login */}
+        {/* Welcome Alert after Login with smooth exit transition */}
         {welcomeAlert && (
-          <output className="block mb-6 overflow-hidden rounded-3xl sm:rounded-[2.5rem] border-2 border-[#FED96A] bg-white p-4 sm:p-5 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-top-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 sm:gap-4">
-                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFF8EA] border border-[#FED96A] text-[#F8A51D] shadow-2xs">
-                  <Hand className="size-6 text-[#F8A51D]" strokeWidth={2.4} />
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-500 ease-in-out',
+              isAlertVisible
+                ? 'max-h-48 opacity-100 mb-6 translate-y-0 scale-100'
+                : 'max-h-0 opacity-0 mb-0 -translate-y-3 scale-95 pointer-events-none',
+            )}
+          >
+            <output className="block overflow-hidden rounded-3xl sm:rounded-[2.5rem] border-2 border-[#FED96A] bg-white p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 sm:gap-4">
+                  <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFF8EA] border border-[#FED96A] text-[#F8A51D] shadow-2xs">
+                    <Hand className="size-6 text-[#F8A51D]" strokeWidth={2.4} />
+                  </div>
+                  <div>
+                    <p className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                      Selamat datang kembali,{' '}
+                      <span className="text-[#E54D2E]">{welcomeAlert}</span>.
+                    </p>
+                    <p className="mt-0.5 text-xs sm:text-sm font-semibold text-slate-600">
+                      Akunmu berhasil terhubung. Seluruh progres belajar siap dilanjutkan!
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                    Selamat datang kembali, <span className="text-[#E54D2E]">{welcomeAlert}</span>.
-                  </p>
-                  <p className="mt-0.5 text-xs sm:text-sm font-semibold text-slate-600">
-                    Akunmu berhasil terhubung. Seluruh progres belajar siap dilanjutkan!
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={dismissAlert}
+                  className="grid size-9 shrink-0 place-items-center rounded-full text-slate-400 transition-colors hover:bg-amber-100/70 hover:text-slate-900 cursor-pointer"
+                  aria-label="Tutup pemberitahuan"
+                >
+                  <X className="size-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setWelcomeAlert(null)}
-                className="grid size-9 shrink-0 place-items-center rounded-full text-slate-400 transition-colors hover:bg-amber-100/70 hover:text-slate-900 cursor-pointer"
-                aria-label="Tutup pemberitahuan"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-          </output>
+            </output>
+          </div>
         )}
 
         {/* Hero Section with White Background and Yellow Accent Border */}
