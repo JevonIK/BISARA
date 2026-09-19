@@ -1039,6 +1039,86 @@ void test('Bagaimana tolerates signer spacing and stable projected inner joints'
   assert.ok(result.coordination >= 90, JSON.stringify(result));
 });
 
+void test('Rumah tolerates sustained handshape and local two-hand path variance', () => {
+  const frames = reference('rumah');
+  const attempt = structuredClone(frames);
+  for (const [frameIndex, frame] of attempt.entries()) {
+    const progress = frameIndex / Math.max(1, attempt.length - 1);
+    const verticalShift = Math.sin(progress * Math.PI * 2) * 0.06;
+    for (const hand of frame.hands) {
+      const wrist = hand.landmarks[0];
+      const handScale = Math.hypot(
+        wrist.x - hand.landmarks[9].x,
+        wrist.y - hand.landmarks[9].y,
+      );
+      for (const point of hand.landmarks) point.y += verticalShift;
+      for (const finger of [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+      ]) {
+        const base = hand.landmarks[finger[0]];
+        const tip = hand.landmarks[finger[3]];
+        const dx = tip.x - base.x;
+        const dy = tip.y - base.y;
+        const length = Math.max(0.001, Math.hypot(dx, dy));
+        const normalX = -dy / length;
+        const normalY = dx / length;
+        for (const [pointIndex, direction] of [
+          [finger[1], 1],
+          [finger[2], -1],
+        ] as const) {
+          hand.landmarks[pointIndex].x += normalX * handScale * 0.5 * direction;
+          hand.landmarks[pointIndex].y += normalY * handScale * 0.5 * direction;
+        }
+      }
+    }
+  }
+
+  const result = scoreGesture(frames, attempt);
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.ok(result.handshape >= 75, JSON.stringify(result));
+  assert.ok(result.handshape < 85, JSON.stringify(result));
+  assert.ok(result.movement >= 75, JSON.stringify(result));
+  assert.equal(result.movementEvidence?.macroAligned, true);
+});
+
+void test('Rumah tolerates shorter projected fingers when both hands move coherently', () => {
+  const frames = reference('rumah');
+  const attempt = structuredClone(frames);
+  for (const frame of attempt) {
+    for (const hand of frame.hands) {
+      for (const finger of [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+      ]) {
+        const base = hand.landmarks[finger[0]];
+        for (const pointIndex of finger.slice(1)) {
+          const point = hand.landmarks[pointIndex];
+          point.x = base.x + (point.x - base.x) * 0.61;
+          point.y = base.y + (point.y - base.y) * 0.61;
+        }
+      }
+    }
+  }
+
+  const result = scoreGesture(frames, attempt);
+  assert.ok(
+    (result.handshapeEvidence?.rawScore ?? 0) >= 70,
+    JSON.stringify(result),
+  );
+  assert.ok(
+    (result.handshapeEvidence?.matchingFrameRatio ?? 1) < 0.6,
+    JSON.stringify(result),
+  );
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
 void test('all four two-hand signs reject a changed second hand', () => {
   for (const id of ['motor', 'bagaimana', 'teman', 'rumah'] as const) {
     const frames = reference(id);

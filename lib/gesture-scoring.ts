@@ -92,6 +92,8 @@ const MIN_HANDSHAPE_SCORE = PASS_THRESHOLD;
 const MIN_LOW_RESOLUTION_HANDSHAPE_SCORE = 70;
 const MIN_HANDSHAPE_MATCH_RATIO = 0.6;
 const MIN_TWO_HAND_HANDSHAPE_MATCH_RATIO = 0.4;
+const MIN_TWO_HAND_AGGREGATE_MATCH_RATIO = 0.1;
+const MIN_TWO_HAND_AGGREGATE_HANDSHAPE_SCORE = 70;
 const MIN_MOVEMENT_SCORE = 70;
 const MIN_LOW_RESOLUTION_MOVEMENT_SCORE = 65;
 const LOW_RESOLUTION_REFERENCE_HAND_SCALE = 0.025;
@@ -691,7 +693,7 @@ function scorePrepared(
   // cannot appear "Baik" when most of the recorded sign had another shape.
   // A tiny reference is the exception: its frame-level landmark phases are
   // noisy, so the robust aggregate shape is more reliable than the ratio.
-  const handshapeScore =
+  const ratioAdjustedHandshapeScore =
     !lowResolutionReference &&
     handshapeFrameMatchRatio < minimumHandshapeMatchRatio
       ? Math.min(rawHandshapeScore, roundScore(handshapeFrameMatchRatio * 100))
@@ -715,7 +717,6 @@ function scorePrepared(
   // those local path details. Reversed, stationary, and incomplete movements
   // still fail through the direction and extent terms below.
   const macroAlignedMovement =
-    requiredHandCount === 1 &&
     pathMovementError <= 0.25 &&
     directionMovementError <= 0.08 &&
     extentMovementError <= 0.08;
@@ -750,32 +751,55 @@ function scorePrepared(
         ),
       )
     : errorToScore(referenceMovementError, 0.35);
-  const components: Components = {
-    handshape: handshapeScore,
-    position: errorToScore(
-      poseDominant
-        ? robustPoseError(reference, attempt, comparePosition)
-        : dtwError(reference, attempt, comparePosition),
-      requiredHandCount === 2 ? 0.45 : 0.3,
+  const positionScore = errorToScore(
+    poseDominant
+      ? robustPoseError(reference, attempt, comparePosition)
+      : dtwError(reference, attempt, comparePosition),
+    requiredHandCount === 2 ? 0.45 : 0.3,
+  );
+  const orientationScore = errorToScore(
+    robustPoseError(
+      orientationAssessable ? separatedReference : reference,
+      orientationAssessable ? separatedAttempt : attempt,
+      compareOrientation,
     ),
-    orientation: errorToScore(
-      robustPoseError(
-        orientationAssessable ? separatedReference : reference,
-        orientationAssessable ? separatedAttempt : attempt,
-        compareOrientation,
-      ),
-      0.62,
-    ),
-    movement: movementScore,
-    coordination: errorToScore(
-      coordinationSequenceError(reference, attempt),
-      0.24,
-    ),
-  };
+    0.62,
+  );
+  const coordinationScore = errorToScore(
+    coordinationSequenceError(reference, attempt),
+    0.24,
+  );
   const duplicatedSecondHand =
     requiredHandCount === 2 &&
     hasSustainedCopiedHandSkeleton(attempt) &&
     !hasSustainedCopiedHandSkeleton(reference);
+  // Two synchronized hands can keep the correct overall finger configuration
+  // while a different hand size or camera perspective moves most individual
+  // frames just below the strict per-frame cutoff. Recover only when the
+  // aggregate shape is still recognizable and every independent motion cue
+  // agrees. A changed, copied, stationary, or reversed hand therefore cannot
+  // use this branch to pass.
+  const coherentTwoHandShapeRecovery =
+    requiredHandCount === 2 &&
+    !contactDominant &&
+    !duplicatedSecondHand &&
+    rawHandshapeScore >= MIN_TWO_HAND_AGGREGATE_HANDSHAPE_SCORE &&
+    handshapeFrameMatchRatio >= MIN_TWO_HAND_AGGREGATE_MATCH_RATIO &&
+    macroAlignedMovement &&
+    movementScore >= PASS_THRESHOLD &&
+    coordinationScore >= MIN_TWO_HAND_COORDINATION_SCORE &&
+    (!orientationAssessable || orientationScore >= 65) &&
+    positionScore >= MIN_BODY_POSITION_SCORE;
+  const handshapeScore = coherentTwoHandShapeRecovery
+    ? rawHandshapeScore
+    : ratioAdjustedHandshapeScore;
+  const components: Components = {
+    handshape: handshapeScore,
+    position: positionScore,
+    orientation: orientationScore,
+    movement: movementScore,
+    coordination: coordinationScore,
+  };
 
   // Coordination is not evidence for a one-hand sign. Renormalize the useful
   // components instead of letting an automatic 100 inflate its total.
@@ -804,12 +828,15 @@ function scorePrepared(
   // have a stable shoulder/torso anchor from Pose Landmarker.
   const handshapeMismatch =
     components.handshape <
-      (requiredHandCount === 2 && contactDominant
-        ? MIN_CONTACT_HANDSHAPE_SCORE
-        : lowResolutionReference
-          ? MIN_LOW_RESOLUTION_HANDSHAPE_SCORE
-          : MIN_HANDSHAPE_SCORE) ||
-    handshapeFrameMatchRatio < minimumHandshapeMatchRatio;
+      (coherentTwoHandShapeRecovery
+        ? MIN_TWO_HAND_AGGREGATE_HANDSHAPE_SCORE
+        : requiredHandCount === 2 && contactDominant
+          ? MIN_CONTACT_HANDSHAPE_SCORE
+          : lowResolutionReference
+            ? MIN_LOW_RESOLUTION_HANDSHAPE_SCORE
+            : MIN_HANDSHAPE_SCORE) ||
+    (!coherentTwoHandShapeRecovery &&
+      handshapeFrameMatchRatio < minimumHandshapeMatchRatio);
   // When the reference hand is only a few pixels wide, one-pixel detector
   // jitter materially changes its normalized path. Require observable learner
   // articulation, but do not treat the noisy template trajectory as exact.
@@ -821,9 +848,13 @@ function scorePrepared(
       ? components.handshape <
         (contactDominant
           ? MIN_CONTACT_HANDSHAPE_SCORE
-          : degradedTwoHandReference
-            ? MIN_HANDSHAPE_SCORE
-            : MIN_TWO_HAND_SHAPE_SCORE)
+          : coherentTwoHandShapeRecovery
+            ? MIN_TWO_HAND_AGGREGATE_HANDSHAPE_SCORE
+            : degradedTwoHandReference
+              ? MIN_HANDSHAPE_SCORE
+              : handshapeFrameMatchRatio >= 0.8
+                ? MIN_HANDSHAPE_SCORE
+                : MIN_TWO_HAND_SHAPE_SCORE)
         ? 'handshape'
         : components.coordination < MIN_TWO_HAND_COORDINATION_SCORE &&
             components.movement < MIN_TWO_HAND_JOINT_MOVEMENT_SCORE
