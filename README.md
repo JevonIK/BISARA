@@ -209,162 +209,362 @@ live in `tests/gesture-scoring.test.ts` and
 
 ## Getting started
 
+BISARA is a web-based BISINDO learning platform that provides structured sign-language learning, camera-based gesture practice, recognition exercises, and learning progress tracking.
+
+---
+
+## Technology Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Frontend | Next.js | Web application framework |
+| UI | React | Interactive user interface |
+| Language | TypeScript | Type-safe frontend development |
+| Computer Vision | MediaPipe Hand Landmarker | Hand landmark extraction from reference and camera input |
+| Gesture Evaluation | Custom similarity-based gesture checker | Compares learner gestures with target references |
+| Backend | FastAPI | Authentication and learning-progress API |
+| Backend Language | Python | Backend application logic |
+| Database | PostgreSQL | Persistent account and progress storage |
+| Guest Storage | Browser `localStorage` | Progress persistence without an account |
+| Infrastructure | Docker / Docker Compose | Backend and database environment |
+
+---
+
+## Technical Documentation
+
+### System Architecture
+
+BISARA separates the learning interface, gesture processing, and persistent user data.
+
+```mermaid
+flowchart TD
+    U[User Browser]
+
+    U --> FE[Next.js Application]
+
+    FE --> LP[Learning Interface]
+    FE --> CP[Camera Practice]
+
+    CP --> MP[MediaPipe Hand Landmarker]
+    MP --> GC[BISARA Gesture Similarity Checker]
+
+    REF[Reference Videos / Gesture Templates] --> GC
+
+    FE --> LS[Browser localStorage]
+
+    FE --> API[FastAPI Backend]
+    API --> DB[(PostgreSQL)]
+```
+
+The frontend is responsible for the learning experience and browser-side gesture analysis.
+
+Guest learning progress is stored locally in the browser.
+
+For registered users, account and progress data are handled through the FastAPI backend and PostgreSQL database.
+
+---
+
+### Gesture Checker
+
+BISARA uses a **target-specific gesture similarity checker** for camera-based sign practice.
+
+The checker is not a trained multi-class BISINDO classifier.
+
+MediaPipe is used to extract hand landmarks, while BISARA's own gesture-evaluation logic compares the learner's movement against the expected reference.
+
+#### Processing Flow
+
+```text
+Reference Gesture
+       │
+       ▼
+Reference Hand Landmarks
+       │
+       │
+       ├─────────────────┐
+       │                 │
+       │             User Camera
+       │                 │
+       │                 ▼
+       │        MediaPipe Hand Landmarker
+       │                 │
+       │                 ▼
+       │        User Landmark Sequence
+       │                 │
+       └────────┬────────┘
+                ▼
+        Landmark Processing
+                │
+                ▼
+       Gesture Comparison
+                │
+        ┌───────┼────────┐
+        │       │        │
+   Handshape Movement Orientation
+        │       │        │
+        └── Position / Coordination
+                │
+                ▼
+             Feedback
+```
+
+The gesture evaluation may consider several components of a sign, including:
+
+- handshape;
+- movement;
+- orientation;
+- position;
+- coordination for signs involving multiple hands.
+
+Reference gesture data can be preprocessed into reusable landmark templates so the same reference video does not need to be processed repeatedly during practice.
+
+### Role of MediaPipe
+
+MediaPipe Hand Landmarker provides the hand-landmark representation used by the application.
+
+```text
+MediaPipe
+→ extracts hand landmarks
+
+BISARA
+→ processes and compares those landmarks
+→ evaluates similarity to the target sign
+→ provides practice feedback
+```
+
+MediaPipe itself does not determine the linguistic correctness or meaning of a BISINDO sign.
+
+---
+
+### Database & Progress
+
+BISARA supports both guest and registered-user learning progress.
+
+#### Guest Mode
+
+```text
+BISARA
+   │
+   ▼
+Browser localStorage
+   │
+   ▼
+Local learning progress
+```
+
+Guest users can use the learning experience without creating an account.
+
+Their progress is persisted locally in the browser.
+
+#### Registered User Mode
+
+```text
+Next.js
+   │
+   ▼
+FastAPI
+   │
+   ▼
+PostgreSQL
+```
+
+Registered-user data is persisted through the backend.
+
+The backend currently handles data related to:
+
+- `users` — registered user accounts;
+- `user_progress` — persistent learning progress;
+- `auth_sessions` — authentication sessions.
+
+Learning media such as reference videos and gesture templates are application assets rather than user-progress records stored in PostgreSQL.
+
+---
+
+## Installation & Usage
+
 ### Prerequisites
 
-Install the following tools before running BISARA:
+Install the following tools before running BISARA locally:
 
-| Tool                                                              | Minimum version | Install guide                                         |
-| ----------------------------------------------------------------- | --------------- | ----------------------------------------------------- |
-| [Node.js](https://nodejs.org/)                                    | 22.13           | https://nodejs.org/en/download                        |
-| [pnpm](https://pnpm.io/)                                          | 9               | `npm install -g pnpm` or https://pnpm.io/installation |
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | —               | Required only for accounts and backend API            |
-| [Python 3](https://www.python.org/)                               | 3.10            | Required only for backend setup script                |
+- Node.js
+- npm
+- Docker
+- Docker Compose
 
-### Quick start (frontend only)
+---
 
-This is the fastest way to run BISARA. Guest learning, camera practice,
-tests, and the progress dashboard all work without the backend.
+### 1. Clone the Repository
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/JevonIK/BISARA.git
+git clone <REPOSITORY_URL>
 cd BISARA
-
-# 2. Install dependencies
-pnpm install
-
-# 3. Start the development server
-pnpm dev
 ```
 
-Open **http://localhost:3000** in your browser. The app will hot-reload when
-you edit source files.
+Replace `<REPOSITORY_URL>` with the BISARA GitHub repository URL.
 
-In the local development server, all chapters and missions are open for
-debugging. This does not mark them complete or change checker scores, rewards,
-or the normal progression rules in production.
+---
 
-### Full stack (frontend + backend API + database)
-
-To enable user accounts, server-synced progress, and the registration/login
-flow, you also need Docker Desktop running.
+### 2. Install Frontend Dependencies
 
 ```bash
-# 1. Clone the repository (skip if already done)
-git clone https://github.com/JevonIK/BISARA.git
-cd BISARA
+npm install
+```
 
-# 2. Install frontend dependencies
-pnpm install
+---
 
-# 3. Generate the backend secret key (only needed once)
-python3 backend/scripts/setup_local.py
+### 3. Start Backend and Database Services
 
-# 4. Start PostgreSQL and the FastAPI backend
+BISARA uses Docker Compose for its backend/database environment.
+
+```bash
 docker compose up -d --build
-
-# 5. Start the frontend development server
-pnpm dev
 ```
 
-Open **http://localhost:3000** in your browser. The account page is at
-**http://localhost:3000/account**. The API documentation is at
-**http://localhost:8000/docs**.
+---
 
-> **Note:** Use `localhost` instead of `127.0.0.1` for the frontend because
-> cookie origins are explicit. The frontend always runs on port 3000.
-
-### Stopping and restarting
+### 4. Start the Web Application
 
 ```bash
-# Stop the backend containers (keeps database data)
-docker compose stop
-
-# Restart the backend later
-docker compose up -d
-
-# Remove containers and database volume entirely
-docker compose down -v
+npm run dev
 ```
 
-### Production build
+The development application can then be opened at:
+
+```text
+http://localhost:3000
+```
+
+---
+
+### 5. Production Build
+
+To verify the production build:
 
 ```bash
-pnpm build
+npm run build
 ```
 
-### Running tests
+---
 
-```bash
-# Frontend sync tests
-pnpm test:sync
+### Environment Configuration
 
-# Lint
-pnpm lint
+If environment variables are required by the current deployment or backend configuration, configure them using the provided environment example/configuration files.
 
-# Backend API tests (from backend/ with venv activated)
-cd backend
-source .venv/bin/activate
-python -m pytest tests -q
-```
+Do not commit:
 
-### Troubleshooting
+- database credentials;
+- API secrets;
+- authentication secrets;
+- production passwords;
+- private environment values.
 
-| Problem                            | Solution                                                                    |
-| ---------------------------------- | --------------------------------------------------------------------------- |
-| `pnpm dev` fails with engine error | Upgrade Node.js to 22.13 or newer                                           |
-| Port 3000 already in use           | Stop the other process using port 3000; BISARA will not choose another port |
-| Camera not working                 | Allow camera permission in your browser; HTTPS is not required on localhost |
-| Backend API unreachable            | Make sure Docker Desktop is running and run `docker compose up -d --build`  |
-| `setup_local.py` error             | Ensure Python 3.10+ is installed                                            |
+---
 
-See [backend/README.md](backend/README.md) for detailed API setup, migrations,
-and deployment requirements.
+## Third-Party Resources & Attribution
 
-## Routes
+BISARA uses third-party datasets and open-source technologies for learning references and hand-landmark processing.
 
-- `/` — learning dashboard
-- `/missions` — complete learning journey
-- `/missions/berkenalan` — active mission detail
-- `/missions/berkenalan/practice` — camera and hand-landmark practice
-- `/missions/test?mission=berkenalan` — recognition and camera-based production test
-- `/progress` — activity, mastery, scores, and badge dashboard
-- `/review` — due vocabulary recall and spaced review
-- `/account` — registration, login, logout, and sync management
+The original resources remain subject to their respective licenses.
 
-## Product principles
+---
 
-1. Make each activity practice an explicit skill; isolated vocabulary practice does not establish conversational competence.
-2. Keep regional BISINDO scope explicit.
-3. Involve Deaf language experts in content validation and release decisions.
-4. Process camera input locally by default whenever the device supports it.
-5. Present model uncertainty honestly and never replace qualified interpreters.
+### WL-BISINDO
 
-## Camera privacy note
+**Resource:**  
+WL-BISINDO
 
-Camera frames are processed in the browser and are not uploaded or stored by
-BISARA. The MediaPipe runtime, hand model, and pose model are downloaded when the camera is
-first activated. MediaPipe may send performance and usage metrics as described
-in its vendor privacy notice, but camera input remains on the device.
+**Associated publication:**  
+*Word-Level BISINDO: A Novel Video Indonesian Sign Language Dataset and Baseline Methods*
 
-## Third-party attribution
+**Authors:**  
+Grace Oktaviani Kindy, Glenn Leonali, and Henry Lucky
 
-The 26 Chapter 5 alphabet clips are selected and web-encoded from the
-_Indonesian Sign Language Dataset: Alphabet Video_ by Indah Siradjuddin,
-DOI [10.17632/p7j5jrsbbb.1](https://doi.org/10.17632/p7j5jrsbbb.1),
-licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-Selection and conversion details are in [the alphabet dataset notes](docs/alphabet-dataset.md).
-The dataset's creator does not endorse BISARA.
+**Publication:**  
+Procedia Computer Science, Volume 269, 2025, pp. 249–258
 
-Hand and body landmark detection use
-[`@mediapipe/tasks-vision`](https://www.npmjs.com/package/@mediapipe/tasks-vision)
-by Google under the Apache License 2.0. Implementation guidance follows the
-[official MediaPipe Hand Landmarker documentation](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js)
-and
-[Pose Landmarker documentation](https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/web_js).
+**DOI:**  
+`10.1016/j.procs.2025.08.277`
 
-Selected BISINDO demonstration videos come from
-[WL-BISINDO](https://www.kaggle.com/datasets/glennleonali/wl-bisindo) by Grace
-Oktaviani Kindy, Glenn Leonali, and Henry Lucky under CC BY-NC 4.0. The included
-files and their labels are documented in
-[`public/media/wl-bisindo/README.md`](public/media/wl-bisindo/README.md).
+**Source:**  
+GitHub — `AceKinnn/WL-BISINDO`
+
+**License:**  
+Creative Commons Attribution-NonCommercial 4.0 International  
+**CC BY-NC 4.0**
+
+WL-BISINDO contains 1,600 RGB videos covering 32 isolated BISINDO signs performed by five signers and focuses on the Banten regional variant.
+
+BISARA uses selected WL-BISINDO resources as word-level sign references and for derived hand-landmark reference templates used by the gesture-practice system.
+
+BISARA does not claim ownership of the original WL-BISINDO dataset.
+
+---
+
+### Indonesian Sign Language Dataset: Alphabet Video
+
+**Resource:**  
+*Indonesian Sign Language Dataset: Alphabet Video*
+
+**Contributor:**  
+Indah Siradjuddin
+
+**Institution:**  
+Universitas Trunojoyo Madura, Faculty of Engineering, Informatics Department
+
+**Published:**  
+22 January 2024
+
+**Version:**  
+1
+
+**DOI:**  
+`10.17632/p7j5jrsbbb.1`
+
+**Source:**  
+Mendeley Data — dataset ID `p7j5jrsbbb`
+
+**License:**  
+Creative Commons Attribution 4.0 International  
+**CC BY 4.0**
+
+The dataset contains video samples for the 26 alphabet letters in Indonesian Sign Language.
+
+BISARA uses selected videos from this dataset as reference material for alphabet learning.
+
+Where required for browser compatibility, selected source videos may be transcoded into a web-compatible video format without intentionally altering the sign content.
+
+BISARA does not claim ownership of the original dataset.
+
+---
+
+### MediaPipe
+
+**Resource:**  
+Google MediaPipe / MediaPipe Hand Landmarker
+
+**Maintainer:**  
+Google
+
+**Source:**  
+Google AI Edge MediaPipe
+
+**License:**  
+Apache License 2.0
+
+BISARA uses MediaPipe Hand Landmarker to extract hand landmarks from visual input during gesture practice.
+
+MediaPipe provides landmark detection only. Target-specific gesture comparison and learning feedback are implemented by BISARA.
+
+---
+
+## License Compliance
+
+Third-party datasets, software, and media used by BISARA remain subject to their respective licenses.
+
+In particular:
+
+- **WL-BISINDO** is used under **CC BY-NC 4.0**;
+- **Indonesian Sign Language Dataset: Alphabet Video** is used under **CC BY 4.0**;
+- **MediaPipe** is used under the **Apache License 2.0**.
+
+BISARA's use of these resources does not imply endorsement by their original authors, contributors, institutions, or maintainers.

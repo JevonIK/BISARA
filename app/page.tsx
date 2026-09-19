@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Award,
   Bookmark,
@@ -10,31 +10,69 @@ import {
   Headphones,
   MessageSquare,
   Play,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
 import { ChapterAccordionCard } from '@/components/chapter-accordion-card';
+import { useAccount } from '@/hooks/use-account';
 import { useProgress } from '@/hooks/use-progress';
 import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import { chapters, getChapterForMission } from '@/lib/learning-data';
+import { cn } from '@/lib/utils';
 import {
+  getBadgeCount,
   getCurrentMission,
   getMissionActiveStageHref,
   getPrototypeMissionCount,
 } from '@/lib/learning-progress';
 
 export default function Home() {
+  const account = useAccount();
   const progress = useProgress();
   const currentMission = getCurrentMission(progress);
   const currentChapter = getChapterForMission(currentMission.id);
   const completedMissions = getPrototypeMissionCount(progress);
-  const badgeCount = [
-    completedMissions > 0,
-    progress.streak >= 7,
-    progress.bestChapterScore >= 70,
-    Object.values(progress.signMastery).some((item) => item.recall),
-  ].filter(Boolean).length;
+  const badgeCount = getBadgeCount(progress);
+  const [welcomeAlert, setWelcomeAlert] = useState<string | null>(null);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+
+  const dismissAlert = useCallback(() => {
+    setIsAlertVisible(false);
+    setTimeout(() => {
+      setWelcomeAlert(null);
+    }, 500);
+  }, []);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('bisara_welcome_user');
+    const params = new URLSearchParams(window.location.search);
+    const isLogin = params.get('login') === 'success';
+
+    if (stored || isLogin) {
+      sessionStorage.removeItem('bisara_welcome_user');
+      if (isLogin) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      const username = stored || account.user?.displayName || 'Sahabat BISARA';
+      const showTimer = setTimeout(() => {
+        setWelcomeAlert(username);
+        requestAnimationFrame(() => {
+          setIsAlertVisible(true);
+        });
+      }, 10);
+      return () => clearTimeout(showTimer);
+    }
+  }, [account.user?.displayName]);
+
+  useEffect(() => {
+    if (!welcomeAlert || !isAlertVisible) return;
+    const timer = setTimeout(() => {
+      dismissAlert();
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [welcomeAlert, isAlertVisible, dismissAlert]);
 
   const [expandedChapterIds, setExpandedChapterIds] = useState<
     Record<string, boolean>
@@ -65,12 +103,51 @@ export default function Home() {
       <AppHeader active="home" />
 
       <div className="mx-auto max-w-7xl px-5 py-6 sm:py-8 lg:px-8 lg:py-10">
+        {/* Welcome Alert after Login with smooth exit transition */}
+        {welcomeAlert && (
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-500 ease-in-out',
+              isAlertVisible
+                ? 'max-h-48 opacity-100 mb-6 translate-y-0 scale-100'
+                : 'max-h-0 opacity-0 mb-0 -translate-y-3 scale-95 pointer-events-none',
+            )}
+          >
+            <output className="block overflow-hidden rounded-3xl sm:rounded-[2.5rem] border-2 border-[#FED96A] bg-white p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 sm:gap-4">
+                  <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFF8EA] border border-[#FED96A] text-[#F8A51D] shadow-2xs">
+                    <Hand className="size-6 text-[#F8A51D]" strokeWidth={2.4} />
+                  </div>
+                  <div>
+                    <p className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                      Selamat datang kembali,{' '}
+                      <span className="text-[#E54D2E]">{welcomeAlert}</span>.
+                    </p>
+                    <p className="mt-0.5 text-xs sm:text-sm font-semibold text-slate-600">
+                      Akunmu berhasil terhubung. Seluruh progres belajar siap dilanjutkan!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissAlert}
+                  className="grid size-9 shrink-0 place-items-center rounded-full text-slate-400 transition-colors hover:bg-amber-100/70 hover:text-slate-900 cursor-pointer"
+                  aria-label="Tutup pemberitahuan"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            </output>
+          </div>
+        )}
+
         {/* Hero Section with White Background and Yellow Accent Border */}
         <section className="relative overflow-hidden rounded-[2.5rem] border-b-[10px] border-[#FED96A] bg-white p-6 shadow-sm sm:rounded-[3.5rem] sm:p-10 lg:p-12">
           <div className="mb-2 flex items-center gap-2">
             <span className="size-2.5 rounded-full bg-[#E54D2E]" />
             <span className="text-xs font-black tracking-wide text-slate-900 sm:text-sm">
-              Selamat datang kembali
+              Selamat datang kembali{account.user?.displayName ? `, ${account.user.displayName}` : ''}
             </span>
           </div>
 

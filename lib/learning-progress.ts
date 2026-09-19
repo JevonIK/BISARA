@@ -262,6 +262,16 @@ export function getPrototypeMissionCount(progress: UserProgress) {
   return progress.completedMissionIds.length;
 }
 
+export function getBadgeCount(progress: UserProgress): number {
+  const completedMissions = getPrototypeMissionCount(progress);
+  return [
+    completedMissions > 0,
+    progress.streak >= 7,
+    progress.bestChapterScore >= 70,
+    Object.values(progress.signMastery).some((item) => item.recall),
+  ].filter(Boolean).length;
+}
+
 export function getChapterProgress(chapterId: string, progress: UserProgress) {
   const chapter = chapters.find((item) => item.id === chapterId);
   if (!chapter) return 0;
