@@ -10,6 +10,7 @@ import {
 } from '@/components/mission-learn-hero';
 import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { MissionVocabularyCarousel } from '@/components/mission-vocabulary-carousel';
+import { getAlphabetVideosForMission } from '@/lib/alphabet-data';
 import { getSigns } from '@/lib/curriculum-data';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
 
@@ -31,7 +32,7 @@ export default async function MissionLearningPage({
   const { mission: missionId, section, replay } = await searchParams;
   const mission = getMission(missionId);
   const chapter = getChapterForMission(mission.id);
-  if (mission.type === 'alphabet') {
+  if (mission.type === 'alphabet' && section && section !== 'amati') {
     return (
       <AlphabetMission
         key={mission.id}
@@ -42,7 +43,20 @@ export default async function MissionLearningPage({
       />
     );
   }
-  const missionSigns = getSigns(mission.signIds);
+  const missionSigns =
+    mission.type === 'alphabet'
+      ? getAlphabetVideosForMission(mission.id).map((v) => ({
+          id: `letter-${v.letter.toLowerCase()}`,
+          label: `Huruf ${v.letter}`,
+          category: 'identitas' as const,
+          videoSrc: v.videoSrc,
+          tips: [
+            v.letter === 'J' || v.letter === 'Z'
+              ? 'Amati bentuk awal, arah, dan lintasan tangan sepanjang video contoh.'
+              : 'Ikuti bentuk jari, arah telapak, dan orientasi tangan sesuai contoh.',
+          ],
+        }))
+      : getSigns(mission.signIds);
 
   return (
     <main className="min-h-screen bg-[#FFE8A3] pb-44">
@@ -62,13 +76,13 @@ export default async function MissionLearningPage({
             {/* Left: Mission Information */}
             <div>
               <span className="inline-block rounded-full bg-[#FFAE00] px-4 py-1 text-xs font-black text-slate-950 shadow-2xs">
-                Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
+                Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number.replace(/^0/, '')}
               </span>
               <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block mt-4">
                 MISI AKTIF
               </span>
               <h1 className="mt-1.5 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.1]">
-                {mission.title}
+                {mission.type === 'alphabet' ? `Huruf ${mission.title}` : mission.title}
               </h1>
               <p className="mt-4 max-w-xl text-sm sm:text-base font-semibold text-slate-600 leading-relaxed">
                 {mission.description}
