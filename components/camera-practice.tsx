@@ -1417,7 +1417,7 @@ export function CameraPractice({
           ) : null}
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             {!gestureScore.orientationAssessable && gestureScore.assessable
-              ? 'Arah telapak tidak ikut menentukan hasil karena tangan pada contoh bertumpuk hampir sepanjang gerakan. '
+              ? 'Arah telapak tidak ikut menentukan hasil karena sudut telapak tidak terbaca cukup andal pada percobaan ini. '
               : null}
             {gestureScore.positionRelativeToBody
               ? '“Posisi terhadap tubuh” membandingkan letak tangan dari bahu dan torso, sehingga tanda di kepala dan dada dapat dibedakan.'

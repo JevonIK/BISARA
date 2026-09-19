@@ -53,6 +53,7 @@ type PreparedHand = {
   position: number[];
   bodyPosition?: number[];
   orientation: number[];
+  orientationReliability: number;
   wrist: [number, number];
   physicalWrist: [number, number];
   physicalLandmarks: Vector2[];
@@ -593,9 +594,12 @@ function scorePrepared(
     ? attempt.filter((frame) => !hasInterHandContact(frame))
     : attempt;
   const orientationAssessable =
-    !contactDominant ||
-    (separatedReference.length >= MIN_VISIBLE_FRAMES &&
-      separatedAttempt.length >= MIN_VISIBLE_FRAMES);
+    requiredHandCount === 1
+      ? hasReliableOrientationCoverage(reference) &&
+        hasReliableOrientationCoverage(attempt)
+      : !contactDominant ||
+        (separatedReference.length >= MIN_VISIBLE_FRAMES &&
+          separatedAttempt.length >= MIN_VISIBLE_FRAMES);
   const positionRelativeToBody =
     hasBodyPositionCoverage(reference) && hasBodyPositionCoverage(attempt);
   const referenceMovement = movementSequence(reference);
@@ -1257,6 +1261,10 @@ function resampleSequence(frames: PreparedFrame[]): PreparedFrame[] {
             orientation: normalizeVector(
               mix(hand.orientation, next.orientation),
             ),
+            orientationReliability:
+              hand.orientationReliability +
+              (next.orientationReliability - hand.orientationReliability) *
+                weight,
             wrist: mix(hand.wrist, next.wrist) as [number, number],
             physicalWrist: mix(hand.physicalWrist, next.physicalWrist) as [
               number,
@@ -1388,6 +1396,8 @@ function prepareHand(
     return null;
   const side = normalize2([indexMcp.x - pinkyMcp.x, indexMcp.y - pinkyMcp.y]);
   const forward = normalize2([middleMcp.x - wrist.x, middleMcp.y - wrist.y]);
+  const orientationReliability =
+    1 - Math.abs(dot2(side, forward));
   const scale = Math.max(
     0.0001,
     (distance2(indexMcp, pinkyMcp) + distance2(wrist, middleMcp)) / 2,
@@ -1418,6 +1428,7 @@ function prepareHand(
           ]
         : undefined,
     orientation: [...side, ...forward],
+    orientationReliability,
     wrist: [screenWrist.x, screenWrist.y],
     // Inter-hand distances must stay in one shared, unmirrored coordinate space.
     physicalWrist: [physicalScreenWrist.x, physicalScreenWrist.y],
@@ -1535,6 +1546,16 @@ function hasBodyPositionCoverage(sequence: PreparedFrame[]) {
   return (
     hands.filter((hand) => hand.bodyPosition).length / hands.length >=
     MIN_BODY_POSITION_COVERAGE
+  );
+}
+
+function hasReliableOrientationCoverage(sequence: PreparedFrame[]) {
+  const hands = sequence.flatMap((frame) => frame.hands);
+  if (!hands.length) return false;
+  return (
+    hands.filter((hand) => hand.orientationReliability >= 0.45).length /
+      hands.length >=
+    0.6
   );
 }
 
@@ -1717,6 +1738,8 @@ function compareHandshape(
           matched.shape,
           singleHandOcclusionPenalty,
           palmRotationDominant,
+          source.orientationReliability < 0.45 ||
+            matched.orientationReliability < 0.45,
         )
       : 4;
   }
@@ -1736,6 +1759,7 @@ function handshapeDistance(
   attempt: number[],
   occlusionRecoveryPenalty: number,
   palmRotationDominant = false,
+  allowPerspectiveRecovery = false,
 ) {
   if (
     reference.length !== HANDSHAPE_FEATURE_COUNT ||
@@ -1833,6 +1857,10 @@ function handshapeDistance(
     Math.sqrt(tipRadiusSquared / 5) * 0.65,
     maxTipRadiusDifference * 0.5,
   );
+  const perspectiveExtensionDistance = Math.max(
+    Math.sqrt(extensionSquared / 5),
+    maxExtensionDifference * 0.8,
+  );
   // When two hands touch, MediaPipe can keep every fingertip in the right
   // place while inventing the hidden PIP/DIP joints between the palm and tip.
   // In that case the extension ratio above is no longer observable evidence:
@@ -1851,6 +1879,9 @@ function handshapeDistance(
   return Math.min(
     detailedDistance,
     extensionPatternDistance + occlusionRecoveryPenalty,
+    allowPerspectiveRecovery
+      ? perspectiveExtensionDistance + 0.05
+      : Number.POSITIVE_INFINITY,
     occlusionRecoveryPenalty > 0
       ? fingertipPatternDistance + occlusionRecoveryPenalty
       : Number.POSITIVE_INFINITY,
@@ -2396,7 +2427,13 @@ function motionExtent(sequence: PreparedFrame[]) {
       return hand ? [hand] : [];
     });
     if (hands.length < Math.max(2, sequence.length * 0.75)) return [];
-    const scale = median(hands.map((hand) => hand.screenScale));
+    // At the lower edge of a wide camera frame, a correctly held hand can be
+    // only a few pixels wide. Dividing detector jitter by that tiny value turns
+    // a held pose into apparent motion. Keep a small screen-space noise floor.
+    const scale = Math.max(
+      0.04,
+      median(hands.map((hand) => hand.screenScale)),
+    );
     const xs = hands.map((hand) => hand.wrist[0]);
     const ys = hands.map((hand) => hand.wrist[1]);
     return [

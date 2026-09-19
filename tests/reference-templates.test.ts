@@ -337,6 +337,61 @@ function mirrorDominantHand(frames: GestureFrame[]) {
   }));
 }
 
+function projectHandsObliquely(frames: GestureFrame[]) {
+  const project = (points: GestureFrame['hands'][number]['landmarks']) => {
+    const wrist = points[0];
+    return points.map((point) => {
+      const x = point.x - wrist.x;
+      const y = point.y - wrist.y;
+      return {
+        ...point,
+        x: wrist.x + x + y * 0.8,
+        y: wrist.y + y * 0.3,
+      };
+    });
+  };
+
+  return structuredClone(frames).map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: project(hand.landmarks),
+      worldLandmarks: hand.worldLandmarks
+        ? project(hand.worldLandmarks)
+        : undefined,
+    })),
+  }));
+}
+
+void test('Apa accepts the correct finger pattern under strong perspective compression', () => {
+  const frames = reference('apa');
+  const attempt = projectHandsObliquely(frames);
+  const result = scoreGesture(frames, attempt);
+  assert.equal(result.orientationAssessable, false, JSON.stringify(result));
+  assert.ok(result.handshape >= 75, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
+void test('Apa still rejects a folded index finger under perspective compression', () => {
+  const frames = reference('apa');
+  const attempt = projectHandsObliquely(frames);
+  for (const frame of attempt) {
+    for (const hand of frame.hands) {
+      const base = hand.landmarks[5];
+      hand.landmarks[7] = { ...base };
+      hand.landmarks[8] = { ...base };
+      if (hand.worldLandmarks) {
+        const worldBase = hand.worldLandmarks[5];
+        hand.worldLandmarks[7] = { ...worldBase };
+        hand.worldLandmarks[8] = { ...worldBase };
+      }
+    }
+  }
+  const result = scoreGesture(frames, attempt);
+  assert.equal(result.passed, false, JSON.stringify(result));
+  assert.equal(result.criticalMismatch, 'handshape', JSON.stringify(result));
+});
+
 void test('one-hand tracking follows the learner when another hand flashes into view', () => {
   const frames = reference('dengar');
   const mirrored = mirrorDominantHand(frames);
