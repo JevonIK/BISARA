@@ -39,6 +39,13 @@ function reference(id: (typeof signIds)[number]) {
   return selectReferenceWindow(filename, manifest.frames[filename]);
 }
 
+void test('Motor reference excludes the arm raise and return to rest', () => {
+  const frames = reference('motor');
+  assert.equal(frames[0].timeMs, 396);
+  assert.equal(frames.at(-1)?.timeMs, 1518);
+  assert.equal(scoreGesture(frames, frames).passed, true);
+});
+
 void test('Keluarga reference starts at the performed sign, after setup', () => {
   const frames = reference('keluarga');
   assert.equal(frames[0].timeMs, 528);

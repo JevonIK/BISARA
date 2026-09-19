@@ -26,9 +26,11 @@ if (!paths.length) {
       throw new Error(`${basename(path)}: invalid sign ID or scoredFrames`);
     }
     const target = getSign(capture.signId);
-    const reference = Array.isArray(capture.referenceFrames) && capture.referenceFrames.length
+    const capturedReference = Array.isArray(capture.referenceFrames) && capture.referenceFrames.length
       ? capture.referenceFrames
       : alternatives.find((sign) => sign.id === target.id).frames;
+    // Replay older captures through the curated window used by a fresh page.
+    const reference = selectReferenceWindow(target.videoSrc, capturedReference);
     const initial = scoreGesture(reference, capture.scoredFrames);
     const final = initial.passed
       ? scoreGestureWithAlternatives(reference, capture.scoredFrames, alternatives.filter((sign) => sign.id !== target.id), initial)

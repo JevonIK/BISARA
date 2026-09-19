@@ -36,6 +36,12 @@ const tips = [4, 8, 12, 16, 20];
 // Z clips do not isolate a repeatable path, so Z is assessed by hand form.
 const movingTip: Partial<Record<AlphabetLetter, number>> = { J: 20 };
 const directionalLetters = new Set<AlphabetLetter>(['G', 'H', 'J', 'P', 'Q', 'Z']);
+const MIN_ALTERNATIVE_ADVANTAGE = 3;
+// D and P have a similar two-hand silhouette in the available references.
+// Camera perspective can make P score slightly higher than a valid D, so
+// only let P veto D when the separation is decisive. P itself keeps the
+// regular arbitration rule.
+const MIN_P_OVER_D_ADVANTAGE = 10;
 
 function distance(a: Point3, b: Point3): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -223,7 +229,10 @@ export function scoreAlphabetGesture(
     );
   }
   const orientationThreshold = directionalLetters.has(letter) ? 67 : 50;
-  const shapeThreshold = requiredHands === 2 ? 68 : letter === 'R' ? 70 : 72;
+  // The defining feature of I is the extended little finger. Its projected
+  // length changes sharply with camera angle, while the cross-letter check
+  // below still prevents another alphabet pose from being accepted as I.
+  const shapeThreshold = requiredHands === 2 ? 68 : letter === 'I' ? 58 : letter === 'R' ? 70 : 72;
   const passed = best.shape >= shapeThreshold
     && best.orientation >= orientationThreshold
     && (requiredHands === 1 || best.coordination >= 55)
@@ -265,7 +274,10 @@ export function scoreAlphabetWithAlternatives(
       strongest = { letter: otherLetter, score };
     }
   }
-  if (strongest && rank(strongest.score) >= rank(target) + 3) {
+  const minimumAdvantage = letter === 'D' && strongest?.letter === 'P'
+    ? MIN_P_OVER_D_ADVANTAGE
+    : MIN_ALTERNATIVE_ADVANTAGE;
+  if (strongest && rank(strongest.score) >= rank(target) + minimumAdvantage) {
     return {
       ...target,
       passed: false,

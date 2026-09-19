@@ -31,6 +31,58 @@ function example(letter: AlphabetLetter): GestureFrame[] {
   });
 }
 
+function mirror(frames: GestureFrame[]): GestureFrame[] {
+  return frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      handedness: hand.handedness === 'Left' ? 'Right' : 'Left',
+      landmarks: hand.landmarks.map((point) => ({ ...point, x: 1 - point.x })),
+    })),
+  }));
+}
+
+function blendTwoHandGesture(from: GestureFrame[], toward: GestureFrame[], ratio: number): GestureFrame[] {
+  const towardTwoHands = toward.filter((frame) => frame.hands.length === 2);
+  return from.map((frame, frameIndex) => {
+    if (frame.hands.length !== 2) return frame;
+    const targetFrame = towardTwoHands[Math.round(frameIndex * (towardTwoHands.length - 1) / (from.length - 1))];
+    const sourceHands = [...frame.hands].sort((a, b) => a.landmarks[0].x - b.landmarks[0].x);
+    const targetHands = [...targetFrame.hands].sort((a, b) => a.landmarks[0].x - b.landmarks[0].x);
+    return {
+      ...frame,
+      hands: sourceHands.map((hand, handIndex) => ({
+        ...hand,
+        landmarks: hand.landmarks.map((point, pointIndex) => ({
+          x: point.x * (1 - ratio) + targetHands[handIndex].landmarks[pointIndex].x * ratio,
+          y: point.y * (1 - ratio) + targetHands[handIndex].landmarks[pointIndex].y * ratio,
+          z: (point.z ?? 0) * (1 - ratio) + (targetHands[handIndex].landmarks[pointIndex].z ?? 0) * ratio,
+        })),
+      })),
+    };
+  });
+}
+
+function compressFingerProjection(frames: GestureFrame[], factor: number): GestureFrame[] {
+  return frames.map((frame) => ({
+    ...frame,
+    hands: frame.hands.map((hand) => ({
+      ...hand,
+      landmarks: hand.landmarks.map((point, pointIndex, landmarks) => {
+        if (pointIndex === 0) return point;
+        const mcpIndex = pointIndex <= 4 ? 1 : pointIndex <= 8 ? 5 : pointIndex <= 12 ? 9 : pointIndex <= 16 ? 13 : 17;
+        const mcp = landmarks[mcpIndex];
+        if (pointIndex === mcpIndex) return point;
+        return {
+          x: mcp.x + (point.x - mcp.x) * factor,
+          y: mcp.y + (point.y - mcp.y) * factor,
+          z: (mcp.z ?? 0) + ((point.z ?? 0) - (mcp.z ?? 0)) * factor,
+        };
+      }),
+    })),
+  }));
+}
+
 for (const letter of allAlphabetLetters) {
   void test(`huruf ${letter} menerima contoh dan tangan sebaliknya`, () => {
     const reference = example(letter);
@@ -101,14 +153,7 @@ void test('26 template berasal dari video pilihan dan masing-masing lolos pemeri
 void test('26 contoh lolos dengan tangan bercermin dan perubahan posisi kamera', () => {
   for (const { letter, videoSrc } of alphabetVideos) {
     const frames = manifest.frames[videoSrc.split('/').at(-1)!];
-    const mirrored = frames.map((frame) => ({
-      ...frame,
-      hands: frame.hands.map((hand) => ({
-        ...hand,
-        handedness: hand.handedness === 'Left' ? 'Right' : 'Left',
-        landmarks: hand.landmarks.map((point) => ({ ...point, x: 1 - point.x })),
-      })),
-    }));
+    const mirrored = mirror(frames);
     const moved = frames.map((frame) => ({
       ...frame,
       hands: frame.hands.map((hand) => ({
@@ -123,6 +168,33 @@ void test('26 contoh lolos dengan tangan bercermin dan perubahan posisi kamera',
     assert.equal(scoreAlphabetGesture(letter, frames, mirrored).passed, true, `mirror ${letter}`);
     assert.equal(scoreAlphabetGesture(letter, frames, moved).passed, true, `kamera ${letter}`);
   }
+});
+
+void test('D dan P menerima arah video maupun arah terbalik tanpa mengubah pembeda keduanya', () => {
+  const d = manifest.frames['d.mp4'];
+  const p = manifest.frames['p.mp4'];
+  const noisyD = blendTwoHandGesture(d, p, 0.8);
+
+  assert.equal(scoreAlphabetWithAlternatives('D', d, d, manifest).passed, true, 'D arah video');
+  assert.equal(scoreAlphabetWithAlternatives('D', d, mirror(d), manifest).passed, true, 'D arah terbalik');
+  assert.equal(scoreAlphabetGesture('D', d, noisyD).passed, true, 'D normal dengan variasi kamera tetap cocok');
+  assert.equal(scoreAlphabetWithAlternatives('D', d, noisyD, manifest).passed, true, 'P yang unggul tipis tidak membatalkan D');
+  assert.equal(scoreAlphabetWithAlternatives('D', d, mirror(noisyD), manifest).passed, true, 'variasi D terbalik tetap cocok');
+  assert.equal(scoreAlphabetWithAlternatives('P', p, p, manifest).passed, true, 'P arah video');
+  assert.equal(scoreAlphabetWithAlternatives('P', p, mirror(p), manifest).passed, true, 'P arah terbalik');
+  assert.equal(scoreAlphabetWithAlternatives('D', d, p, manifest).passed, false, 'P tidak boleh diterima sebagai D');
+  assert.equal(scoreAlphabetWithAlternatives('P', p, d, manifest).passed, false, 'D tidak boleh diterima sebagai P');
+});
+
+void test('I menerima pemendekan proyeksi jari tanpa menerima huruf lain', () => {
+  const i = manifest.frames['i.mp4'];
+  const compressedI = compressFingerProjection(i, 0.48);
+  const result = scoreAlphabetWithAlternatives('I', i, compressedI, manifest);
+
+  assert.ok(result.shape >= 58 && result.shape <= 62, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.equal(scoreAlphabetWithAlternatives('I', i, manifest.frames['a.mp4'], manifest).passed, false);
+  assert.equal(scoreAlphabetWithAlternatives('I', i, manifest.frames['y.mp4'], manifest).passed, false);
 });
 
 void test('deteksi ganda tangan yang sama tidak menggagalkan huruf dua tangan', () => {
