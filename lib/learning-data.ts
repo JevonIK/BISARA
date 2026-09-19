@@ -97,7 +97,7 @@ const checkpoint = (
     type: 'checkpoint',
   });
 
-export const chapters: Chapter[] = [
+const curriculumChapters: Chapter[] = [
   {
     id: 'chapter-1',
     number: '01',
@@ -244,7 +244,7 @@ export const chapters: Chapter[] = [
         'checkpoint-kenalan',
         '05',
         'Tantangan: Kenalan Baru',
-        'Menguji pengenalan kosakata relasi dan perkenalan dari Bab 01 tanpa label.',
+        'Menguji pengenalan kosakata relasi dan perkenalan dari Bab 02 tanpa label.',
         [
           'saya',
           'siapa',
@@ -280,7 +280,7 @@ export const chapters: Chapter[] = [
             options: ['terima-kasih', 'maaf', 'siapa'],
             answer: 'terima-kasih',
             successMessage:
-              'Simulasi perkenalan bab pertama berhasil diselesaikan dengan baik.',
+              'Simulasi perkenalan bab kedua berhasil diselesaikan dengan baik.',
           },
         ],
         100,
@@ -817,7 +817,7 @@ export const chapters: Chapter[] = [
             options: ['terima-kasih', 'maaf', 'lagi'],
             answer: 'terima-kasih',
             successMessage:
-              'Selamat! Kamu telah menyelesaikan seluruh 20 misi kurikulum BISARA!',
+              'Selamat! Kamu telah menyelesaikan seluruh 25 misi kurikulum BISARA!',
           },
         ],
         150,
@@ -850,6 +850,20 @@ export const chapters: Chapter[] = [
     ),
   },
 ];
+
+// Keep the stable chapter IDs so saved progress, illustrations, and color
+// themes remain compatible. The exported order and displayed number define
+// the current learning sequence.
+const chapterSequence = ['chapter-5', 'chapter-1', 'chapter-2', 'chapter-3', 'chapter-4'];
+
+export const chapters: Chapter[] = chapterSequence.map((chapterId, index) => {
+  const chapter = curriculumChapters.find((item) => item.id === chapterId)!;
+  return {
+    ...chapter,
+    number: String(index + 1).padStart(2, '0'),
+    status: index === 0 ? 'active' : 'locked',
+  };
+});
 
 export const allMissions = chapters.flatMap((chapter) => chapter.missions);
 export const missionIds = allMissions.map((item) => item.id);

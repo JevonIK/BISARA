@@ -350,7 +350,10 @@ export function parseProgressSnapshot(snapshot: string): UserProgress {
             typeof id === 'string' &&
             allMissions.some((mission) => mission.id === id),
         )
-      : allMissions.slice(0, legacyCompleted).map((mission) => mission.id);
+      : allMissions
+          .filter((mission) => mission.type !== 'alphabet')
+          .slice(0, legacyCompleted)
+          .map((mission) => mission.id);
     const missionScores = cleanScoreMap(stored.missionScores);
     if (
       stored.missionScores === undefined &&

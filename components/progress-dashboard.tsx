@@ -61,8 +61,8 @@ const badges = [
   },
   {
     id: 'chapter-one',
-    name: 'Pemahaman Bab 1',
-    description: 'Capai minimal 70 pada tes pengenalan.',
+    name: 'Alfabet Tuntas',
+    description: 'Selesaikan seluruh misi alfabet Bab 1.',
     icon: Star,
     color: 'yellow',
   },
@@ -100,7 +100,9 @@ export function ProgressDashboard() {
   const unlockedBadges = new Set([
     ...(completedMissions > 0 ? ['first-step'] : []),
     ...(userProgress.streak >= 7 ? ['streak-seven'] : []),
-    ...(userProgress.bestChapterScore >= 70 ? ['chapter-one'] : []),
+    ...(getChapterProgress('chapter-5', userProgress) === 100
+      ? ['chapter-one']
+      : []),
     ...(Object.values(userProgress.signMastery).some((item) => item.recall)
       ? ['first-recall']
       : []),
