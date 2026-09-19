@@ -59,18 +59,18 @@ for (const [target, targetSign] of definitions.entries()) {
       )
       .map((row) => row[actual])
       .filter((score) => score.assessable && score.passed)
-      .map((score) => score.overall);
+      .map((score) => score.comparisonScore ?? score.overall);
     const bestAlternative = Math.max(...eligible);
     const oldBestAlternative = Math.max(
       ...scores
         .filter((_, index) => index !== target)
         .map((row) => row[actual])
         .filter((score) => score.assessable && score.passed)
-        .map((score) => score.overall),
+        .map((score) => score.comparisonScore ?? score.overall),
     );
     if (
-      oldBestAlternative - result.overall >= 3 &&
-      bestAlternative - result.overall < 3
+      oldBestAlternative - (result.comparisonScore ?? result.overall) >= 3 &&
+      bestAlternative - (result.comparisonScore ?? result.overall) < 3
     ) {
       newlyAcceptedWithHandCountFilter.push(
         `${targetSign.label} ← ${actualSign.label}`,
@@ -79,7 +79,7 @@ for (const [target, targetSign] of definitions.entries()) {
     // A wrong target survives only if the actual sign lacks the same decisive
     // three-point advantage used by scoreGestureWithAlternatives. Scores are
     // computed once here so the exhaustive audit stays fast enough to rerun.
-    if (bestAlternative - result.overall < 3) {
+    if (bestAlternative - (result.comparisonScore ?? result.overall) < 3) {
       finalWrong.push(`${targetSign.label} ← ${actualSign.label}`);
     }
   }

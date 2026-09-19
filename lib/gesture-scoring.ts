@@ -16,6 +16,7 @@ export type GestureFrame = {
   poseLandmarks?: Point3[];
 };
 export type GestureKind = 'pose' | 'motion';
+export type MovementMode = 'pose' | 'contact' | 'palm' | 'finger' | 'wrist';
 export type GestureComponent =
   | 'handshape'
   | 'position'
@@ -35,10 +36,12 @@ export type GestureScore = {
   passed: boolean;
   feedback: string;
   gestureKind: GestureKind;
+  movementMode?: MovementMode;
   requiredHandCount: 1 | 2;
   positionRelativeToBody: boolean;
   criticalMismatch: GestureComponent | null;
   confusableWith: string | null;
+  comparisonScore?: number;
   handshapeEvidence?: {
     rawScore: number;
     matchingFrameRatio: number;
@@ -46,6 +49,13 @@ export type GestureScore = {
     perHandMatchingFrameRatios?: Partial<Record<'left' | 'right', number>>;
     perHandRawScores?: Partial<Record<'left' | 'right', number>>;
     perHandMedianShapeSteps?: Partial<Record<'left' | 'right', number>>;
+  };
+  movementEvidence?: {
+    error: number;
+    pathError: number;
+    directionError: number;
+    extentError: number;
+    macroAligned: boolean;
   };
 };
 
@@ -411,7 +421,9 @@ export function scoreGestureWithAlternatives(
   // Scores are capped at 100, so no alternative can clear the required margin.
   if (!canAlternativeOutscore(target)) return target;
 
-  let closestAlternative: { label: string; score: GestureScore } | undefined;
+  let closestAlternative:
+    | { label: string; score: GestureScore; comparisonScore: number }
+    | undefined;
   for (const { label, frames, requiredHandCount } of alternatives) {
     // A passing attempt for a one-hand sign rejects an active extra hand;
     // a two-hand sign requires both. Compare signs with the same hand count.
@@ -425,18 +437,21 @@ export function scoreGestureWithAlternatives(
     // motion templates must match an actual path. Their totals are not
     // comparable; a static alternative must not veto a completed motion.
     if (score.gestureKind !== target.gestureKind) continue;
+    const comparisonScore = score.comparisonScore ?? score.overall;
     if (
       score.assessable &&
       score.passed &&
-      (!closestAlternative || score.overall > closestAlternative.score.overall)
+      (!closestAlternative ||
+        comparisonScore > closestAlternative.comparisonScore)
     ) {
-      closestAlternative = { label, score };
-      if (score.overall === 100) break;
+      closestAlternative = { label, score, comparisonScore };
+      if (comparisonScore === 100) break;
     }
   }
+  const targetComparisonScore = target.comparisonScore ?? target.overall;
   if (
     !closestAlternative ||
-    closestAlternative.score.overall - target.overall <
+    closestAlternative.comparisonScore - targetComparisonScore <
       MIN_ALTERNATIVE_ADVANTAGE
   )
     return target;
@@ -452,7 +467,11 @@ export function scoreGestureWithAlternatives(
 }
 
 export function canAlternativeOutscore(target: GestureScore): boolean {
-  return target.passed && target.overall <= 100 - MIN_ALTERNATIVE_ADVANTAGE;
+  return (
+    target.passed &&
+    (target.comparisonScore ?? target.overall) <=
+      100 - MIN_ALTERNATIVE_ADVANTAGE
+  );
 }
 
 function scoreAttemptWindows(
@@ -590,6 +609,15 @@ function scorePrepared(
     requiredHandCount === 1 && isFingerMotionDominantGesture(reference);
   const palmRotationDominant =
     requiredHandCount === 1 && isPalmRotationDominantGesture(reference);
+  const movementMode: MovementMode = poseDominant
+    ? 'pose'
+    : indexApproachDominant
+      ? 'contact'
+      : palmRotationDominant
+        ? 'palm'
+        : fingerMotionDominant
+          ? 'finger'
+          : 'wrist';
   const referenceHandScales = reference.flatMap((frame) =>
     frame.hands.map((hand) => hand.screenScale),
   );
@@ -664,6 +692,34 @@ function scorePrepared(
     handshapeFrameMatchRatio < minimumHandshapeMatchRatio
       ? Math.min(rawHandshapeScore, roundScore(handshapeFrameMatchRatio * 100))
       : rawHandshapeScore;
+  const pathMovementError = dtwError(
+    referenceMovement,
+    attemptMovement,
+    compareMovement,
+  );
+  const directionMovementError = movementDirectionError(
+    referenceMovement,
+    attemptMovement,
+  );
+  const extentMovementError = movementExtentError(
+    referenceMovement,
+    attemptMovement,
+  );
+  // A learner can draw the same short sign with a rounder or flatter local
+  // wrist arc than one reference signer. When direction and total amplitude
+  // both agree closely, keep DTW as evidence but reduce its sensitivity to
+  // those local path details. Reversed, stationary, and incomplete movements
+  // still fail through the direction and extent terms below.
+  const macroAlignedMovement =
+    requiredHandCount === 1 &&
+    pathMovementError <= 0.25 &&
+    directionMovementError <= 0.08 &&
+    extentMovementError <= 0.08;
+  const genericMovementError = Math.max(
+    pathMovementError * (macroAlignedMovement ? 0.6 : 1),
+    directionMovementError,
+    extentMovementError,
+  );
   const referenceMovementError = poseDominant
     ? poseHoldError(reference, rawAttempt)
     : indexApproachDominant
@@ -672,11 +728,7 @@ function scorePrepared(
         ? palmRotationError(reference, attempt)
         : fingerMotionDominant
           ? fingerMotionError(reference, attempt)
-          : Math.max(
-              dtwError(referenceMovement, attemptMovement, compareMovement),
-              movementDirectionError(referenceMovement, attemptMovement),
-              movementExtentError(referenceMovement, attemptMovement),
-            );
+          : genericMovementError;
   const movementScore = lowResolutionReference
     ? roundScore(
         clamp(
@@ -794,6 +846,53 @@ function scorePrepared(
     : lowResolutionReference
       ? Math.max(PASS_THRESHOLD, weightedScore)
       : weightedScore;
+  const needsCalibratedComparison =
+    lowResolutionReference ||
+    movementMode === 'contact' ||
+    movementMode === 'palm' ||
+    movementMode === 'finger';
+  const comparisonScore = needsCalibratedComparison
+    ? (() => {
+        const standardHandshape = lowResolutionReference
+          ? handshapeFrameMatchRatio < handshapeMatch.minimumMatchRatio
+            ? Math.min(
+                rawHandshapeScore,
+                roundScore(handshapeFrameMatchRatio * 100),
+              )
+            : rawHandshapeScore
+          : components.handshape;
+        // The learner-facing score may use a specialized feature space such
+        // as finger articulation or palm rotation. Vocabulary alternatives
+        // need one common scale, so rank every specialized sign by the same
+        // wrist-path evidence used by ordinary motion signs.
+        const standardMovement = errorToScore(genericMovementError, 0.35);
+        const standardComponents: Components = {
+          ...components,
+          handshape: standardHandshape,
+          movement: standardMovement,
+        };
+        const hasStandardMismatch =
+          standardHandshape < MIN_HANDSHAPE_SCORE ||
+          (lowResolutionReference &&
+            handshapeFrameMatchRatio < handshapeMatch.minimumMatchRatio) ||
+          standardMovement < MIN_MOVEMENT_SCORE ||
+          (positionRelativeToBody &&
+            standardComponents.position < MIN_BODY_POSITION_SCORE) ||
+          standardComponents[weakestComponent(standardComponents)] <
+            MIN_COMPONENT_SCORE;
+        const standardWeightedScore = roundScore(
+          weightedComponentScore(
+            standardComponents,
+            requiredHandCount,
+            orientationAssessable,
+            palmRotationDominant,
+          ),
+        );
+        return hasStandardMismatch
+          ? Math.min(PASS_THRESHOLD - 1, standardWeightedScore)
+          : standardWeightedScore;
+      })()
+    : overall;
 
   return {
     overall,
@@ -813,10 +912,12 @@ function scorePrepared(
       palmRotationDominant,
     ),
     gestureKind,
+    movementMode,
     requiredHandCount,
     positionRelativeToBody,
     criticalMismatch: criticalWeakness,
     confusableWith: null,
+    comparisonScore,
     handshapeEvidence: {
       rawScore: rawHandshapeScore,
       matchingFrameRatio: handshapeFrameMatchRatio,
@@ -824,6 +925,13 @@ function scorePrepared(
       perHandMatchingFrameRatios: handshapeMatch.perHandMatchingFrameRatios,
       perHandRawScores: handshapeMatch.perHandRawScores,
       perHandMedianShapeSteps: handshapeMatch.perHandMedianShapeSteps,
+    },
+    movementEvidence: {
+      error: referenceMovementError,
+      pathError: pathMovementError,
+      directionError: directionMovementError,
+      extentError: extentMovementError,
+      macroAligned: macroAlignedMovement,
     },
   };
 }

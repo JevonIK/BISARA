@@ -134,6 +134,62 @@ void test('Di mana uses degraded-reference recovery without weakening Apa', () =
   );
 });
 
+void test('degraded Di mana recovery cannot unfairly veto a valid Apa score', () => {
+  const apa = reference('apa');
+  const diMana = reference('di-mana');
+  const degradedAlternative = scoreGesture(diMana, apa);
+  assert.ok(
+    degradedAlternative.overall >
+      (degradedAlternative.comparisonScore ?? degradedAlternative.overall),
+    JSON.stringify(degradedAlternative),
+  );
+
+  const target = {
+    ...scoreGesture(apa, apa),
+    overall: 84,
+    comparisonScore: 84,
+  };
+  const result = scoreGestureWithAlternatives(
+    apa,
+    apa,
+    [{ label: 'Di mana', frames: diMana }],
+    target,
+  );
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.equal(result.confusableWith, null, JSON.stringify(result));
+});
+
+void test('specialized Keluarga movement cannot unfairly veto a valid Mengapa score', () => {
+  const mengapa = reference('mengapa');
+  const keluarga = reference('keluarga');
+  const specializedAlternative = scoreGesture(keluarga, mengapa);
+  assert.equal(
+    specializedAlternative.movementMode,
+    'palm',
+    JSON.stringify(specializedAlternative),
+  );
+  assert.ok(
+    specializedAlternative.overall >
+      (specializedAlternative.comparisonScore ??
+        specializedAlternative.overall),
+    JSON.stringify(specializedAlternative),
+  );
+
+  const target = {
+    ...scoreGesture(mengapa, mengapa),
+    overall: 78,
+    comparisonScore: 78,
+  };
+  const result = scoreGestureWithAlternatives(
+    mengapa,
+    mengapa,
+    [{ label: 'Keluarga', frames: keluarga }],
+    target,
+  );
+  assert.equal(result.passed, true, JSON.stringify(result));
+  assert.equal(result.confusableWith, null, JSON.stringify(result));
+});
+
 void test('Di mana still rejects a stationary hand', () => {
   const frames = reference('di-mana');
   const visible = frames.filter((frame) => frame.hands.length);
