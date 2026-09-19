@@ -8,6 +8,7 @@ import {
   Check,
   Hand,
   LoaderCircle,
+  LockKeyhole,
   Play,
   RefreshCw,
   RotateCcw,
@@ -39,7 +40,10 @@ import {
   type GestureScore,
   type HandObservation,
 } from '@/lib/gesture-scoring';
-import { getMissionLearningState } from '@/lib/learning-progress';
+import {
+  getMissionLearningState,
+  isMissionSignUnlocked,
+} from '@/lib/learning-progress';
 import { recordGestureAssessment } from '@/lib/progress-storage';
 import {
   getBodyAnchoredReferenceFrames,
@@ -963,6 +967,41 @@ export function CameraPractice({
             )}
           >
             Kembali ke beranda <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  const isSignUnlocked = isMissionSignUnlocked(
+    signId,
+    missionSignIds,
+    userProgress,
+    missionId,
+  );
+  if (!reviewMode && !productionMode && !isSignUnlocked) {
+    const missionSigns = getSigns(missionSignIds);
+    const firstUnpassed =
+      missionSigns.find((s) => !userProgress.signMastery[s.id]?.passed) ??
+      missionSigns[0];
+
+    return (
+      <section className="grid min-h-[430px] place-items-center rounded-[2.5rem] border border-amber-200/50 bg-white p-8 text-center shadow-xs">
+        <div className="max-w-md">
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-amber-100 text-amber-700 shadow-2xs">
+            <LockKeyhole className="size-7" />
+          </span>
+          <h2 className="mt-6 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            Kosakata masih terkunci
+          </h2>
+          <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">
+            Selesaikan kosakata “{firstUnpassed.label}” terlebih dahulu sebelum melanjutkan ke kosakata berikutnya.
+          </p>
+          <Link
+            href={`/missions/practice?mission=${missionId}&sign=${firstUnpassed.id}`}
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 py-3 text-sm font-black text-slate-950 shadow-xs transition-all hover:bg-[#ff9f00] hover:scale-105 active:scale-95"
+          >
+            Latih kosakata {firstUnpassed.label} <ArrowRight className="size-4" />
           </Link>
         </div>
       </section>
