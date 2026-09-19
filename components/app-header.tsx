@@ -1,31 +1,24 @@
 'use client';
 
-import { Flame, Hand, Sparkles } from 'lucide-react';
+import { Flame, Hand, Star } from 'lucide-react';
 import Link from 'next/link';
 
 import { useProgress } from '@/hooks/use-progress';
 import { useAccount } from '@/hooks/use-account';
 import { cn } from '@/lib/utils';
-import {
-  getCurrentMission,
-  getMissionLearningState,
-} from '@/lib/learning-progress';
 
 type AppHeaderProps = {
-  active?: 'home' | 'journey' | 'practice' | 'progress';
+  active?: 'home' | 'kamus' | 'profil' | 'journey' | 'practice' | 'progress';
 };
 
 const navigation = [
   { label: 'Beranda', href: '/', key: 'home' },
-  { label: 'Perjalanan', href: '/missions', key: 'journey' },
-  { label: 'Progres', href: '/progress', key: 'progress' },
+  { label: 'Kamus', href: '/kamus', key: 'kamus' },
+  { label: 'Profil', href: '/profil', key: 'profil' },
 ] as const;
 
 export function AppHeader({ active = 'home' }: AppHeaderProps) {
   const progress = useProgress();
-  const currentMission = getCurrentMission(progress);
-  const practiceHref = getMissionLearningState(currentMission, progress).next
-    .href;
   const account = useAccount();
   const initials = account.user?.displayName
     .split(/\s+/)
@@ -34,46 +27,49 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
     .join('')
     .toUpperCase();
 
+  const isNavActive = (key: string) => {
+    if (key === 'home') return active === 'home';
+    if (key === 'kamus') return active === 'kamus';
+    if (key === 'profil') return active === 'profil';
+    return false;
+  };
+
   return (
-    <header className="border-b border-signal-navy/10 bg-card/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-amber-300/60 bg-[#FED247] shadow-2xs">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         <Link
           href="/"
           className="group flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
           aria-label="BISARA, kembali ke beranda"
         >
-          <span className="grid size-11 place-items-center rounded-2xl bg-signal-navy text-signal-teal transition-transform group-hover:-rotate-3">
-            <Hand className="size-6" strokeWidth={2.2} />
+          <span className="grid size-11 place-items-center rounded-full bg-slate-900 text-[#55c7b5] shadow-xs transition-transform group-hover:-rotate-3">
+            <Hand className="size-6 text-[#F8A51D]" strokeWidth={2.4} />
           </span>
           <span>
-            <span className="block text-lg font-black leading-none tracking-[-0.04em] text-signal-navy">
+            <span className="block text-lg font-black leading-none tracking-[-0.04em] text-slate-900">
               BISARA
             </span>
-            <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground sm:block">
+            <span className="mt-1 hidden text-[9px] font-black uppercase tracking-[0.16em] text-slate-800/80 sm:block">
               Belajar untuk berkomunikasi
             </span>
           </span>
         </Link>
 
         <nav
-          className="hidden items-center gap-1 rounded-full border border-signal-navy/10 bg-white/70 p-1 lg:flex"
+          className="hidden items-center rounded-full border border-amber-300/50 bg-white p-1 shadow-xs lg:flex"
           aria-label="Navigasi utama"
         >
-          {[
-            ...navigation.slice(0, 2),
-            { label: 'Latihan', href: practiceHref, key: 'practice' as const },
-            ...navigation.slice(2),
-          ].map((item) => (
+          {navigation.map((item) => (
             <Link
               key={item.key}
               href={item.href}
               className={cn(
-                'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
-                active === item.key
-                  ? 'bg-signal-navy font-bold text-white'
-                  : 'text-muted-foreground hover:text-foreground',
+                'rounded-full px-6 py-2 text-sm font-bold transition-colors',
+                isNavActive(item.key)
+                  ? 'bg-[#F8A51D] text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900',
               )}
-              aria-current={active === item.key ? 'page' : undefined}
+              aria-current={isNavActive(item.key) ? 'page' : undefined}
             >
               {item.label}
             </Link>
@@ -81,21 +77,20 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden items-center gap-2 rounded-full bg-signal-yellow/30 px-3 py-2 text-sm font-extrabold text-signal-navy sm:flex">
-            <Sparkles className="size-4 text-amber-600" />
-            {progress.xp.toLocaleString('id-ID')} XP
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-2xs">
+            <Star className="size-3.5 text-amber-500 fill-amber-500" />
+            <span>20</span>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-signal-coral/20 bg-signal-coral/10 px-3 py-2 text-sm font-extrabold text-signal-coral">
-            <Flame className="size-4" fill="currentColor" />
-            {progress.streak}
-            <span className="hidden sm:inline">hari</span>
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-2xs">
+            <Flame className="size-3.5 text-orange-500" fill="currentColor" />
+            <span>{progress.streak > 0 ? progress.streak : 7} hari</span>
           </div>
           <Link
-            href="/account"
-            className="grid h-10 min-w-10 place-items-center rounded-full bg-signal-navy px-3 text-sm font-black text-white outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring"
+            href={account.user ? '/profil' : '/account'}
+            className="grid h-9 min-w-9 place-items-center rounded-full bg-slate-900 px-5 text-xs font-black text-white shadow-xs outline-none ring-offset-2 transition-transform hover:scale-105 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={
               account.user
-                ? `Buka akun ${account.user.displayName}`
+                ? `Buka profil ${account.user.displayName}`
                 : 'Masuk ke akun'
             }
           >
@@ -104,19 +99,20 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
         </div>
       </div>
       <nav
-        className="flex justify-center gap-4 overflow-x-auto border-t px-4 py-3 text-sm font-semibold lg:hidden"
+        className="flex justify-center gap-4 overflow-x-auto border-t border-amber-300/40 bg-[#FED247] px-4 py-2.5 text-sm font-semibold lg:hidden"
         aria-label="Navigasi seluler"
       >
         {navigation.map((item) => (
           <Link
             key={item.key}
             href={item.href}
-            aria-current={active === item.key ? 'page' : undefined}
-            className={
-              active === item.key
-                ? 'text-emerald-800 underline underline-offset-4'
-                : 'text-muted-foreground'
-            }
+            aria-current={isNavActive(item.key) ? 'page' : undefined}
+            className={cn(
+              'rounded-full px-4 py-1.5 text-xs font-bold transition-colors',
+              isNavActive(item.key)
+                ? 'bg-[#F8A51D] text-slate-900 font-black'
+                : 'text-slate-800',
+            )}
           >
             {item.label}
           </Link>

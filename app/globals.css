@@ -142,6 +142,8 @@
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
   }
   ::selection {
     background: var(--signal-teal);

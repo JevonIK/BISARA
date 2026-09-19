@@ -3,22 +3,24 @@
 import {
   Check,
   ChevronRight,
+  Clock3,
   Flag,
   LockKeyhole,
   Map,
   Play,
   Sparkles,
-  Star,
 } from 'lucide-react';
 import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Progress, ProgressLabel } from '@/components/ui/progress';
 import { useProgress } from '@/hooks/use-progress';
+import { isCurriculumDebugUnlocked } from '@/lib/debug-unlock';
 import { allMissions, chapters, type Mission } from '@/lib/learning-data';
 import {
   getChapterProgress,
   getCurrentMission,
+  getMissionReplayAction,
   getPrototypeMissionCount,
   isMissionUnlocked,
 } from '@/lib/learning-progress';
@@ -69,11 +71,17 @@ export function MissionJourney() {
             </ProgressLabel>
           </Progress>
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
-            Misi berikutnya: {currentMission.title}. Seluruh 32 tanda tersedia
-            dalam empat bab berurutan.
+            Misi berikutnya: {currentMission.title}. Pelajari 32 tanda kosakata
+            dan 26 huruf dalam lima bab berurutan.
           </p>
         </aside>
       </header>
+
+      {isCurriculumDebugUnlocked() ? (
+        <p className="mt-6 border border-signal-teal bg-signal-teal-soft px-5 py-3 text-sm font-bold text-signal-navy">
+          Mode debug lokal: semua bab dan misi terbuka. Progres dan hasil checker tetap asli.
+        </p>
+      ) : null}
 
       <div className="space-y-10 py-10 lg:py-14">
         {chapters.map((chapter) => {
@@ -83,7 +91,9 @@ export function MissionJourney() {
               ? ('completed' as const)
               : currentMission.id === mission.id
                 ? ('current' as const)
-                : ('locked' as const),
+                : isMissionUnlocked(mission.id, userProgress)
+                  ? ('available' as const)
+                  : ('locked' as const),
           }));
           const chapterProgress = getChapterProgress(chapter.id, userProgress);
           const chapterUnlocked = chapterMissions.some((mission) =>
@@ -154,6 +164,8 @@ export function MissionJourney() {
 }
 
 function MissionRow({ mission }: { mission: Mission }) {
+  const replay =
+    mission.status === 'completed' ? getMissionReplayAction(mission) : null;
   const content = (
     <>
       <span
@@ -163,6 +175,8 @@ function MissionRow({ mission }: { mission: Mission }) {
             'border-signal-teal bg-signal-teal text-signal-navy',
           mission.status === 'current' &&
             'border-signal-yellow bg-signal-yellow text-signal-navy',
+          mission.status === 'available' &&
+            'border-signal-teal/50 bg-signal-teal-soft text-signal-navy',
           mission.status === 'locked' &&
             'border-signal-navy/10 bg-muted text-muted-foreground',
         )}
@@ -170,7 +184,7 @@ function MissionRow({ mission }: { mission: Mission }) {
         {mission.status === 'completed' ? (
           <Check className="size-4" strokeWidth={3} />
         ) : null}
-        {mission.status === 'current' ? (
+        {mission.status === 'current' || mission.status === 'available' ? (
           <Play className="size-4" fill="currentColor" />
         ) : null}
         {mission.status === 'locked' ? (
@@ -190,6 +204,9 @@ function MissionRow({ mission }: { mission: Mission }) {
               <Flag className="size-2.5" /> Tes bab
             </Badge>
           ) : null}
+          {mission.status === 'available' ? (
+            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-700">Tersedia</span>
+          ) : null}
         </span>
         <span className="mt-1 block text-base font-black text-signal-navy">
           {mission.title}
@@ -197,17 +214,24 @@ function MissionRow({ mission }: { mission: Mission }) {
         <span className="mt-1 block text-sm leading-5 text-muted-foreground">
           {mission.description}
         </span>
+        {replay ? (
+          <span className="mt-2 flex items-center gap-1 text-xs font-black text-emerald-700 sm:hidden">
+            <Play className="size-3" fill="currentColor" /> Ulangi misi
+          </span>
+        ) : null}
       </span>
       <span className="hidden shrink-0 text-right sm:block">
         <span className="flex items-center justify-end gap-1 text-xs font-bold text-signal-navy">
-          <Star className="size-3.5 text-amber-500" fill="currentColor" />+
-          {mission.xp} XP
-        </span>
-        <span className="mt-1 block text-xs text-muted-foreground">
+          <Clock3 className="size-3.5 text-signal-teal" />
           {mission.duration} menit
         </span>
+        {replay ? (
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-black text-emerald-700">
+            <Play className="size-3" fill="currentColor" /> Ulangi misi
+          </span>
+        ) : null}
       </span>
-      {mission.status === 'current' ? (
+      {mission.status !== 'locked' ? (
         <ChevronRight className="size-5 shrink-0 text-emerald-700" />
       ) : null}
     </>
@@ -216,13 +240,21 @@ function MissionRow({ mission }: { mission: Mission }) {
     'flex items-center gap-4 border bg-card p-4 text-left transition-all sm:p-5',
     mission.status === 'current'
       ? 'border-signal-teal hover:-translate-y-0.5 hover:border-emerald-600'
-      : 'border-signal-navy/10',
+      : mission.status === 'available'
+        ? 'border-signal-teal/30 hover:-translate-y-0.5 hover:border-signal-teal'
+        : 'border-signal-navy/10',
   );
 
   return (
     <li>
       {mission.status !== 'locked' ? (
-        <Link href={mission.href} className={className}>
+        <Link
+          href={replay?.href ?? mission.href}
+          aria-label={
+            replay ? `${replay.label}: ${mission.title}` : undefined
+          }
+          className={className}
+        >
           {content}
         </Link>
       ) : (

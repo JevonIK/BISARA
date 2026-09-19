@@ -3,9 +3,11 @@ import {
   signIds as allSignIds,
   type SignId,
 } from '@/lib/curriculum-data';
+import { alphabetMissionGroups, type AlphabetLetter } from '@/lib/alphabet-data';
 
-export type MissionStatus = 'completed' | 'current' | 'locked';
+export type MissionStatus = 'completed' | 'current' | 'available' | 'locked';
 
+/** Legacy scenario content; the active flow uses recognition and optional recall. */
 export type ContextChallenge = {
   id: string;
   cueSignId: SignId;
@@ -26,9 +28,10 @@ export type Mission = {
   xp: number;
   status: MissionStatus;
   signIds: SignId[];
+  alphabetLetters?: readonly AlphabetLetter[];
   vocabulary: string[];
   href: string;
-  type: 'lesson' | 'checkpoint';
+  type: 'lesson' | 'checkpoint' | 'alphabet';
   contextTitle: string;
   contextChallenges: ContextChallenge[];
 };
@@ -60,7 +63,9 @@ function mission(input: MissionInput): Mission {
   return {
     ...input,
     status: 'locked',
-    vocabulary: getSigns(input.signIds).map((sign) => sign.label),
+    vocabulary: input.alphabetLetters
+      ? [...input.alphabetLetters]
+      : getSigns(input.signIds).map((sign) => sign.label),
     href: `/missions/learn?mission=${input.id}`,
     contextChallenges: input.contextChallenges.map((challenge, index) => ({
       ...challenge,
@@ -97,76 +102,18 @@ export const chapters: Chapter[] = [
     id: 'chapter-1',
     number: '01',
     eyebrow: 'Mulai terhubung',
-    title: 'Perkenalan & waktu',
+    title: 'Perkenalan & relasi',
     description:
-      'Bangun kosakata dasar untuk memperkenalkan diri, bertanya, dan menyebut waktu.',
+      'Membantu pengguna memulai interaksi dasar, memperkenalkan diri, mengenali orang lain, dan memahami ekspresi sosial sederhana.',
     status: 'active',
     progress: 0,
     missions: [
       mission({
-        id: 'saya-dan-kamu',
-        number: '01',
-        title: 'Saya dan pertanyaan dasar',
-        description: 'Kenali tanda untuk menyebut diri dan membuka pertanyaan.',
-        duration: 8,
-        xp: 40,
-        type: 'lesson',
-        signIds: ['saya', 'siapa', 'apa'],
-        contextTitle: 'Memulai perkenalan',
-        contextChallenges: [
-          {
-            cueSignId: 'siapa',
-            prompt:
-              'Seseorang menanyakan identitasmu. Tanda mana yang tepat untuk mulai menjawab?',
-            options: ['saya', 'apa', 'siapa'],
-            answer: 'saya',
-            successMessage: 'Kamu merespons dengan memperkenalkan diri.',
-          },
-          {
-            cueSignId: 'saya',
-            prompt:
-              'Lawan bicara menunjuk dirinya, tetapi topiknya belum jelas. Pilih tanda untuk menanyakan halnya.',
-            options: ['apa', 'saya', 'siapa'],
-            answer: 'apa',
-            successMessage: 'Pertanyaanmu sesuai dengan konteks.',
-          },
-        ],
-      }),
-      mission({
-        id: 'sapaan-waktu',
-        number: '02',
-        title: 'Waktu dalam sehari',
-        description:
-          'Bedakan tanda pagi, siang, sore, dan malam dalam situasi harian.',
-        duration: 9,
-        xp: 45,
-        type: 'lesson',
-        signIds: ['pagi', 'siang', 'sore', 'malam'],
-        contextTitle: 'Memilih waktu yang tepat',
-        contextChallenges: [
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Lawan bicara menanyakan waktu ketika matahari baru terbit. Pilih jawaban satu tanda.',
-            options: ['pagi', 'sore', 'malam'],
-            answer: 'pagi',
-            successMessage: 'Pagi adalah jawaban yang sesuai untuk awal hari.',
-          },
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Lawan bicara menanyakan waktu setelah matahari terbenam. Pilih jawaban satu tanda.',
-            options: ['siang', 'malam', 'pagi'],
-            answer: 'malam',
-            successMessage: 'Kamu memilih konteks waktu dengan tepat.',
-          },
-        ],
-      }),
-      mission({
         id: 'berkenalan',
-        number: '03',
-        title: 'Berkenalan dengan teman baru',
-        description: 'Berlatih merespons perkenalan dengan sopan.',
+        number: '01',
+        title: 'Berkenalan',
+        description:
+          'Memulai interaksi sederhana dengan orang yang baru dikenal.',
         duration: 12,
         xp: 60,
         type: 'lesson',
@@ -185,434 +132,517 @@ export const chapters: Chapter[] = [
           {
             cueSignId: 'teman',
             prompt:
-              'Teman baru menyambutmu. Pilih respons yang menjaga interaksi tetap sopan.',
+              'Lawan bicara menandai hubungan kalian sebagai teman, lalu membantumu menemukan tempat duduk. Pilih respons untuk menghargai bantuannya.',
             options: ['terima-kasih', 'siapa', 'maaf'],
             answer: 'terima-kasih',
             successMessage: 'Percakapan berlanjut dengan ramah.',
           },
+          {
+            cueSignId: 'saya',
+            prompt:
+              'Lawan bicara memperkenalkan dirinya dengan tanda “Saya”, tetapi kamu kemudian keliru menyebut namanya. Pilih respons untuk memperbaiki kekeliruanmu.',
+            options: ['maaf', 'terima-kasih', 'teman'],
+            answer: 'maaf',
+            successMessage:
+              'Permintaan maafmu menjaga hubungan pertemanan tetap baik.',
+          },
         ],
       }),
       mission({
-        id: 'minta-pengulangan',
-        number: '04',
-        title: 'Meminta pengulangan',
+        id: 'orang-terdekat',
+        number: '02',
+        title: 'Orang Terdekat',
         description:
-          'Minta lawan bicara mengulang atau menjelaskan secara sopan.',
+          'Mengenali dan membicarakan hubungan sederhana dengan orang di sekitar.',
         duration: 8,
         xp: 45,
         type: 'lesson',
-        signIds: ['maaf', 'lagi', 'bagaimana'],
-        contextTitle: 'Memperbaiki komunikasi',
+        signIds: ['keluarga', 'saya', 'siapa', 'teman'],
+        contextTitle: 'Mengenali hubungan terdekat',
         contextChallenges: [
           {
-            cueSignId: 'maaf',
+            cueSignId: 'siapa',
             prompt:
-              'Lawan bicara menyadari isyaratnya terlalu cepat dan meminta maaf. Tanda apa yang kamu gunakan untuk memintanya mengulang sekali lagi?',
-            options: ['lagi', 'bagaimana', 'maaf'],
-            optionDescriptions: {
-              lagi: 'Minta lawan bicara mengulang isyarat',
-              bagaimana: 'Tanyakan cara melakukannya',
-              maaf: 'Sampaikan permintaan maaf kembali',
-            },
-            answer: 'lagi',
-            successMessage:
-              'Tepat! Kamu merespons dengan isyarat "Lagi" untuk meminta lawan bicara mengulang dengan sopan.',
+              'Seseorang menanyakan siapa yang tinggal bersamamu di rumah. Pilih kelompok orang terdekat.',
+            options: ['keluarga', 'teman', 'saya'],
+            answer: 'keluarga',
+            successMessage: 'Kamu mengenali sebutan anggota keluarga.',
           },
           {
-            cueSignId: 'apa',
+            cueSignId: 'keluarga',
             prompt:
-              'Lawan bicara menanyakan bagian apa yang belum kamu pahami. Kamu ingin menanyakan bagaimana cara melakukan gerakannya. Tanda apa yang kamu gunakan?',
-            options: ['bagaimana', 'lagi', 'maaf'],
-            optionDescriptions: {
-              bagaimana: 'Tanyakan cara atau langkah gerakannya',
-              lagi: 'Minta lawan bicara mengulang kembali',
-              maaf: 'Sampaikan permohonan maaf',
-            },
-            answer: 'bagaimana',
+              'Lawan bicara lebih dulu menyebut keluarganya, lalu menunjuk orang lain yang bukan kerabat dan sering belajar bersamanya. Pilih hubungan orang tersebut.',
+            options: ['teman', 'keluarga', 'saya'],
+            answer: 'teman',
             successMessage:
-              'Tepat! Kamu menggunakan isyarat "Bagaimana" untuk menanyakan cara melakukan gerakan tersebut.',
+              'Kamu membedakan teman dari anggota keluarga secara tepat.',
+          },
+        ],
+      }),
+      mission({
+        id: 'tuli-dan-dengar',
+        number: '03',
+        title: 'Tuli & Dengar',
+        description:
+          'Mengenali kosakata dasar terkait identitas dan cara berkomunikasi Tuli dan dengar dengan hormat.',
+        duration: 8,
+        xp: 50,
+        type: 'lesson',
+        signIds: ['tuli', 'dengar', 'saya', 'teman'],
+        contextTitle: 'Mengenal identitas dan komunikasi',
+        contextChallenges: [
+          {
+            cueSignId: 'teman',
+            prompt:
+              'Lawan bicara menandai hubungan kalian sebagai teman, lalu menjelaskan bahwa ia bagian dari komunitas yang menggunakan bahasa isyarat. Pilih tanda identitas yang ia sampaikan.',
+            options: ['tuli', 'dengar', 'saya'],
+            answer: 'tuli',
+            successMessage:
+              'Kamu mengenali identitas Tuli secara tepat dan penuh rasa hormat.',
+          },
+          {
+            cueSignId: 'tuli',
+            prompt:
+              'Setelah menyebut identitas Tuli, lawan bicara meminta kamu membedakannya dari orang yang mengandalkan pendengaran dalam komunikasi sehari-hari. Pilih tanda yang sesuai.',
+            options: ['dengar', 'tuli', 'teman'],
+            answer: 'dengar',
+            successMessage:
+              'Kamu memahami perbedaan latar komunikasi teman dengar.',
+          },
+        ],
+      }),
+      mission({
+        id: 'bersikap-sopan',
+        number: '04',
+        title: 'Bersikap Sopan',
+        description: 'Memilih respons sosial yang sesuai berdasarkan situasi.',
+        duration: 8,
+        xp: 45,
+        type: 'lesson',
+        signIds: ['maaf', 'terima-kasih', 'teman', 'saya'],
+        contextTitle: 'Respons sopan dalam interaksi',
+        contextChallenges: [
+          {
+            cueSignId: 'teman',
+            prompt:
+              'Teman membantumu saat kamu mengalami kesulitan belajar isyarat. Pilih respons sosial yang sesuai.',
+            options: ['terima-kasih', 'maaf', 'saya'],
+            answer: 'terima-kasih',
+            successMessage: 'Ungkapan terima kasihmu mempererat pertemanan.',
+          },
+          {
+            cueSignId: 'saya',
+            prompt:
+              'Teman menandai bahwa barang itu miliknya dengan tanda “Saya”. Kamu tidak sengaja menjatuhkan barang tersebut. Pilih respons yang tepat.',
+            options: ['maaf', 'terima-kasih', 'teman'],
+            answer: 'maaf',
+            successMessage: 'Kamu bersikap sopan dengan meminta maaf.',
           },
         ],
       }),
       checkpoint(
         'checkpoint-kenalan',
         '05',
-        'Checkpoint perkenalan & waktu',
-        'Ambil kembali kosakata bab dari ingatan dan terapkan pada situasi singkat.',
+        'Tantangan: Kenalan Baru',
+        'Menguji pengenalan kosakata relasi dan perkenalan dari Bab 01 tanpa label.',
         [
           'saya',
           'siapa',
-          'apa',
-          'pagi',
-          'siang',
-          'sore',
-          'malam',
           'teman',
+          'keluarga',
+          'tuli',
+          'dengar',
           'terima-kasih',
           'maaf',
-          'lagi',
-          'bagaimana',
         ],
-        'Penerapan perkenalan singkat',
+        'Simulasi kenalan baru',
         [
           {
             cueSignId: 'siapa',
-            prompt: 'Jawab pertanyaan identitas secara langsung.',
-            options: ['saya', 'teman', 'apa'],
+            prompt:
+              'Di sebuah acara kumpul komunitas, seseorang menyapamu dan menanyakan identitasmu. Pilih pembuka jawaban.',
+            options: ['saya', 'teman', 'keluarga'],
             answer: 'saya',
-            successMessage: 'Pembuka perkenalanmu tepat.',
+            successMessage: 'Kamu mengawali perkenalan dengan jelas.',
           },
           {
-            cueSignId: 'maaf',
-            prompt: 'Pesan belum jelas. Minta lawan bicara mengulang.',
-            options: ['lagi', 'malam', 'teman'],
-            answer: 'lagi',
-            successMessage: 'Kamu berhasil memulihkan percakapan.',
+            cueSignId: 'saya',
+            prompt:
+              'Lawan bicara menunjuk dirinya dengan tanda “Saya”, lalu menunjukkan foto orang-orang yang tinggal bersamanya sebagai kerabat. Pilih kelompok hubungan mereka.',
+            options: ['keluarga', 'dengar', 'saya'],
+            answer: 'keluarga',
+            successMessage: 'Kamu mengenali keluarga dalam interaksi.',
           },
           {
-            cueSignId: 'teman',
-            prompt: 'Tutup perkenalan dengan respons sopan.',
-            options: ['terima-kasih', 'siapa', 'pagi'],
+            cueSignId: 'tuli',
+            prompt:
+              'Teman Tuli tersebut membantumu mempraktikkan isyarat dengan sabar. Tutup percakapan dengan respons sopan.',
+            options: ['terima-kasih', 'maaf', 'siapa'],
             answer: 'terima-kasih',
-            successMessage: 'Simulasi kenalan selesai.',
+            successMessage:
+              'Simulasi perkenalan bab pertama berhasil diselesaikan dengan baik.',
           },
         ],
+        100,
       ),
     ],
   },
   {
     id: 'chapter-2',
     number: '02',
-    eyebrow: 'Kebutuhan sehari-hari',
-    title: 'Makan & beraktivitas',
-    description: 'Berlatih menyampaikan kebutuhan dan rencana dasar.',
+    eyebrow: 'Mulai bertanya',
+    title: 'Bertanya & memahami',
+    description:
+      'Membantu pengguna meminta informasi, mencari sesuatu, dan mempertahankan komunikasi ketika belum memahami informasi.',
     status: 'locked',
     progress: 0,
     missions: [
       mission({
-        id: 'makan-dan-minum',
-        number: '01',
-        title: 'Makan dan minum',
-        description: 'Sampaikan kebutuhan sederhana saat berada di kafe.',
+        id: 'bertanya-apa',
+        number: '06',
+        title: 'Bertanya Apa',
+        description:
+          'Mengenali kapan pengguna perlu meminta informasi dasar tentang sesuatu.',
         duration: 7,
-        xp: 45,
+        xp: 40,
         type: 'lesson',
-        signIds: ['makan', 'air'],
-        contextTitle: 'Memesan kebutuhan dasar',
+        signIds: ['apa', 'siapa', 'saya'],
+        contextTitle: 'Meminta informasi dasar',
         contextChallenges: [
           {
-            cueSignId: 'apa',
+            cueSignId: 'saya',
             prompt:
-              'Petugas kafe menanyakan kebutuhanmu. Kamu sedang lapar; pilih jawaban satu tanda.',
-            options: ['makan', 'air', 'belajar'],
-            answer: 'makan',
-            successMessage: 'Kebutuhanmu tersampaikan.',
-          },
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Petugas kafe menanyakan kebutuhanmu. Kamu sedang haus; pilih jawaban satu tanda.',
-            options: ['air', 'makan', 'hari'],
-            answer: 'air',
-            successMessage: 'Kamu memilih kebutuhan minum dengan tepat.',
-          },
-        ],
-      }),
-      mission({
-        id: 'belajar-dan-mengingat',
-        number: '02',
-        title: 'Belajar dan mengingat',
-        description: 'Bicarakan aktivitas belajar dan hal yang diingat.',
-        duration: 8,
-        xp: 45,
-        type: 'lesson',
-        signIds: ['belajar', 'ingat', 'hari'],
-        contextTitle: 'Membicarakan kegiatan',
-        contextChallenges: [
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Teman menanyakan kegiatanmu. Kamu sedang mempelajari materi; pilih jawaban intinya.',
-            options: ['belajar', 'ingat', 'hari'],
-            answer: 'belajar',
-            successMessage: 'Kegiatanmu tersampaikan.',
-          },
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Kamu ingin mengingatkan teman agar rencana tidak terlupakan. Pilih tanda intinya.',
-            options: ['ingat', 'hari', 'belajar'],
-            answer: 'ingat',
-            successMessage: 'Pesan pengingatmu jelas.',
-          },
-        ],
-      }),
-      mission({
-        id: 'rencana-hari-ini',
-        number: '03',
-        title: 'Rencana hari ini',
-        description: 'Tanyakan kegiatan dan waktunya.',
-        duration: 8,
-        xp: 55,
-        type: 'lesson',
-        signIds: ['hari', 'kapan', 'apa'],
-        contextTitle: 'Menyusun rencana',
-        contextChallenges: [
-          {
-            cueSignId: 'hari',
-            prompt:
-              'Teman baru menyebut ada kegiatan pada suatu hari, tetapi waktunya belum jelas. Pilih kata tanya.',
-            options: ['kapan', 'apa', 'hari'],
-            answer: 'kapan',
-            successMessage: 'Kamu menanyakan waktu secara tepat.',
-          },
-          {
-            cueSignId: 'kapan',
-            prompt:
-              'Teman menyebut waktu, tetapi belum menyebut jenis kegiatannya. Pilih kata tanya.',
-            options: ['apa', 'kapan', 'hari'],
+              'Lawan bicara menandai benda yang dipegang sebagai miliknya dengan tanda “Saya”. Kamu belum mengenali benda itu. Pilih tanda untuk menanyakannya.',
+            options: ['apa', 'siapa', 'saya'],
             answer: 'apa',
             successMessage:
-              'Pertanyaanmu sesuai dengan informasi yang dibutuhkan.',
+              'Kamu meminta informasi dasar tentang benda tersebut.',
+          },
+          {
+            cueSignId: 'saya',
+            prompt:
+              'Lawan bicara menunjuk dirinya dengan tanda “Saya”, lalu menunjuk seseorang di foto. Kamu belum tahu identitas orang dalam foto. Pilih kata tanya orang.',
+            options: ['siapa', 'apa', 'saya'],
+            answer: 'siapa',
+            successMessage:
+              'Kamu menanyakan identitas orang yang bersangkutan.',
           },
         ],
       }),
       mission({
-        id: 'datang-dan-berangkat',
-        number: '04',
-        title: 'Datang dan berangkat',
-        description: 'Bedakan arah gerak pada tanda Datang dan Berangkat.',
-        duration: 7,
-        xp: 50,
+        id: 'waktu-dan-tempat',
+        number: '07',
+        title: 'Waktu & Tempat',
+        description: 'Meminta informasi tentang waktu dan lokasi.',
+        duration: 8,
+        xp: 45,
         type: 'lesson',
-        signIds: ['datang', 'berangkat'],
-        contextTitle: 'Memberi kabar perjalanan',
+        signIds: ['kapan', 'di-mana', 'apa', 'siapa'],
+        contextTitle: 'Menanyakan waktu dan lokasi',
         contextChallenges: [
           {
-            cueSignId: 'kapan',
+            cueSignId: 'siapa',
             prompt:
-              'Teman menanyakan kapan kamu bergerak menuju lokasinya. Pilih arah gerak yang sesuai.',
-            options: ['datang', 'berangkat', 'hari'],
-            answer: 'datang',
-            successMessage: 'Arah perpindahanmu jelas.',
+              'Setelah menanyakan “Siapa” yang akan hadir, teman belum menyebut jadwal pertemuan. Pilih kata tanya untuk melengkapi informasi waktunya.',
+            options: ['kapan', 'di-mana', 'siapa'],
+            answer: 'kapan',
+            successMessage: 'Kamu menanyakan waktu pertemuan.',
           },
           {
             cueSignId: 'kapan',
             prompt:
-              'Teman menanyakan kapan kamu meninggalkan lokasi asal. Pilih arah gerak yang sesuai.',
-            options: ['berangkat', 'datang', 'makan'],
-            answer: 'berangkat',
-            successMessage: 'Kamu menyatakan keberangkatan dengan tepat.',
+              'Jadwal sudah disepakati, namun tempat pertemuan belum jelas. Pilih kata tanya lokasi.',
+            options: ['di-mana', 'kapan', 'apa'],
+            answer: 'di-mana',
+            successMessage: 'Kamu menanyakan lokasi pertemuan secara tepat.',
+          },
+        ],
+      }),
+      mission({
+        id: 'alasan-dan-cara',
+        number: '08',
+        title: 'Alasan & Cara',
+        description:
+          'Mengembangkan pertanyaan dari informasi sederhana menuju alasan dan cara.',
+        duration: 8,
+        xp: 50,
+        type: 'lesson',
+        signIds: ['mengapa', 'bagaimana', 'apa', 'kapan', 'di-mana'],
+        contextTitle: 'Mendalami alasan dan cara',
+        contextChallenges: [
+          {
+            cueSignId: 'di-mana',
+            prompt:
+              'Teman sudah menjawab “Di mana” kalian akan bertemu, tetapi kemudian membatalkan janji. Pilih kata tanya untuk mengetahui penyebabnya.',
+            options: ['mengapa', 'bagaimana', 'kapan'],
+            answer: 'mengapa',
+            successMessage: 'Kamu menanyakan alasan pembatalan.',
+          },
+          {
+            cueSignId: 'apa',
+            prompt:
+              'Teman menjawab “Apa” yang akan dipelajari dengan menunjukkan sebuah isyarat. Kamu ingin mengetahui langkah gerakannya. Pilih kata tanya cara.',
+            options: ['bagaimana', 'mengapa', 'di-mana'],
+            answer: 'bagaimana',
+            successMessage: 'Kamu menanyakan langkah gerakannya.',
+          },
+        ],
+      }),
+      mission({
+        id: 'cari-dan-pahami',
+        number: '09',
+        title: 'Cari & Pahami',
+        description:
+          'Mendukung situasi ketika pengguna perlu mencari informasi, mengingat sesuatu, atau meminta pengulangan.',
+        duration: 8,
+        xp: 50,
+        type: 'lesson',
+        signIds: ['cari', 'ingat', 'lagi', 'apa', 'di-mana', 'bagaimana'],
+        contextTitle: 'Memperjelas dan mengingat informasi',
+        contextChallenges: [
+          {
+            cueSignId: 'di-mana',
+            prompt:
+              'Kamu belum menemukan barang yang kamu simpan. Pilih tanda tindakan aktif yang kamu lakukan.',
+            options: ['cari', 'ingat', 'lagi'],
+            answer: 'cari',
+            successMessage: 'Kamu menyatakan sedang mencari barang tersebut.',
+          },
+          {
+            cueSignId: 'bagaimana',
+            prompt:
+              'Lawan bicara memperagakan isyarat terlalu cepat. Pilih tanda untuk memintanya mengulang sekali lagi.',
+            options: ['lagi', 'ingat', 'cari'],
+            answer: 'lagi',
+            successMessage: 'Kamu meminta pengulangan dengan sopan.',
+          },
+          {
+            cueSignId: 'apa',
+            prompt:
+              'Teman bertanya “Apa” materi yang dipelajari kemarin. Kamu mengenali materinya dan ingin menegaskan bahwa kamu masih mengingatnya.',
+            options: ['ingat', 'lagi', 'cari'],
+            answer: 'ingat',
+            successMessage:
+              'Kamu menegaskan bahwa kamu mengingat materi tersebut.',
           },
         ],
       }),
       checkpoint(
-        'checkpoint-aktivitas',
-        '05',
-        'Checkpoint kebutuhan & aktivitas',
-        'Ambil kembali sampel kosakata bab dan terapkan pada kebutuhan serta rencana.',
+        'checkpoint-informasi',
+        '10',
+        'Tantangan: Mencari Informasi',
+        'Menguji pengenalan kata tanya dan kosakata untuk mencari informasi.',
         [
-          'makan',
-          'air',
-          'belajar',
-          'ingat',
-          'hari',
-          'kapan',
           'apa',
-          'datang',
-          'berangkat',
+          'kapan',
+          'di-mana',
+          'mengapa',
+          'bagaimana',
+          'cari',
+          'ingat',
+          'lagi',
         ],
-        'Rencana bertemu di kafe',
+        'Simulasi mencari informasi',
         [
           {
-            cueSignId: 'kapan',
+            cueSignId: 'apa',
             prompt:
-              'Teman menanyakan waktu bertemu. Pilih unsur waktu yang tepat.',
-            options: ['hari', 'makan', 'ingat'],
-            answer: 'hari',
-            successMessage: 'Kamu memberi konteks waktu.',
+              'Petugas bertanya “Apa” yang kamu perlukan. Kamu membutuhkan lokasi ruang utama. Pilih kata tanya tempat untuk menyampaikan kebutuhanmu.',
+            options: ['di-mana', 'kapan', 'mengapa'],
+            answer: 'di-mana',
+            successMessage: 'Kamu menanyakan letak ruang utama.',
           },
           {
-            cueSignId: 'makan',
-            prompt: 'Pilih kebutuhan minum untuk melengkapi pesanan.',
-            options: ['air', 'belajar', 'datang'],
-            answer: 'air',
-            successMessage: 'Pesananmu lengkap.',
+            cueSignId: 'di-mana',
+            prompt:
+              'Petugas mengarahkan ke lorong sebelah kanan. Pilih tindakanmu untuk menemukan ruangannya.',
+            options: ['cari', 'lagi', 'bagaimana'],
+            answer: 'cari',
+            successMessage: 'Kamu mulai mencari ke arah yang ditunjukkan.',
           },
           {
-            cueSignId: 'berangkat',
-            prompt: 'Teman sudah pergi menuju lokasi. Pilih tanda kedatangan.',
-            options: ['datang', 'ingat', 'apa'],
-            answer: 'datang',
-            successMessage: 'Skenario aktivitas selesai.',
+            cueSignId: 'bagaimana',
+            prompt:
+              'Petugas memberikan petunjuk rute yang rumit. Pilih tanda untuk meminta penjelasan diulang kembali.',
+            options: ['lagi', 'ingat', 'kapan'],
+            answer: 'lagi',
+            successMessage: 'Petugas mengulang penjelasannya dengan ramah.',
           },
         ],
+        100,
       ),
     ],
   },
   {
     id: 'chapter-3',
     number: '03',
-    eyebrow: 'Bergerak bersama',
-    title: 'Arah & transportasi',
-    description: 'Latih kosakata BISINDO untuk mencari tempat dan bepergian.',
+    eyebrow: 'Beraktivitas',
+    title: 'Kegiatan sehari-hari',
+    description:
+      'Membantu pengguna berkomunikasi mengenai kebutuhan dan aktivitas sehari-hari.',
     status: 'locked',
     progress: 0,
     missions: [
       mission({
-        id: 'mencari-tempat',
-        number: '01',
-        title: 'Mencari tempat',
-        description: 'Tanyakan lokasi dan cari tujuan perjalanan.',
-        duration: 8,
-        xp: 50,
+        id: 'makan-dan-minum',
+        number: '11',
+        title: 'Makan & Minum',
+        description: 'Mengenali kebutuhan sederhana terkait makan dan minum.',
+        duration: 7,
+        xp: 45,
         type: 'lesson',
-        signIds: ['di-mana', 'cari', 'rumah'],
-        contextTitle: 'Mencari tujuan',
+        signIds: ['makan', 'air', 'apa'],
+        contextTitle: 'Kebutuhan makan dan minum',
         contextChallenges: [
           {
-            cueSignId: 'rumah',
+            cueSignId: 'apa',
             prompt:
-              'Kamu perlu menemukan alamat rumah yang ditunjukkan lawan bicara. Pilih tindakan intinya.',
-            options: ['cari', 'rumah', 'di-mana'],
-            answer: 'cari',
-            successMessage: 'Kamu mulai mencari tujuan.',
+              'Pelayan menanyakan pesananmu saat perutmu lapar. Pilih jawaban kebutuhan makanan.',
+            options: ['makan', 'air', 'apa'],
+            answer: 'makan',
+            successMessage: 'Kebutuhan makanmu tersampaikan.',
+          },
+          {
+            cueSignId: 'makan',
+            prompt:
+              'Setelah makan, kamu merasa haus dan ingin memesan minuman. Pilih tanda minuman.',
+            options: ['air', 'makan', 'apa'],
+            answer: 'air',
+            successMessage: 'Kamu memesan air minum dengan tepat.',
+          },
+        ],
+      }),
+      mission({
+        id: 'belajar-di-rumah',
+        number: '12',
+        title: 'Belajar di Rumah',
+        description: 'Membicarakan aktivitas belajar dan tempat.',
+        duration: 8,
+        xp: 45,
+        type: 'lesson',
+        signIds: ['belajar', 'rumah', 'di-mana', 'apa'],
+        contextTitle: 'Aktivitas belajar dan tempat',
+        contextChallenges: [
+          {
+            cueSignId: 'apa',
+            prompt:
+              'Teman menanyakan kegiatan yang sedang kamu tekuni sore ini. Pilih tanda aktivitas.',
+            options: ['belajar', 'rumah', 'di-mana'],
+            answer: 'belajar',
+            successMessage: 'Kegiatan belajarmu tersampaikan.',
           },
           {
             cueSignId: 'di-mana',
             prompt:
-              'Lawan bicara menanyakan lokasi tujuanmu. Tujuanmu adalah tempat tinggal; pilih jawaban.',
-            options: ['rumah', 'cari', 'di-mana'],
+              'Teman menanyakan tempat kamu belajar hari ini. Pilih lokasi tempat tinggal.',
+            options: ['rumah', 'belajar', 'apa'],
             answer: 'rumah',
-            successMessage: 'Tujuanmu sudah jelas.',
+            successMessage: 'Kamu menyampaikan bahwa kamu belajar di rumah.',
           },
         ],
       }),
       mission({
-        id: 'bertanya-arah',
-        number: '02',
-        title: 'Bertanya arah',
-        description: 'Gunakan pertanyaan dasar dalam konteks perjalanan.',
+        id: 'pergi-beraktivitas',
+        number: '13',
+        title: 'Pergi Beraktivitas',
+        description: 'Mengenali konteks bepergian dan aktivitas sebelum pergi.',
         duration: 8,
-        xp: 55,
+        xp: 45,
         type: 'lesson',
-        signIds: ['di-mana', 'bagaimana', 'mengapa'],
-        contextTitle: 'Meminta petunjuk',
+        signIds: ['motor', 'berangkat', 'apa', 'di-mana'],
+        contextTitle: 'Bepergian dan kendaraan',
         contextChallenges: [
           {
-            cueSignId: 'rumah',
+            cueSignId: 'apa',
             prompt:
-              'Tujuannya rumah, tetapi kamu belum tahu cara mencapainya. Pilih kata tanya.',
-            options: ['bagaimana', 'mengapa', 'di-mana'],
-            answer: 'bagaimana',
-            successMessage: 'Kamu meminta cara menuju lokasi.',
+              'Teman menanyakan kendaraan yang kamu bawa untuk bepergian. Pilih kendaraan roda dua.',
+            options: ['motor', 'berangkat', 'di-mana'],
+            answer: 'motor',
+            successMessage: 'Moda transportasimu jelas.',
           },
           {
-            cueSignId: 'berangkat',
+            cueSignId: 'motor',
             prompt:
-              'Teman mengubah rute setelah berangkat dan kamu ingin tahu alasannya. Pilih kata tanya.',
-            options: ['mengapa', 'bagaimana', 'di-mana'],
-            answer: 'mengapa',
-            successMessage: 'Kamu menanyakan alasan dengan tepat.',
+              'Kunci motor sudah di tangan dan waktu sudah menunjukkan jadwal pergi. Pilih tanda gerak memulai perjalanan.',
+            options: ['berangkat', 'motor', 'apa'],
+            answer: 'berangkat',
+            successMessage: 'Kamu menyatakan siap berangkat.',
           },
         ],
       }),
       mission({
-        id: 'waktu-perjalanan',
-        number: '03',
-        title: 'Waktu perjalanan',
-        description: 'Bicarakan waktu kedatangan dan keberangkatan.',
+        id: 'datang-hari-ini',
+        number: '14',
+        title: 'Datang Hari Ini',
+        description: 'Menghubungkan kedatangan seseorang dengan konteks waktu.',
         duration: 8,
         xp: 50,
         type: 'lesson',
-        signIds: ['kapan', 'datang', 'berangkat'],
-        contextTitle: 'Mengatur perjalanan',
+        signIds: ['datang', 'hari', 'kapan', 'siapa'],
+        contextTitle: 'Kedatangan dan hari pertemuan',
         contextChallenges: [
           {
             cueSignId: 'kapan',
             prompt:
-              'Teman menanyakan waktu kamu tiba. Pilih tanda gerak yang melengkapi pertanyaan.',
-            options: ['datang', 'berangkat', 'kapan'],
+              'Teman bertanya “Kapan” sambil membuka kalender pertemuan. Pilih tanda untuk menyebut satuan waktu yang sedang dibicarakan pada kalender.',
+            options: ['hari', 'datang', 'siapa'],
+            answer: 'hari',
+            successMessage: 'Kamu memberi kepastian hari.',
+          },
+          {
+            cueSignId: 'hari',
+            prompt:
+              'Teman yang kamu tunggu akhirnya tiba di pintu. Pilih tanda gerakan tiba di tempat.',
+            options: ['datang', 'hari', 'kapan'],
             answer: 'datang',
-            successMessage: 'Pertanyaan kedatangan tersusun dengan tepat.',
-          },
-          {
-            cueSignId: 'berangkat',
-            prompt: 'Kamu ingin menanyakan waktu pergi. Pilih kata tanya.',
-            options: ['kapan', 'datang', 'berangkat'],
-            answer: 'kapan',
-            successMessage: 'Kamu menanyakan jadwal keberangkatan.',
-          },
-        ],
-      }),
-      mission({
-        id: 'naik-motor',
-        number: '04',
-        title: 'Pergi dengan motor',
-        description: 'Bicarakan moda, tujuan, dan teman perjalanan.',
-        duration: 8,
-        xp: 50,
-        type: 'lesson',
-        signIds: ['motor', 'rumah', 'teman'],
-        contextTitle: 'Memilih moda perjalanan',
-        contextChallenges: [
-          {
-            cueSignId: 'bagaimana',
-            prompt:
-              'Teman menanyakan cara kamu pergi ke rumah. Kamu memakai kendaraan roda dua; pilih jawaban.',
-            options: ['motor', 'teman', 'rumah'],
-            answer: 'motor',
-            successMessage: 'Moda perjalananmu jelas.',
-          },
-          {
-            cueSignId: 'siapa',
-            prompt:
-              'Lawan bicara menanyakan siapa yang menemanimu. Orang itu bukan keluarga; pilih jawabannya.',
-            options: ['teman', 'rumah', 'motor'],
-            answer: 'teman',
-            successMessage: 'Teman perjalananmu sudah disebutkan.',
+            successMessage: 'Kamu menyambut kedatangannya.',
           },
         ],
       }),
       checkpoint(
-        'checkpoint-perjalanan',
-        '05',
-        'Checkpoint arah & perjalanan',
-        'Ambil kembali sampel kosakata bab dan terapkan pada urutan perjalanan.',
+        'checkpoint-aktivitas',
+        '15',
+        'Tantangan: Sehari Beraktivitas',
+        'Menguji pengenalan kosakata aktivitas sehari-hari dari bab ini.',
         [
-          'di-mana',
-          'cari',
           'rumah',
-          'bagaimana',
-          'mengapa',
-          'kapan',
-          'datang',
           'berangkat',
           'motor',
-          'teman',
+          'belajar',
+          'makan',
+          'air',
+          'datang',
+          'hari',
+          'apa',
+          'kapan',
+          'di-mana',
         ],
-        'Perjalanan dari awal sampai tiba',
+        'Rangkaian kegiatan harian',
         [
           {
             cueSignId: 'di-mana',
-            prompt: 'Pilih tujuan tempat tinggal.',
-            options: ['rumah', 'motor', 'teman'],
+            prompt:
+              'Mengawali aktivitas hari ini, dari manakah kamu bersiap-siap? Pilih tempat tinggal.',
+            options: ['rumah', 'motor', 'belajar'],
             answer: 'rumah',
-            successMessage: 'Tujuan ditemukan.',
+            successMessage: 'Titik awal keberangkatan dari rumah.',
           },
           {
-            cueSignId: 'bagaimana',
-            prompt: 'Pilih moda yang tersedia untuk perjalanan.',
-            options: ['motor', 'cari', 'mengapa'],
+            cueSignId: 'berangkat',
+            prompt:
+              'Kamu memilih kendaraan roda dua untuk menempuh perjalanan. Pilih tanda kendaraannya.',
+            options: ['motor', 'makan', 'air'],
             answer: 'motor',
-            successMessage: 'Moda perjalanan dipilih.',
+            successMessage: 'Kamu mengendarai motor.',
           },
           {
-            cueSignId: 'kapan',
-            prompt: 'Pilih tanda yang menyatakan tiba.',
-            options: ['datang', 'berangkat', 'di-mana'],
-            answer: 'datang',
-            successMessage: 'Simulasi perjalanan selesai.',
+            cueSignId: 'belajar',
+            prompt:
+              'Setelah seharian belajar, kamu berkumpul dengan teman untuk mengisi perut. Pilih kebutuhan pokok.',
+            options: ['makan', 'datang', 'hari'],
+            answer: 'makan',
+            successMessage:
+              'Rangkaian kegiatan sehari penuh berhasil diselesaikan!',
           },
         ],
         120,
@@ -623,167 +653,201 @@ export const chapters: Chapter[] = [
     id: 'chapter-4',
     number: '04',
     eyebrow: 'Memperluas percakapan',
-    title: 'Keluarga, warna & komunikasi',
+    title: 'Waktu & deskripsi',
     description:
-      'Lengkapi kosakata untuk membicarakan rumah, warna, dan cara berkomunikasi.',
+      'Membantu pengguna memberikan informasi yang lebih spesifik tentang waktu dan karakteristik visual sederhana.',
     status: 'locked',
     progress: 0,
     missions: [
       mission({
-        id: 'keluarga-dan-rumah',
-        number: '01',
-        title: 'Keluarga dan rumah',
-        description: 'Bicarakan orang terdekat dan tempat tinggal.',
+        id: 'pagi-dan-siang',
+        number: '16',
+        title: 'Pagi & Siang',
+        description: 'Memberikan informasi waktu yang lebih spesifik.',
         duration: 8,
+        xp: 50,
+        type: 'lesson',
+        signIds: ['pagi', 'siang', 'kapan', 'berangkat', 'datang'],
+        contextTitle: 'Waktu pagi dan siang hari',
+        contextChallenges: [
+          {
+            cueSignId: 'kapan',
+            prompt:
+              'Teman menanyakan waktu keberangkatan ketika matahari baru saja menyingsing. Pilih tanda waktu awal hari.',
+            options: ['pagi', 'siang', 'datang'],
+            answer: 'pagi',
+            successMessage: 'Kamu menentukan waktu pagi hari secara tepat.',
+          },
+          {
+            cueSignId: 'berangkat',
+            prompt:
+              'Setelah menyebut waktu berangkat, teman mengusulkan istirahat makan saat matahari berada tinggi. Pilih tanda waktu tengah hari.',
+            options: ['siang', 'pagi', 'kapan'],
+            answer: 'siang',
+            successMessage: 'Kamu memilih waktu siang hari.',
+          },
+        ],
+      }),
+      mission({
+        id: 'sore-dan-malam',
+        number: '17',
+        title: 'Sore & Malam',
+        description:
+          'Melanjutkan kemampuan menyampaikan waktu dalam konteks aktivitas.',
+        duration: 8,
+        xp: 50,
+        type: 'lesson',
+        signIds: ['sore', 'malam', 'kapan', 'datang', 'berangkat'],
+        contextTitle: 'Waktu sore dan malam hari',
+        contextChallenges: [
+          {
+            cueSignId: 'kapan',
+            prompt:
+              'Teman menanyakan waktu kamu pulang saat matahari mulai tenggelam. Pilih tanda waktu.',
+            options: ['sore', 'malam', 'datang'],
+            answer: 'sore',
+            successMessage: 'Kamu menentukan waktu sore hari.',
+          },
+          {
+            cueSignId: 'datang',
+            prompt:
+              'Kamu tiba di tempat tinggal ketika langit sudah gelap gulita. Pilih tanda waktu.',
+            options: ['malam', 'sore', 'berangkat'],
+            answer: 'malam',
+            successMessage: 'Kamu menyatakan waktu malam hari dengan tepat.',
+          },
+        ],
+      }),
+      mission({
+        id: 'mengenal-warna',
+        number: '18',
+        title: 'Mengenal Warna',
+        description: 'Mengenali dan membedakan karakteristik visual dasar.',
+        duration: 9,
         xp: 55,
         type: 'lesson',
-        signIds: ['keluarga', 'rumah', 'teman'],
-        contextTitle: 'Bercerita tentang orang terdekat',
+        signIds: ['merah', 'kuning', 'hijau', 'hitam', 'apa', 'motor', 'rumah'],
+        contextTitle: 'Mengenali empat warna dasar',
         contextChallenges: [
+          {
+            cueSignId: 'motor',
+            prompt:
+              'Teman menunjukkan tanda “Motor”, lalu menunjuk motor berwarna seperti daun. Pilih tanda warna motor tersebut.',
+            options: ['hijau', 'merah', 'hitam'],
+            answer: 'hijau',
+            successMessage: 'Kamu mengenali warna hijau.',
+          },
           {
             cueSignId: 'rumah',
             prompt:
-              'Siapa yang tinggal bersamamu? Pilih kelompok orang terdekat.',
-            options: ['keluarga', 'teman', 'rumah'],
-            answer: 'keluarga',
-            successMessage: 'Kamu menyebut keluarga dengan tepat.',
-          },
-          {
-            cueSignId: 'siapa',
-            prompt:
-              'Orang yang datang bukan anggota keluarga. Pilih hubungannya.',
-            options: ['teman', 'keluarga', 'rumah'],
-            answer: 'teman',
-            successMessage: 'Hubungan orang dalam cerita sudah jelas.',
-          },
-        ],
-      }),
-      mission({
-        id: 'warna-dasar',
-        number: '02',
-        title: 'Empat warna dasar',
-        description: 'Kenali dan bedakan merah, kuning, hijau, dan hitam.',
-        duration: 10,
-        xp: 60,
-        type: 'lesson',
-        signIds: ['merah', 'kuning', 'hijau', 'hitam'],
-        contextTitle: 'Mendeskripsikan benda',
-        contextChallenges: [
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Lawan bicara menanyakan warna tanda berhenti pada lampu lalu lintas. Pilih jawaban satu tanda.',
-            options: ['merah', 'kuning', 'hitam'],
+              'Teman menunjukkan tanda “Rumah”, lalu menunjuk pagar rumah berwarna seperti rambu berhenti. Pilih tanda warnanya.',
+            options: ['merah', 'kuning', 'hijau'],
             answer: 'merah',
-            successMessage: 'Warna pertama dikenali.',
-          },
-          {
-            cueSignId: 'apa',
-            prompt:
-              'Lawan bicara menanyakan warna isyarat boleh berjalan pada lampu lalu lintas. Pilih jawaban satu tanda.',
-            options: ['hijau', 'hitam', 'kuning'],
-            answer: 'hijau',
-            successMessage: 'Kamu membedakan warna dengan tepat.',
+            successMessage: 'Warna merah berhasil kamu tentukan.',
           },
         ],
       }),
       mission({
-        id: 'dengar-dan-tuli',
-        number: '03',
-        title: 'Dengar dan Tuli',
+        id: 'mendeskripsikan-pilihan',
+        number: '19',
+        title: 'Mendeskripsikan Pilihan',
         description:
-          'Kenali tanda Dengar dan Tuli, lalu gunakan Bagaimana untuk membahas cara komunikasi.',
-        duration: 8,
-        xp: 60,
-        type: 'lesson',
-        signIds: ['dengar', 'tuli', 'bagaimana'],
-        contextTitle: 'Menghormati cara berkomunikasi',
-        contextChallenges: [
-          {
-            cueSignId: 'tuli',
-            prompt:
-              'Setelah seseorang menyampaikan identitasnya, pilih kata tanya untuk membahas cara komunikasi yang nyaman.',
-            options: ['bagaimana', 'dengar', 'tuli'],
-            answer: 'bagaimana',
-            successMessage:
-              'Bagaimana membuka ruang untuk menanyakan preferensi komunikasi.',
-          },
-          {
-            cueSignId: 'bagaimana',
-            prompt:
-              'Lawan bicara menanyakan aktivitas menerima bunyi. Pilih jawaban satu tanda.',
-            options: ['dengar', 'tuli', 'bagaimana'],
-            answer: 'dengar',
-            successMessage:
-              'Dengar adalah kosakata yang sesuai untuk aktivitas menerima bunyi.',
-          },
-        ],
-      }),
-      mission({
-        id: 'deskripsi-sekitar',
-        number: '04',
-        title: 'Mendeskripsikan sekitar',
-        description: 'Gabungkan orang, tempat, warna, dan pertanyaan.',
+          'Menggunakan tanda warna bersama vocabulary sebelumnya dalam situasi pemilihan atau identifikasi.',
         duration: 9,
-        xp: 60,
+        xp: 55,
         type: 'lesson',
-        signIds: ['apa', 'rumah', 'keluarga', 'merah', 'hitam'],
-        contextTitle: 'Menyusun deskripsi sederhana',
+        signIds: [
+          'merah',
+          'kuning',
+          'hijau',
+          'hitam',
+          'apa',
+          'di-mana',
+          'motor',
+          'rumah',
+        ],
+        contextTitle: 'Identifikasi dan pilihan benda',
         contextChallenges: [
           {
-            cueSignId: 'apa',
+            cueSignId: 'motor',
             prompt:
-              'Lawan bicara menunjuk bangunan tempat tinggal dan menanyakan bendanya. Pilih jawaban.',
-            options: ['rumah', 'keluarga', 'merah'],
-            answer: 'rumah',
-            successMessage: 'Konteks tempat sudah tepat.',
+              'Di tempat parkir banyak motor berjejer. Motor milikmu berwarna gelap pekat tanpa corak. Pilih tanda warna motor.',
+            options: ['hitam', 'kuning', 'merah'],
+            answer: 'hitam',
+            successMessage: 'Kamu mengidentifikasi motor hitam.',
           },
           {
-            cueSignId: 'apa',
+            cueSignId: 'rumah',
             prompt:
-              'Lawan bicara menanyakan warna rambut yang gelap. Pilih jawaban satu tanda.',
-            options: ['hitam', 'merah', 'rumah'],
-            answer: 'hitam',
-            successMessage: 'Hitam sesuai dengan ciri benda dalam situasi.',
+              'Kamu mencari rumah teman yang dicat cerah mirip warna sinar matahari. Pilih tanda warna.',
+            options: ['kuning', 'hijau', 'hitam'],
+            answer: 'kuning',
+            successMessage: 'Kamu mendeskripsikan rumah kuning dengan tepat.',
           },
         ],
       }),
       checkpoint(
-        'checkpoint-komunikasi',
-        '05',
-        'Checkpoint komunikasi lengkap',
-        'Uji sampel seimbang dari 32 tanda dan terapkan kosakata lintas bab.',
+        'checkpoint-percakapan',
+        '20',
+        'Tantangan Akhir: Kosakata',
+        'Menguji pengenalan campuran kosakata dari keempat bab, lalu memperkuat tanda yang masih sulit.',
         [...allSignIds],
-        'Percakapan di rumah',
+        'Percakapan akhir menyeluruh',
         [
           {
-            cueSignId: 'rumah',
-            prompt: 'Pilih orang terdekat yang tinggal bersama.',
-            options: ['keluarga', 'teman', 'dengar'],
-            answer: 'keluarga',
-            successMessage: 'Hubungan dan tempat sudah sesuai.',
+            cueSignId: 'siapa',
+            prompt:
+              'Seseorang menyapamu di pagi hari dan menanyakan siapa namamu. Pilih tanda pembuka perkenalan.',
+            options: ['saya', 'teman', 'rumah'],
+            answer: 'saya',
+            successMessage: 'Kamu membuka percakapan dengan percaya diri.',
           },
           {
-            cueSignId: 'apa',
+            cueSignId: 'kapan',
             prompt:
-              'Lawan bicara menanyakan warna yang umum dipakai untuk menggambarkan matahari cerah. Pilih jawaban.',
-            options: ['kuning', 'tuli', 'rumah'],
-            answer: 'kuning',
-            successMessage: 'Deskripsi warna berhasil.',
+              'Teman menanyakan kapan waktu kita berangkat bersama menggunakan motor. Pilih waktu di awal hari.',
+            options: ['pagi', 'malam', 'motor'],
+            answer: 'pagi',
+            successMessage: 'Waktu keberangkatan disepakati pagi hari.',
           },
           {
-            cueSignId: 'tuli',
+            cueSignId: 'teman',
             prompt:
-              'Pilih kata tanya untuk mengetahui cara komunikasi yang nyaman.',
-            options: ['bagaimana', 'hitam', 'teman'],
-            answer: 'bagaimana',
+              'Setelah berhasil menyelesaikan seluruh perjalanan belajar bersama, pilih ungkapan penghargaan sosial yang hangat.',
+            options: ['terima-kasih', 'maaf', 'lagi'],
+            answer: 'terima-kasih',
             successMessage:
-              'Kamu menyelesaikan kurikulum dasar dengan konteks yang menghormati lawan bicara.',
+              'Selamat! Kamu telah menyelesaikan seluruh 20 misi kurikulum BISARA!',
           },
         ],
         150,
       ),
     ],
+  },
+  {
+    id: 'chapter-5',
+    number: '05',
+    eyebrow: 'Belajar mengeja',
+    title: 'Alfabet dalam BISINDO',
+    description:
+      'Berlatih mengeja nama orang, tempat, atau istilah khusus yang belum memiliki simbol isyarat tersendiri.',
+    status: 'locked',
+    progress: 0,
+    missions: alphabetMissionGroups.map((group) =>
+      mission({
+        id: group.id,
+        number: group.number,
+        title: group.range,
+        description: `Amati dan ulangi video huruf ${group.range} sebelum melanjutkan.`,
+        duration: group.letters.length + 2,
+        xp: 30,
+        type: 'alphabet',
+        signIds: [],
+        alphabetLetters: group.letters,
+        contextTitle: '',
+        contextChallenges: [],
+      }),
+    ),
   },
 ];
 
@@ -827,7 +891,7 @@ export function buildRecognitionQuestions(
   );
   const questionLimit =
     mission.type === 'checkpoint'
-      ? mission.id === 'checkpoint-komunikasi'
+      ? mission.id === 'checkpoint-percakapan'
         ? 8
         : 6
       : mission.signIds.length;

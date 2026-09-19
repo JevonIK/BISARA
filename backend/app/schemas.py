@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from uuid import UUID
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -12,12 +13,13 @@ SIGN_IDS = {
     "siang", "sore", "malam",
 }
 MISSION_IDS = {
-    "saya-dan-kamu", "sapaan-waktu", "berkenalan", "minta-pengulangan",
-    "checkpoint-kenalan", "makan-dan-minum", "belajar-dan-mengingat",
-    "rencana-hari-ini", "datang-dan-berangkat", "checkpoint-aktivitas",
-    "mencari-tempat", "bertanya-arah", "waktu-perjalanan", "naik-motor",
-    "checkpoint-perjalanan", "keluarga-dan-rumah", "warna-dasar",
-    "dengar-dan-tuli", "deskripsi-sekitar", "checkpoint-komunikasi",
+    "berkenalan", "orang-terdekat", "tuli-dan-dengar", "bersikap-sopan",
+    "checkpoint-kenalan", "bertanya-apa", "waktu-dan-tempat",
+    "alasan-dan-cara", "cari-dan-pahami", "checkpoint-informasi",
+    "makan-dan-minum", "belajar-di-rumah", "pergi-beraktivitas",
+    "datang-hari-ini", "checkpoint-aktivitas", "pagi-dan-siang",
+    "sore-dan-malam", "mengenal-warna", "mendeskripsikan-pilihan",
+    "checkpoint-percakapan",
 }
 
 
@@ -66,11 +68,30 @@ class WeeklyActivityItem(ApiModel):
     minutes: int = Field(ge=0, le=1440)
 
 
+class RecallHistoryItem(ApiModel):
+    independent_attempts: int = Field(ge=0, le=1_000_000)
+    assisted_attempts: int = Field(ge=0, le=1_000_000)
+    needs_practice_attempts: int = Field(ge=0, le=1_000_000)
+    last_outcome: Literal["independent", "assisted", "needs-practice"]
+    last_practiced_at: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    next_review_at: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    interval_days: int = Field(ge=1, le=30)
+
+
 class SignMasteryItem(ApiModel):
+    recall: RecallHistoryItem | None = None
     best_score: int = Field(ge=0, le=100)
     passed: bool
     attempts: int = Field(ge=0, le=1_000_000)
     last_practiced_at: str = Field(max_length=64)
+    production_passed_mission_ids: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("production_passed_mission_ids")
+    @classmethod
+    def valid_production_missions(cls, values: list[str]) -> list[str]:
+        if len(set(values)) != len(values) or not set(values) <= MISSION_IDS:
+            raise ValueError("Invalid or duplicate production missions")
+        return values
 
 
 class ProgressUpdate(ApiModel):

@@ -4,9 +4,9 @@ import { AppHeader } from '@/components/app-header';
 import { ReviewQuest } from '@/components/review-quest';
 
 export const metadata: Metadata = {
-  title: 'Daily Review Quest',
+  title: 'Review Berkala',
   description:
-    'Ulangi tanda yang perlu diperkuat, pertahankan streak, dan dapatkan XP harian.',
+    'Peragakan tanda dari ingatan, bandingkan dengan contoh, dan ulangi sesuai jadwal.',
 };
 
 export default function ReviewPage() {

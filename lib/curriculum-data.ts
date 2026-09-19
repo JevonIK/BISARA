@@ -188,14 +188,14 @@ const signRows = [
     'Teman',
     25,
     'Koordinasi tangan',
-    'Perhatikan hubungan gerak kedua tangan dari awal sampai akhir.',
+    'Mulai dengan kedua telunjuk terpisah di depan dada, lalu dekatkan hingga bertemu dan tahan sesaat.',
   ],
   [
     'keluarga',
     'Keluarga',
     26,
-    'Lintasan gerak',
-    'Pertahankan bentuk jari sambil mengikuti lintasan di depan tubuh.',
+    'Gerak jari',
+    'Gunakan satu tangan di depan dada dengan jari mengarah ke bawah. Perhatikan gerak jari pada contoh, bukan hanya perpindahan pergelangan.',
   ],
   [
     'rumah',
@@ -264,6 +264,8 @@ export function getSigns(ids: readonly SignId[]) {
   return ids.map((id) => signs.find((sign) => sign.id === id)!).filter(Boolean);
 }
 
+export const SIGN_VIDEO_VERSION = '20260914-h264';
+
 export function versionedSignVideo(src: string) {
-  return `${src}?v=20260909-curriculum`;
+  return `${src}?v=${SIGN_VIDEO_VERSION}`;
 }

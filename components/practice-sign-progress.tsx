@@ -1,10 +1,9 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import Link from 'next/link';
 
 import { getSigns, type SignId } from '@/lib/curriculum-data';
-import { useProgress } from '@/hooks/use-progress';
 import { cn } from '@/lib/utils';
 
 export function PracticeSignProgress({
@@ -16,68 +15,58 @@ export function PracticeSignProgress({
   missionId?: string;
   signIds?: SignId[];
 }) {
-  const progress = useProgress();
   const missionSigns = getSigns(signIds);
-  const passedCount = missionSigns.filter(
-    (sign) => progress.signMastery[sign.id].passed,
-  ).length;
 
   return (
-    <section className="mb-5 border border-signal-navy/10 bg-card p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">
-            Urutan latihan
-          </p>
-          <h2 className="mt-1 text-base font-black text-signal-navy">
-            Kuasai seluruh {missionSigns.length} tanda
-          </h2>
-        </div>
-        <p className="text-xs font-bold text-muted-foreground">
-          {passedCount} dari {missionSigns.length} lulus
-        </p>
+    <div className="my-4 flex flex-wrap items-center justify-between gap-4 rounded-3xl border-2 border-[#FFAE00]/60 bg-[#FFFDF7] px-6 sm:px-8 py-3.5 shadow-xs">
+      {/* KOSA KATA Icon and Label */}
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="grid size-6 place-items-center rounded-full border-2 border-[#E54D2E]">
+          <span className="size-2 rounded-full bg-[#E54D2E]" />
+        </span>
+        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">
+          KOSA KATA
+        </span>
       </div>
 
-      <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        {missionSigns.map((sign, index) => {
-          const passed = progress.signMastery[sign.id].passed;
+      {/* Connected Word Track spanning available space */}
+      <div className="relative flex flex-1 items-center justify-between min-w-0 max-w-4xl px-2 sm:px-4 py-1 overflow-x-auto scrollbar-none">
+        {/* Continuous Connecting Line */}
+        <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-slate-300 -z-0" />
+
+        {missionSigns.map((sign) => {
           const active = sign.id === activeSignId;
+
           return (
-            <li key={sign.id}>
+            <div key={sign.id} className="relative z-10 shrink-0 px-1">
               <Link
                 href={`/missions/practice?mission=${missionId}&sign=${sign.id}`}
                 aria-current={active ? 'step' : undefined}
                 className={cn(
-                  'flex min-h-12 items-center gap-2 border px-3 py-2 text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                  active && 'border-signal-yellow bg-signal-yellow/15',
-                  !active && passed && 'border-signal-teal bg-signal-teal-soft',
-                  !active &&
-                    !passed &&
-                    'border-signal-navy/10 hover:border-signal-teal',
+                  'inline-block rounded-full px-5 py-1.5 text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                  active
+                    ? 'border-2 border-[#00D5D1] bg-white text-emerald-800 shadow-xs ring-2 ring-[#00D5D1]/30'
+                    : 'border border-transparent bg-[#ECEFF3] text-slate-600 hover:bg-slate-200 hover:text-slate-900',
                 )}
               >
-                <span
-                  className={cn(
-                    'grid size-7 shrink-0 place-items-center rounded-full text-[10px]',
-                    passed
-                      ? 'bg-signal-teal text-signal-navy'
-                      : active
-                        ? 'bg-signal-yellow text-signal-navy'
-                        : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {passed ? (
-                    <Check className="size-3.5" strokeWidth={3} />
-                  ) : (
-                    index + 1
-                  )}
-                </span>
-                <span className="truncate">{sign.label}</span>
+                {sign.label}
               </Link>
-            </li>
+            </div>
           );
         })}
-      </ol>
-    </section>
+
+        {/* Latihan pill */}
+        <div className="relative z-10 shrink-0 px-1">
+          <span className="inline-block rounded-full border-2 border-[#FFAE00] bg-white px-5 py-1.5 text-xs sm:text-sm font-black text-[#E54D2E] shadow-2xs whitespace-nowrap">
+            Latihan
+          </span>
+        </div>
+
+        {/* Flag */}
+        <div className="relative z-10 shrink-0 pl-1">
+          <Flag className="size-5 text-[#E54D2E] fill-[#E54D2E]" />
+        </div>
+      </div>
+    </div>
   );
 }

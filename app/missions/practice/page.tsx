@@ -1,19 +1,12 @@
 import type { Metadata } from 'next';
-import {
-  ArrowLeft,
-  Check,
-  Hand,
-  Info,
-  Languages,
-  MessageCircleMore,
-  MoveRight,
-  ShieldCheck,
-} from 'lucide-react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { AppHeader } from '@/components/app-header';
 import { CameraPractice } from '@/components/camera-practice';
 import { PracticeSignProgress } from '@/components/practice-sign-progress';
+import { MissionSectionNavigation } from '@/components/mission-section-navigation';
 import { Badge } from '@/components/ui/badge';
 import { getSign, isSignId, versionedSignVideo } from '@/lib/curriculum-data';
 import { getChapterForMission, getMission } from '@/lib/learning-data';
@@ -26,10 +19,19 @@ export const metadata: Metadata = {
 export default async function PracticePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mission?: string; sign?: string; source?: string }>;
+  searchParams: Promise<{
+    mission?: string;
+    sign?: string;
+    source?: string;
+    returnMission?: string;
+    replay?: string;
+  }>;
 }) {
   const params = await searchParams;
   const mission = getMission(params.mission);
+  if (mission.type === 'alphabet') {
+    redirect(`/missions/learn?mission=${mission.id}&section=tirukan`);
+  }
   const chapter = getChapterForMission(mission.id);
   const requestedSign =
     params.sign &&
@@ -41,58 +43,97 @@ export default async function PracticePage({
   const referenceVideoId = `${mission.id}-${sign.id}-reference-video`;
   const referenceVideoUrl = versionedSignVideo(sign.videoSrc);
   const reviewMode = params.source === 'review';
+  const productionReturn =
+    params.source === 'production' &&
+    params.returnMission &&
+    getMission(params.returnMission).id === params.returnMission
+      ? `/missions/test?mission=${params.returnMission}&mode=recall`
+      : null;
+  const replayMode = params.replay === '1';
+
+  const exampleCard = (
+    <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+      <div>
+        <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+          CONTOH TANDA
+        </span>
+        <div className="mt-4 overflow-hidden rounded-2xl bg-black aspect-[4/3] relative">
+          <video
+            id={referenceVideoId}
+            className="size-full object-cover"
+            src={referenceVideoUrl}
+            aria-label={`Video contoh tanda ${sign.label}`}
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-slate-100 pt-5">
+        <span className="text-xs font-black uppercase tracking-wider text-slate-900 block">
+          AMATI SECARA MENYELURUH
+        </span>
+        <ul className="mt-3.5 space-y-2.5 text-xs sm:text-sm font-black text-slate-800">
+          <li className="flex items-center gap-2.5">
+            <span className="size-2 rounded-full bg-[#00D5D1] shrink-0" />
+            <span>Bentuk tangan</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <span className="size-2 rounded-full bg-[#FFAE00] shrink-0" />
+            <span>Posisi terhadap tubuh</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <span className="size-2 rounded-full bg-[#E54D2E] shrink-0" />
+            <span>Arah telapak</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <span className="size-2 rounded-full bg-[#1E293B] shrink-0" />
+            <span>Ekspresi Wajah</span>
+          </li>
+        </ul>
+      </div>
+    </aside>
+  );
 
   return (
-    <main className="min-h-screen bg-background">
-      <AppHeader active="practice" />
-      <div className="mx-auto max-w-7xl px-5 py-7 lg:px-8 lg:py-10">
-        <div className="mb-7 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-          <div>
-            <Link
-              href={reviewMode ? '/review' : mission.href}
-              className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-signal-navy"
-            >
-              <ArrowLeft className="size-4" />{' '}
-              {reviewMode ? 'Kembali ke review' : 'Kembali ke detail misi'}
-            </Link>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Badge className="bg-signal-teal text-signal-navy">
-                Bab {chapter.number} · Misi {mission.number}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-signal-navy/10 text-muted-foreground"
-              >
-                Tahap Tirukan
-              </Badge>
-            </div>
-            <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] text-signal-navy sm:text-5xl">
-              Latih tanda “{sign.label}”
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Amati contoh, aktifkan kamera, bersiap selama hitung mundur, lalu
-              ikuti gerakan sampai indikator rekaman selesai.
-            </p>
-          </div>
-          <ol
-            className="flex items-center gap-2"
-            aria-label="Tahap pembelajaran"
-          >
-            {[Check, Hand, Languages, MessageCircleMore].map((Icon, index) => (
-              <li key={index} className="flex items-center gap-2">
-                <span
-                  className={`grid size-10 place-items-center rounded-full border ${index === 0 ? 'border-signal-teal bg-signal-teal' : index === 1 ? 'border-signal-yellow bg-signal-yellow' : 'border-signal-navy/10 bg-muted text-muted-foreground'}`}
-                >
-                  <Icon className="size-4" />
-                </span>
-                {index < 3 ? (
-                  <MoveRight className="size-4 text-signal-navy/25" />
-                ) : null}
-              </li>
-            ))}
-          </ol>
+    <main className="min-h-screen bg-[#FFE8A3] pb-44">
+      <AppHeader active="home" />
+
+      <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8 lg:py-5">
+        {/* Back link */}
+        <Link
+          href={productionReturn ?? (reviewMode ? '/review' : '/')}
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-slate-950 transition-colors"
+        >
+          <ArrowLeft className="size-4" />{' '}
+          {productionReturn
+            ? 'Kembali ke Uji peragaan'
+            : reviewMode
+              ? 'Kembali ke review'
+              : 'Kembali ke beranda'}
+        </Link>
+
+        {/* Chapter / Mission Badge & Replay badge */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
+            Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
+          </span>
+          {replayMode ? (
+            <Badge className="bg-[#FFAE00] text-slate-900 font-black rounded-full px-3 py-1">
+              <RotateCcw className="size-3" /> Mode ulang misi
+            </Badge>
+          ) : null}
         </div>
 
+        {/* Heading */}
+        <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+          Latih tanda “{sign.label}”
+        </h1>
+
+        {/* Horizontal Vocabulary Stepper */}
         {!reviewMode ? (
           <PracticeSignProgress
             activeSignId={sign.id}
@@ -101,71 +142,28 @@ export default async function PracticePage({
           />
         ) : null}
 
-        <section className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="order-2 space-y-5 lg:order-1">
-            <div className="border-t-4 border-signal-teal bg-card p-6">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
-                Contoh tanda
-              </p>
-              <video
-                id={referenceVideoId}
-                className="mt-5 aspect-[4/3] w-full bg-black object-cover"
-                src={referenceVideoUrl}
-                aria-label={`Video contoh tanda ${sign.label}`}
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls
-              />
-              <p className="mt-6 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-                Fokus pengamatan
-              </p>
-              <ul className="mt-3 space-y-3 text-sm font-bold text-signal-navy">
-                <li>• Bentuk dan jarak antarjari</li>
-                <li>• {sign.focus}</li>
-                <li>• Arah telapak dan titik akhir</li>
-              </ul>
-              <p className="mt-4 border-t border-signal-navy/10 pt-4 text-xs leading-5 text-muted-foreground">
-                {sign.note}
-              </p>
-            </div>
-            <div className="border border-signal-navy/10 bg-card p-6">
-              <div className="flex gap-3">
-                <Info className="mt-0.5 size-5 shrink-0 text-emerald-700" />
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Skor adalah kemiripan terhadap satu contoh, bukan klasifikasi
-                  kata atau sertifikasi kemampuan.
-                </p>
-              </div>
-            </div>
-          </aside>
-          <div className="order-1 lg:order-2">
-            <CameraPractice
-              signId={sign.id}
-              signLabel={sign.label}
-              referenceVideoUrl={referenceVideoUrl}
-              referenceVideoElementId={referenceVideoId}
-              missionId={mission.id}
-              missionSignIds={mission.signIds}
-              reviewMode={reviewMode}
-            />
-          </div>
-        </section>
-
-        <section className="mt-8 flex gap-3 border border-signal-navy/10 bg-card p-6">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-700" />
-          <div>
-            <h2 className="text-sm font-black text-signal-navy">
-              Privasi latihan kamera
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Frame diproses pada perangkat untuk menghasilkan landmark dan
-              tidak diunggah atau disimpan oleh BISARA.
-            </p>
-          </div>
-        </section>
+        {/* 3-Column Practice Area (Contoh Tanda + Kamera + Kalibrasi/Hasil) */}
+        <CameraPractice
+          key={sign.id}
+          signId={sign.id}
+          signLabel={sign.label}
+          referenceVideoUrl={referenceVideoUrl}
+          referenceVideoElementId={referenceVideoId}
+          missionId={mission.id}
+          missionSignIds={mission.signIds}
+          reviewMode={reviewMode}
+          exampleCard={exampleCard}
+        />
       </div>
+
+      {/* Fixed Bottom Timeline Navigation */}
+      {!reviewMode ? (
+        <MissionSectionNavigation
+          missionId={mission.id}
+          section="tirukan"
+          variant="bottom-bar"
+        />
+      ) : null}
     </main>
   );
 }
