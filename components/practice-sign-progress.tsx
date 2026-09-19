@@ -61,9 +61,9 @@ export function PracticeSignProgress({
                 <span
                   aria-disabled="true"
                   title="Selesaikan kosakata sebelumnya terlebih dahulu"
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100/90 px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-bold text-slate-400 opacity-60 cursor-not-allowed select-none whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#B8BFC6] px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-bold text-slate-700 cursor-not-allowed select-none whitespace-nowrap"
                 >
-                  <LockKeyhole className="size-3 text-slate-400 shrink-0" />
+                  <LockKeyhole className="size-3.5 text-slate-700 shrink-0 stroke-[2.5]" />
                   {sign.label}
                 </span>
               </div>
@@ -104,9 +104,9 @@ export function PracticeSignProgress({
             <span
               aria-disabled="true"
               title="Selesaikan seluruh kosakata sebelum latihan"
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100/90 px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-bold text-slate-400 opacity-60 cursor-not-allowed select-none whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#B8BFC6] px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-bold text-slate-700 cursor-not-allowed select-none whitespace-nowrap"
             >
-              <LockKeyhole className="size-3 text-slate-400 shrink-0" />
+              <LockKeyhole className="size-3.5 text-slate-700 shrink-0 stroke-[2.5]" />
               Latihan
             </span>
           )}
@@ -119,7 +119,7 @@ export function PracticeSignProgress({
               'size-5 transition-colors',
               allSignsPassed
                 ? 'text-[#E54D2E] fill-[#E54D2E]'
-                : 'text-slate-300 fill-slate-300',
+                : 'text-[#8C95A0] fill-[#8C95A0]',
             )}
           />
         </div>
