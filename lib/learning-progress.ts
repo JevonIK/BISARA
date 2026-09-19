@@ -69,8 +69,8 @@ export function getMissionLearningState(
         };
       } else {
         next = {
-          href: mission.href,
-          label: `Mulai tahap Amati`,
+          href: `/missions/learn?mission=${mission.id}&section=tirukan`,
+          label: 'Mulai tahap Tirukan',
         };
       }
     }

@@ -142,7 +142,8 @@ void test('alphabet is Bab 1 and uses existing mission completion without checke
   assert.equal(isMissionUnlocked('alfabet-a-e', unlocked), true);
   assert.equal(isMissionUnlocked('alfabet-f-j', unlocked), false);
   assert.equal(isMissionUnlocked('berkenalan', unlocked), false);
-  assert.equal(getMissionLearningState('alfabet-a-e', unlocked).next.href, getMission('alfabet-a-e').href);
+  assert.equal(getMissionLearningState('alfabet-a-e', unlocked).next.href, '/missions/learn?mission=alfabet-a-e&section=tirukan');
+  assert.equal(getMissionLearningState('alfabet-a-e', unlocked).next.label, 'Mulai tahap Tirukan');
   assert.equal(getMissionReplayAction('alfabet-a-e').href, getMission('alfabet-a-e').href);
 
   let snapshot = JSON.stringify(unlocked);
