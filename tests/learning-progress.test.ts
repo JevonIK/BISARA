@@ -16,6 +16,8 @@ import {
   getChapterProgress,
   getMissionLearningState,
   getMissionReplayAction,
+  isMissionPracticeComplete,
+  isMissionSignUnlocked,
   isMissionUnlocked,
 } from '@/lib/learning-progress';
 import {
@@ -515,3 +517,75 @@ void test('only finishing all mission sections unlocks the next mission and pays
     else Reflect.deleteProperty(globalThis, 'window');
   }
 });
+
+void test('mission signs unlock sequentially and disable downstream signs and latihan', () => {
+  const missionSigns = ['saya', 'siapa', 'teman', 'terima-kasih', 'maaf'];
+  const baseProgress = {
+    ...emptyAccountProgress,
+    completedMissions: 0,
+    completedMissionIds: [],
+  };
+
+  // Initially, only the first sign (index 0) is unlocked
+  assert.equal(isMissionSignUnlocked('saya', missionSigns, baseProgress, 'berkenalan'), true);
+  assert.equal(isMissionSignUnlocked('siapa', missionSigns, baseProgress, 'berkenalan'), false);
+  assert.equal(isMissionSignUnlocked('teman', missionSigns, baseProgress, 'berkenalan'), false);
+  assert.equal(isMissionSignUnlocked('terima-kasih', missionSigns, baseProgress, 'berkenalan'), false);
+  assert.equal(isMissionSignUnlocked('maaf', missionSigns, baseProgress, 'berkenalan'), false);
+  assert.equal(isMissionPracticeComplete(missionSigns, baseProgress, 'berkenalan'), false);
+
+  // User completes "saya" (passed: true)
+  const sayaPassed = {
+    ...baseProgress,
+    signMastery: {
+      ...baseProgress.signMastery,
+      saya: { bestScore: 85, passed: true, attempts: 1, lastPracticedAt: 'now' },
+    },
+  };
+
+  // Now "saya" is unlocked (reviewable), "siapa" is unlocked (next up),
+  // but "teman", "terima-kasih", "maaf", and "Latihan" remain locked
+  assert.equal(isMissionSignUnlocked('saya', missionSigns, sayaPassed, 'berkenalan'), true);
+  assert.equal(isMissionSignUnlocked('siapa', missionSigns, sayaPassed, 'berkenalan'), true);
+  assert.equal(isMissionSignUnlocked('teman', missionSigns, sayaPassed, 'berkenalan'), false);
+  assert.equal(isMissionSignUnlocked('terima-kasih', missionSigns, sayaPassed, 'berkenalan'), false);
+  assert.equal(isMissionSignUnlocked('maaf', missionSigns, sayaPassed, 'berkenalan'), false);
+  assert.equal(isMissionPracticeComplete(missionSigns, sayaPassed, 'berkenalan'), false);
+
+  // User completes "siapa"
+  const siapaPassed = {
+    ...sayaPassed,
+    signMastery: {
+      ...sayaPassed.signMastery,
+      siapa: { bestScore: 88, passed: true, attempts: 1, lastPracticedAt: 'now' },
+    },
+  };
+  assert.equal(isMissionSignUnlocked('teman', missionSigns, siapaPassed, 'berkenalan'), true);
+  assert.equal(isMissionSignUnlocked('terima-kasih', missionSigns, siapaPassed, 'berkenalan'), false);
+  assert.equal(isMissionSignUnlocked('maaf', missionSigns, siapaPassed, 'berkenalan'), false);
+  assert.equal(isMissionPracticeComplete(missionSigns, siapaPassed, 'berkenalan'), false);
+
+  // When all signs are completed
+  const allPassed = {
+    ...baseProgress,
+    signMastery: {
+      ...baseProgress.signMastery,
+      saya: { bestScore: 85, passed: true, attempts: 1, lastPracticedAt: 'now' },
+      siapa: { bestScore: 88, passed: true, attempts: 1, lastPracticedAt: 'now' },
+      teman: { bestScore: 90, passed: true, attempts: 1, lastPracticedAt: 'now' },
+      'terima-kasih': { bestScore: 92, passed: true, attempts: 1, lastPracticedAt: 'now' },
+      maaf: { bestScore: 87, passed: true, attempts: 1, lastPracticedAt: 'now' },
+    },
+  };
+  assert.equal(isMissionSignUnlocked('maaf', missionSigns, allPassed, 'berkenalan'), true);
+  assert.equal(isMissionPracticeComplete(missionSigns, allPassed, 'berkenalan'), true);
+
+  // In completed missions, all signs are unlocked for review even if signMastery was partial
+  const completedMissionProgress = {
+    ...baseProgress,
+    completedMissionIds: ['berkenalan'],
+  };
+  assert.equal(isMissionSignUnlocked('maaf', missionSigns, completedMissionProgress, 'berkenalan'), true);
+  assert.equal(isMissionPracticeComplete(missionSigns, completedMissionProgress, 'berkenalan'), true);
+});
+

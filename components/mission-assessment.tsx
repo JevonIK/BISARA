@@ -128,7 +128,11 @@ export function MissionAssessment({
         action="Kembali ke beranda"
       />
     );
-  if (view === 'recognition' && !learning.practiceComplete)
+  if (
+    !learning.practiceComplete &&
+    searchParamMode !== 'result' &&
+    mission.type !== 'checkpoint'
+  )
     return (
       <Gate
         title="Selesaikan tahap Tirukan"

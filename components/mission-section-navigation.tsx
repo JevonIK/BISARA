@@ -61,7 +61,7 @@ export function MissionSectionNavigation({
             href:
               mission.type === 'alphabet'
                 ? `/missions/learn?mission=${mission.id}&section=tirukan`
-                : `/missions/practice?mission=${mission.id}&sign=${mission.signIds[0]}`,
+                : `/missions/practice?mission=${mission.id}&sign=${learning.missionSigns.find((s) => !progress.signMastery[s.id]?.passed)?.id ?? mission.signIds[0]}`,
             complete: learning.practiceComplete,
             available: learning.unlocked,
           },
