@@ -774,6 +774,27 @@ void test('a correct path can use a different natural movement amplitude', () =>
   assert.equal(result.passed, true, JSON.stringify(result));
 });
 
+void test('matching direction and extent tolerate a locally rounder wrist arc', () => {
+  const reference = sequence();
+  const attempt = sequence().map((item, index, frames) => {
+    const progress = index / (frames.length - 1);
+    const deltaY = Math.sin(progress * Math.PI) * 0.15;
+    return moveVertically(item, deltaY, item.timeMs);
+  });
+  const result = scoreGesture(reference, attempt);
+  assert.equal(
+    result.movementEvidence?.macroAligned,
+    true,
+    JSON.stringify(result),
+  );
+  assert.ok(
+    (result.movementEvidence?.pathError ?? 0) > 0.125,
+    JSON.stringify(result),
+  );
+  assert.ok(result.movement >= 70, JSON.stringify(result));
+  assert.equal(result.passed, true, JSON.stringify(result));
+});
+
 void test('a moderate camera angle does not reject the same hand pose', () => {
   const radians = (22 * Math.PI) / 180;
   const attempt = sequence().map((item) => ({

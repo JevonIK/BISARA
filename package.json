@@ -10,7 +10,10 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "oxlint",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "audit:checker": "node --experimental-strip-types scripts/audit-gesture-checker.mjs",
+    "audit:captures": "node --experimental-strip-types scripts/audit-user-gesture-captures.mjs",
+    "test:sync": "node scripts/test-account-sync.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

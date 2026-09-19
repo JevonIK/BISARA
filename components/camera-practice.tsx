@@ -79,6 +79,7 @@ const MAX_RECORDING_DURATION_MS = 10000;
 const REFERENCE_SAMPLE_INTERVAL_MS = 66;
 const POSE_INFERENCE_INTERVAL_MS = 132;
 const MAX_POSE_AGE_MS = 300;
+const START_HAND_STABILITY_MS = 300;
 
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],
@@ -173,6 +174,7 @@ export function CameraPractice({
   const lastPoseInferenceRef = useRef(0);
   const poseTimestampOffsetRef = useRef(0);
   const latestPoseAtRef = useRef(0);
+  const stableHandsSinceRef = useRef(0);
   const latestPoseLandmarksRef =
     useRef<GestureFrame['poseLandmarks']>(undefined);
   const lastBrightnessCheckRef = useRef(0);
@@ -208,6 +210,7 @@ export function CameraPractice({
   // Scoring state
   const [practicePhase, setPracticePhase] = useState<PracticePhase>('idle');
   const [countdown, setCountdown] = useState(0);
+  const [waitingForHands, setWaitingForHands] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(
     FALLBACK_RECORDING_DURATION_MS,
@@ -270,6 +273,7 @@ export function CameraPractice({
     poseLandmarkerRef.current = null;
     latestPoseLandmarksRef.current = undefined;
     latestPoseAtRef.current = 0;
+    stableHandsSinceRef.current = 0;
     poseTimestampOffsetRef.current = 0;
 
     if (videoRef.current) {
@@ -296,6 +300,7 @@ export function CameraPractice({
     setRecordingProgress(0);
     resumeReferencePreview();
     setCountdown(0);
+    setWaitingForHands(false);
   }, [releaseResources, resumeReferencePreview, updatePhase]);
 
   useEffect(() => {
@@ -330,6 +335,7 @@ export function CameraPractice({
     smoothedHandsRef.current = [];
     latestPoseLandmarksRef.current = undefined;
     latestPoseAtRef.current = 0;
+    stableHandsSinceRef.current = 0;
 
     setCountdown(0);
     setRecordingProgress(0);
@@ -553,6 +559,11 @@ export function CameraPractice({
             }
 
             const detectedHands = hands.length;
+            if (detectedHands >= requiredHandCountRef.current) {
+              if (!stableHandsSinceRef.current) stableHandsSinceRef.current = now;
+            } else {
+              stableHandsSinceRef.current = 0;
+            }
             setHandCount((previous) =>
               previous === detectedHands ? previous : detectedHands,
             );
@@ -775,6 +786,7 @@ export function CameraPractice({
     if (practicePhaseRef.current !== 'countdown') return;
     countdownTimerRef.current = null;
     setCountdown(0);
+    setWaitingForHands(false);
 
     const referenceVideo = getReferenceVideo();
     if (referenceVideo) {
@@ -808,6 +820,7 @@ export function CameraPractice({
     smoothedHandsRef.current = [];
     latestPoseLandmarksRef.current = undefined;
     latestPoseAtRef.current = 0;
+    stableHandsSinceRef.current = 0;
     setRecordingProgress(0);
     setGestureScore(null);
     setNextAction(null);
@@ -830,14 +843,34 @@ export function CameraPractice({
 
     updatePhase('countdown');
     setCountdown(COUNTDOWN_SECONDS);
+    setWaitingForHands(false);
 
-    // Derive the visible number from a monotonic deadline so delayed timers do
-    // not stretch a three-second countdown into four or five seconds.
-    const deadline = performance.now() + COUNTDOWN_SECONDS * 1000;
+    // Keep the countdown tied to a monotonic clock. A cold tracker or hands
+    // outside the frame pauses the start until detection is stable, then gives
+    // one more second to prepare before recording begins.
+    let deadline = performance.now() + COUNTDOWN_SECONDS * 1000;
+    let waitingForReadyHands = false;
     countdownTimerRef.current = setInterval(() => {
       if (practicePhaseRef.current !== 'countdown') return;
-      const remainingMs = deadline - performance.now();
+      const now = performance.now();
+      const remainingMs = deadline - now;
       if (remainingMs <= 0) {
+        if (
+          !stableHandsSinceRef.current ||
+          now - stableHandsSinceRef.current < START_HAND_STABILITY_MS
+        ) {
+          waitingForReadyHands = true;
+          setWaitingForHands(true);
+          setCountdown(1);
+          return;
+        }
+        if (waitingForReadyHands) {
+          waitingForReadyHands = false;
+          setWaitingForHands(false);
+          deadline = now + 1000;
+          setCountdown(1);
+          return;
+        }
         if (countdownTimerRef.current !== null) {
           clearInterval(countdownTimerRef.current);
           countdownTimerRef.current = null;
@@ -860,6 +893,7 @@ export function CameraPractice({
     rawFrameBufferRef.current = [];
     smoothedFrameBufferRef.current = [];
     setRecordingProgress(0);
+    setWaitingForHands(false);
     setGestureScore(null);
     setNextAction(null);
     updatePhase('idle');
@@ -889,6 +923,7 @@ export function CameraPractice({
     }
     frameBufferRef.current = [];
     setCountdown(0);
+    setWaitingForHands(false);
     setRecordingProgress(0);
     setGestureScore(null);
     setNextAction(null);
@@ -1092,10 +1127,14 @@ export function CameraPractice({
             <div className="absolute inset-0 grid place-items-center bg-signal-navy/40 backdrop-blur-sm">
               <output className="text-center" aria-live="polite">
                 <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-yellow text-5xl font-black text-signal-navy">
-                  {countdown}
+                  {waitingForHands ? <Hand className="size-10" /> : countdown}
                 </span>
                 <p className="mt-4 text-sm font-bold text-white">
-                  {signId === 'teman'
+                  {waitingForHands
+                    ? requiredHandCount === 2
+                      ? 'Tampilkan kedua tangan terpisah di dalam bingkai untuk mulai.'
+                      : 'Tampilkan tangan di dalam bingkai untuk mulai.'
+                    : signId === 'teman'
                     ? 'Pisahkan kedua telunjuk di depan dada. Setelah hitungan, dekatkan hingga bertemu lalu tahan.'
                     : productionMode
                       ? 'Bersiap — peragakan kata dari ingatan setelah hitungan'
@@ -1353,6 +1392,17 @@ export function CameraPractice({
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
             {gestureScore.feedback}
           </p>
+          {!gestureScore.passed &&
+          gestureScore.assessable &&
+          gestureScore.handshape < 50 &&
+          (signId === 'apa' || signId === 'kapan' || signId === 'di-mana') ? (
+            <p className="mt-3 text-xs leading-5 text-amber-900">
+              Untuk tanda di dekat perut, jaga tinggi tangan seperti contoh,
+              tetapi beri sedikit ruang antara tangan dan baju. Mundurkan
+              kamera hingga perut dan ujung jari terlihat; periksa bentuk jari
+              pada video sebelum mencoba lagi.
+            </p>
+          ) : null}
           {!productionMode && !gestureScore.passed && previouslyMastered ? (
             <p className="mt-3 text-xs leading-5 text-emerald-800">
               Tanda {signLabel} sudah pernah lulus. Percobaan ulang ini tidak
@@ -1367,7 +1417,7 @@ export function CameraPractice({
           ) : null}
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             {!gestureScore.orientationAssessable && gestureScore.assessable
-              ? 'Arah telapak tidak ikut menentukan hasil karena tangan pada contoh bertumpuk hampir sepanjang gerakan. '
+              ? 'Arah telapak tidak ikut menentukan hasil karena sudut telapak tidak terbaca cukup andal pada percobaan ini. '
               : null}
             {gestureScore.positionRelativeToBody
               ? '“Posisi terhadap tubuh” membandingkan letak tangan dari bahu dan torso, sehingga tanda di kepala dan dada dapat dibedakan.'

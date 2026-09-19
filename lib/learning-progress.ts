@@ -282,7 +282,7 @@ export function getChapterProgress(chapterId: string, progress: UserProgress) {
 }
 
 export function getChapterOneProgress(progress: UserProgress) {
-  return getChapterProgress('chapter-1', progress);
+  return getChapterProgress(chapters[0].id, progress);
 }
 
 export function getCurrentMission(progress: UserProgress) {

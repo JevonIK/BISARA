@@ -42,7 +42,7 @@ export default function ProfilPage() {
 
   const streakDisplay = progress.streak > 0 ? `${progress.streak} hari` : '80 hari';
   const missionsDisplay =
-    completedMissionsCount > 0 ? `${completedMissionsCount} / 15` : '2 / 15';
+    completedMissionsCount > 0 ? `${completedMissionsCount} / 25` : '2 / 25';
   const vocabDisplay =
     masteredSignsCount > 0 ? `${masteredSignsCount} / 32` : '12 / 32';
   const starsDisplay = '80 hari';
@@ -51,7 +51,7 @@ export default function ProfilPage() {
     {
       id: 'penyapa-handal-1',
       title: 'Penyapa Handal',
-      subtitle: 'Kuasai kosa kata Bab 1',
+      subtitle: 'Kuasai kosa kata Bab 2',
       icon: Trophy,
       unlocked: true,
       progress: 'Progres: 5/5',
@@ -59,7 +59,7 @@ export default function ProfilPage() {
     {
       id: 'penyapa-handal-2',
       title: 'Penyapa Handal',
-      subtitle: 'Kuasai kosa kata Bab 1',
+      subtitle: 'Kuasai kosa kata Bab 2',
       icon: Trophy,
       unlocked: true,
       progress: 'Progres: 5/5',
@@ -89,7 +89,7 @@ export default function ProfilPage() {
     {
       id: 'penyapa-handal-3',
       title: 'Penyapa Handal',
-      subtitle: 'Kuasai kosa kata Bab 1',
+      subtitle: 'Kuasai kosa kata Bab 2',
       icon: Trophy,
       unlocked: true,
       progress: 'Progres: 5/5',

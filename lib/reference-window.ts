@@ -3,6 +3,11 @@ type TimedFrame = { timeMs: number };
 // These boundaries mark the performed sign, excluding the demonstrator's
 // preparation and return to rest. Keep them tied to the exact source clip.
 const curatedWindows: Record<string, { startMs: number; endMs: number }> = {
+  // Both fists are already in the lexical handlebar pose here. The frames
+  // before and after this interval mainly show the signer raising and lowering
+  // their arms; treating that setup as vocabulary motion makes a stable,
+  // synchronized Motor attempt look reversed.
+  'signer0_label8_sample3.mp4': { startMs: 396, endMs: 1518 }, // Motor
   // One complete wrist/finger sweep. The rest of this clip starts another
   // cycle but stops mid-motion, which made a correct single cycle fail.
   'signer2_label26_sample3.mp4': { startMs: 528, endMs: 1122 }, // Keluarga

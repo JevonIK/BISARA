@@ -36,10 +36,11 @@ import {
 import type { GestureScore } from '@/lib/gesture-scoring';
 
 void test('mission stages unlock only after their real prerequisite', () => {
+  const alphabetComplete = alphabetMissionGroups.map(({ id }) => id);
   const unlockedProgress = {
     ...emptyAccountProgress,
-    completedMissions: 0,
-    completedMissionIds: [],
+    completedMissions: alphabetComplete.length,
+    completedMissionIds: alphabetComplete,
   };
   const initial = getBerkenalanLearningState(unlockedProgress);
   assert.equal(initial.masteredSignCount, 0);
@@ -88,8 +89,8 @@ void test('mission stages unlock only after their real prerequisite', () => {
   const completed = getBerkenalanLearningState({
     ...allSignsPassed,
     missionScores: { berkenalan: 80 },
-    completedMissionIds: ['berkenalan'],
-    completedMissions: 1,
+    completedMissionIds: [...alphabetComplete, 'berkenalan'],
+    completedMissions: alphabetComplete.length + 1,
     conversationCompletionsByMission: { berkenalan: 1 },
   });
   assert.equal(completed.conversationComplete, true);
@@ -114,7 +115,9 @@ void test('word curriculum and alphabet cover five chapters with distinct missio
   assert.equal(chapters.length, 5);
   assert.equal(allMissions.length, 25);
   assert.deepEqual(chapters.map((chapter) => chapter.number), ['01', '02', '03', '04', '05']);
-  assert.deepEqual(chapters[4].missions.map((mission) => mission.title), ['A–E', 'F–J', 'K–O', 'P–T', 'U–Z']);
+  assert.equal(chapters[0].title, 'Alfabet dalam BISINDO');
+  assert.deepEqual(chapters[0].missions.map((mission) => mission.title), ['A–E', 'F–J', 'K–O', 'P–T', 'U–Z']);
+  assert.equal(chapters[1].title, 'Perkenalan & relasi');
   const covered = new Set(allMissions.flatMap((mission) => mission.signIds));
   assert.deepEqual([...signIds].sort(), [...covered].sort());
   assert.deepEqual(alphabetVideos.map((video) => video.letter), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
@@ -132,13 +135,11 @@ void test('word curriculum and alphabet cover five chapters with distinct missio
   }
 });
 
-void test('alphabet follows Bab 4 and uses existing mission completion without checker rewards', () => {
-  const priorMissions = allMissions.slice(0, 20).map(({ id }) => id);
-  const before = { ...emptyAccountProgress, completedMissionIds: priorMissions.slice(0, -1) };
-  assert.equal(isMissionUnlocked('alfabet-a-e', before), false);
-  const unlocked = { ...before, completedMissionIds: priorMissions };
+void test('alphabet is Bab 1 and uses existing mission completion without checker rewards', () => {
+  const unlocked = { ...emptyAccountProgress, completedMissionIds: [] };
   assert.equal(isMissionUnlocked('alfabet-a-e', unlocked), true);
   assert.equal(isMissionUnlocked('alfabet-f-j', unlocked), false);
+  assert.equal(isMissionUnlocked('berkenalan', unlocked), false);
   assert.equal(getMissionLearningState('alfabet-a-e', unlocked).next.href, getMission('alfabet-a-e').href);
   assert.equal(getMissionReplayAction('alfabet-a-e').href, getMission('alfabet-a-e').href);
 
@@ -209,7 +210,17 @@ void test('recognition questions use unique options and rotate balanced checkpoi
 });
 
 void test('missions unlock in curriculum order', () => {
-  assert.equal(isMissionUnlocked('berkenalan', emptyAccountProgress), true);
+  assert.equal(isMissionUnlocked('alfabet-a-e', emptyAccountProgress), true);
+  assert.equal(isMissionUnlocked('berkenalan', emptyAccountProgress), false);
+  const alphabetComplete = alphabetMissionGroups.map(({ id }) => id);
+  assert.equal(
+    isMissionUnlocked('berkenalan', {
+      ...emptyAccountProgress,
+      completedMissionIds: alphabetComplete,
+      completedMissions: alphabetComplete.length,
+    }),
+    true,
+  );
   assert.equal(
     isMissionUnlocked('orang-terdekat', emptyAccountProgress),
     false,
@@ -278,8 +289,8 @@ void test('legacy gesture result migrates as Saya only', () => {
 
 void test('old completion stays valid, while recognition-only progress waits for final section', () => {
   const stored = structuredClone(defaultProgress);
-  stored.completedMissionIds = [];
-  stored.completedMissions = 0;
+  stored.completedMissionIds = alphabetMissionGroups.map(({ id }) => id);
+  stored.completedMissions = stored.completedMissionIds.length;
   stored.conversationCompletions = 0;
   stored.conversationCompletionsByMission = {};
   const migrated = parseProgressSnapshot(JSON.stringify(stored));
