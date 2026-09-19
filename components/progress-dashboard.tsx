@@ -8,7 +8,6 @@ import {
   LockKeyhole,
   Brain,
   RefreshCw,
-  Sparkles,
   Star,
   Target,
   Trophy,
@@ -78,8 +77,6 @@ const badges = [
 export function ProgressDashboard() {
   const userProgress = useProgress();
   const account = useAccount();
-  const level = Math.floor(userProgress.xp / 500) + 1;
-  const levelProgress = userProgress.xp % 500;
   const reviewSignIds = getReviewSignIds(userProgress);
   const reviewProgress = Math.round(
     (userProgress.reviewedSigns.length / Math.max(1, reviewSignIds.length)) *
@@ -121,7 +118,7 @@ export function ProgressDashboard() {
       <section className="grid overflow-hidden bg-signal-navy text-white lg:grid-cols-[1fr_360px]">
         <div className="p-7 sm:p-10">
           <Badge className="bg-signal-teal text-signal-navy">
-            Level {level} · Communicator
+            {unlockedBadges.size} Lencana · Communicator
           </Badge>
           <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.08] tracking-[-0.05em] sm:text-5xl">
             Progresmu mulai membentuk kebiasaan komunikasi.
@@ -136,22 +133,25 @@ export function ProgressDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
-                Total pengalaman
+                Total lencana
               </p>
               <p className="mt-2 text-5xl font-black tracking-[-0.06em]">
-                {userProgress.xp.toLocaleString('id-ID')}
+                {unlockedBadges.size}
               </p>
-              <p className="text-sm font-bold text-white/45">XP</p>
+              <p className="text-sm font-bold text-white/45">Lencana diraih</p>
             </div>
-            <Sparkles className="size-7 text-signal-yellow" />
+            <Award className="size-8 text-signal-yellow" />
           </div>
           <div className="mt-10">
-            <Progress value={(levelProgress / 500) * 100} className="gap-2">
+            <Progress
+              value={(unlockedBadges.size / badges.length) * 100}
+              className="gap-2"
+            >
               <ProgressLabel className="text-xs font-bold text-white">
-                Menuju level {level + 1}
+                Koleksi lencana
               </ProgressLabel>
               <span className="ml-auto text-xs font-bold text-white/55">
-                {levelProgress}/500 XP
+                {unlockedBadges.size}/{badges.length} Lencana
               </span>
             </Progress>
           </div>

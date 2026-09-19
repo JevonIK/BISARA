@@ -1,42 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CheckCircle2,
   Eye,
   EyeOff,
   LoaderCircle,
   LockKeyhole,
-  LogOut,
   Mail,
-  RefreshCw,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { useAccount } from '@/hooks/use-account';
-import { useProgress } from '@/hooks/use-progress';
 import {
   authenticate,
   canImportGuestProgress,
   hasPersistentStorage,
   importGuestProgress,
-  logoutAccount,
   refreshAccount,
-  resolveProgressConflict,
-  syncProgress,
 } from '@/lib/account-session';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export function AccountPanel() {
+  const router = useRouter();
   const account = useAccount();
-  const progress = useProgress();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+
+  useEffect(() => {
+    if (account.status === 'ready' && account.user) {
+      router.replace('/');
+    }
+  }, [account.status, account.user, router]);
 
   async function perform(action: () => Promise<void>) {
     setBusy(true);
@@ -74,14 +75,23 @@ export function AccountPanel() {
     };
 
     await perform(async () => {
-      await authenticate(mode, {
+      const user = await authenticate(mode, {
         email: field('email').trim(),
         password: field('password'),
         ...(mode === 'register'
           ? { displayName: field('displayName').trim() }
           : {}),
       });
+      if (canImportGuestProgress()) {
+        importGuestProgress();
+      }
+      const username =
+        user?.displayName || field('displayName').trim() || 'Pengguna';
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('bisara_welcome_user', username);
+      }
       form.reset();
+      router.push('/?login=success');
     });
   }
 
@@ -102,7 +112,7 @@ export function AccountPanel() {
             setiap perangkat.
           </h1>
           <p className="mt-4 text-xs sm:text-sm lg:text-base font-semibold leading-relaxed text-slate-900/85 max-w-md">
-            Masuk untuk menyimpan hasil tes, XP, dan review ke akunmu. Progres
+            Masuk untuk menyimpan hasil tes, lencana, dan review ke akunmu. Progres
             tamu tetap tersedia di browser ini.
           </p>
         </div>
@@ -116,123 +126,10 @@ export function AccountPanel() {
       {/* Right Form Card */}
       <div className="flex flex-col justify-center bg-white p-8 sm:p-12 lg:p-16">
         <div className="mx-auto w-full max-w-lg">
-        {account.status === 'loading' ? (
+        {account.status === 'loading' || account.user ? (
           <div className="flex items-center gap-3 py-12 text-slate-600 font-bold">
             <LoaderCircle className="size-5 animate-spin text-amber-500" />
-            Memeriksa sesi…
-          </div>
-        ) : account.user ? (
-          /* User Logged In State */
-          <div className="space-y-6">
-            <div>
-              <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black text-slate-900 bg-amber-100 border border-amber-300">
-                Akun Terhubung
-              </span>
-              <h2 className="mt-3 text-2xl sm:text-3xl font-black text-slate-900">
-                Halo, {account.user.displayName}.
-              </h2>
-              <p className="mt-1 break-all text-sm font-semibold text-slate-500">
-                {account.user.email}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-amber-200 bg-[#FFF8EA] p-5">
-              <p className="text-3xl font-black text-slate-900">
-                {progress.xp.toLocaleString('id-ID')} XP
-              </p>
-              <p className="mt-1 text-xs sm:text-sm font-bold text-slate-700">
-                Skor pengenalan terbaik: {progress.bestChapterScore}/100
-              </p>
-              <output className="mt-3 block text-xs font-bold text-amber-900">
-                {account.sync === 'saved'
-                  ? '✓ Progres tersimpan di cloud.'
-                  : account.sync === 'saving'
-                    ? 'Menyimpan progres…'
-                    : account.sync === 'conflict'
-                      ? 'Ada dua versi progres.'
-                      : 'Menunggu sinkronisasi.'}
-              </output>
-            </div>
-
-            {account.sync === 'conflict' && (
-              <div className="space-y-3 rounded-2xl border border-amber-400 bg-amber-50 p-5 text-sm text-amber-950">
-                <p>
-                  Perangkat lain telah memperbarui akun. Pilih versi yang ingin
-                  dipakai.
-                </p>
-                <Button
-                  disabled={busy}
-                  variant="outline"
-                  onClick={() =>
-                    perform(() => resolveProgressConflict('server'))
-                  }
-                >
-                  Gunakan progres server
-                </Button>
-                <details>
-                  <summary className="cursor-pointer py-2 font-semibold">
-                    Pertahankan versi browser ini
-                  </summary>
-                  <Button
-                    disabled={busy}
-                    variant="outline"
-                    onClick={() =>
-                      perform(() => resolveProgressConflict('local'))
-                    }
-                  >
-                    Ganti server dengan versi lokal
-                  </Button>
-                </details>
-              </div>
-            )}
-
-            {canImportGuestProgress() && (
-              <div className="space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-5 text-sm text-teal-950">
-                <p>
-                  Akun ini masih baru. Progres tamu di browser ini dapat disalin
-                  ke akunmu.
-                </p>
-                <Button
-                  disabled={busy}
-                  variant="outline"
-                  onClick={importGuestProgress}
-                >
-                  Salin progres tamu ke akun ini
-                </Button>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="button"
-                disabled={
-                  busy ||
-                  account.sync === 'saving' ||
-                  account.sync === 'conflict'
-                }
-                onClick={() => perform(syncProgress)}
-                className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-6 py-2.5 text-xs sm:text-sm font-black text-slate-950 shadow-xs hover:bg-[#F2A300] transition-colors"
-              >
-                <RefreshCw className="size-4" />
-                Sinkronkan
-              </button>
-              <button
-                type="button"
-                disabled={busy || account.sync === 'saving'}
-                onClick={() => perform(logoutAccount)}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-              >
-                <LogOut className="size-4" />
-                Keluar
-              </button>
-            </div>
-
-            <Link
-              href="/profil"
-              className="mt-4 inline-block text-xs sm:text-sm font-black text-[#F06543] hover:underline"
-            >
-              Buka profil belajar →
-            </Link>
+            {account.user ? 'Mengarahkan ke beranda…' : 'Memeriksa sesi…'}
           </div>
         ) : (
           /* Login / Register / Forgot Password Forms */

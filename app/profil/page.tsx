@@ -7,15 +7,18 @@ import {
   Flag,
   Flame,
   LockKeyhole,
+  LogOut,
   MessageSquare,
   Star,
   Trophy,
   Zap,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
 import { useAccount } from '@/hooks/use-account';
 import { useProgress } from '@/hooks/use-progress';
+import { logoutAccount } from '@/lib/account-session';
 import { signs } from '@/lib/curriculum-data';
 import { getPrototypeMissionCount } from '@/lib/learning-progress';
 
@@ -158,6 +161,34 @@ export default function ProfilPage() {
             <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500">
               Bergabung sejak {joinedDate}
             </p>
+
+            {account.user ? (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                  <span className="size-2 rounded-full bg-emerald-500" />
+                  {account.user.email}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logoutAccount();
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs cursor-pointer"
+                >
+                  <LogOut className="size-3.5 text-slate-500" />
+                  Keluar dari Akun
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 flex items-center justify-center">
+                <Link
+                  href="/account"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#F8A51D] px-4 py-1.5 text-xs font-black text-slate-900 shadow-2xs hover:bg-[#E59312] transition-colors"
+                >
+                  Masuk ke Akun
+                </Link>
+              </div>
+            )}
           </div>
         </section>
 

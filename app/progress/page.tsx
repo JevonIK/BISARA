@@ -6,7 +6,7 @@ import { ProgressDashboard } from '@/components/progress-dashboard';
 export const metadata: Metadata = {
   title: 'Progres Belajar',
   description:
-    'Pantau XP, streak, aktivitas mingguan, mastery, skor, dan lencana pembelajaran BISINDO.',
+    'Pantau streak, aktivitas mingguan, mastery, skor, dan lencana pembelajaran BISINDO.',
 };
 
 export default function ProgressPage() {
