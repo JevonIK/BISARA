@@ -448,7 +448,7 @@ export function recordMissionRecognition(
       Math.round((nextScore / 100) * 15) -
         Math.round((previousScore / 100) * 15),
     );
-    return markActive({
+    const updated = markActive({
       ...progress,
       xp: progress.xp + xpGain,
       bestChapterScore: Math.max(progress.bestChapterScore, nextScore),
@@ -459,6 +459,7 @@ export function recordMissionRecognition(
       totalPracticeMinutes: progress.totalPracticeMinutes + 3,
       weeklyActivity: addMinutesToToday(progress.weeklyActivity, 3),
     });
+    return completeEligibleMission(updated, missionId);
   });
 }
 
@@ -492,10 +493,11 @@ function completeEligibleMission(
     progress.completedMissionIds.includes(missionId) ||
     (progress.missionScores[missionId] ?? 0) < 70 ||
     (mission.type !== 'checkpoint' &&
-      !mission.signIds.every((id) => progress.signMastery[id]?.passed)) ||
-    !getProductionTestSignIds(missionId).every((id) =>
-      hasPassedProductionTest(progress, missionId, id),
-    )
+      !mission.signIds.every((id) => progress.signMastery[id]?.passed || hasPassedProductionTest(progress, missionId, id))) ||
+    (mission.type !== 'checkpoint' &&
+      !getProductionTestSignIds(missionId).every((id) =>
+        hasPassedProductionTest(progress, missionId, id),
+      ))
   )
     return progress;
   const completedMissionIds = [...progress.completedMissionIds, missionId];
@@ -526,7 +528,13 @@ export function recordProductionAssessment(
   )
     return parseProgressSnapshot(getProgressSnapshot());
   return updateProgress((progress) => {
-    const previous = progress.signMastery[signId];
+    const previous = progress.signMastery[signId] ?? {
+      bestScore: 0,
+      attempts: 0,
+      passed: false,
+      lastPracticedAt: new Date().toISOString(),
+      productionPassedMissionIds: [],
+    };
     const previouslyPassed = hasPassedProductionTest(
       progress,
       missionId,
@@ -542,6 +550,7 @@ export function recordProductionAssessment(
         ...progress.signMastery,
         [signId]: {
           ...previous,
+          passed: previous.passed || result.passed,
           productionPassedMissionIds: nextPassedMissionIds,
           recall: nextRecallHistory(
             previous.recall,

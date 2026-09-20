@@ -13,6 +13,7 @@ import {
   hasPassedProductionTest,
   type UserProgress,
 } from '@/lib/progress-storage';
+import { getProfileBadges } from '@/lib/badges';
 
 export const RECOGNITION_PASS_SCORE = 70;
 export type LearningStageState = 'completed' | 'current' | 'locked';
@@ -36,14 +37,13 @@ export function getMissionLearningState(
   if (mission.type === 'alphabet') {
     const missionComplete = progress.completedMissionIds.includes(mission.id);
     const unlocked = isMissionUnlocked(mission.id, progress);
+    const practiceComplete =
+      missionComplete || isAlphabetPracticeCompleted(mission.id);
+    const practiceStarted = practiceComplete;
     const recognitionScore = progress.missionScores[mission.id] ?? 0;
     const recognitionComplete =
-      missionComplete || recognitionScore >= RECOGNITION_PASS_SCORE;
-    const practiceComplete =
-      missionComplete ||
-      recognitionComplete ||
-      isAlphabetPracticeCompleted(mission.id);
-    const practiceStarted = practiceComplete;
+      practiceComplete &&
+      (missionComplete || recognitionScore >= RECOGNITION_PASS_SCORE);
     const letterCount = mission.alphabetLetters?.length ?? 5;
     const progressPercent = missionComplete
       ? 100
@@ -146,14 +146,17 @@ export function getMissionLearningState(
       : !recognitionComplete
         ? {
             href: `/missions/test?${missionQuery}&mode=recognition`,
-            label: 'Mulai uji pengenalan',
+            label:
+              mission.type === 'checkpoint'
+                ? 'Mulai Tes Bab'
+                : 'Mulai uji pengenalan',
           }
-        : !missionComplete
-          ? {
+        : mission.type === 'checkpoint' || missionComplete
+          ? getNextMissionAction(mission.id)
+          : {
               href: `/missions/test?${missionQuery}&mode=recall`,
               label: 'Lanjut ke Uji peragaan',
-            }
-          : getNextMissionAction(mission.id);
+            };
 
   return {
     mission,
@@ -231,9 +234,7 @@ export function getMissionActiveStageHref(
   }
 
   if (mission.type === 'checkpoint') {
-    return learning.recognitionComplete
-      ? `/missions/test?mission=${mission.id}&mode=recall`
-      : `/missions/test?mission=${mission.id}&mode=recognition`;
+    return `/missions/test?mission=${mission.id}&mode=recognition`;
   }
 
   if (!learning.practiceStarted) {
@@ -263,13 +264,7 @@ export function getPrototypeMissionCount(progress: UserProgress) {
 }
 
 export function getBadgeCount(progress: UserProgress): number {
-  const completedMissions = getPrototypeMissionCount(progress);
-  return [
-    completedMissions > 0,
-    progress.streak >= 7,
-    progress.bestChapterScore >= 70,
-    Object.values(progress.signMastery).some((item) => item.recall),
-  ].filter(Boolean).length;
+  return getProfileBadges(progress).filter((badge) => badge.unlocked).length;
 }
 
 export function getChapterProgress(chapterId: string, progress: UserProgress) {
