@@ -1,4 +1,4 @@
-import { signs } from '@/lib/curriculum-data';
+import { signs, type SignId } from '@/lib/curriculum-data';
 import { chapters } from '@/lib/learning-data';
 import type { UserProgress } from '@/lib/progress-storage';
 
@@ -10,66 +10,71 @@ export type ProfileBadge = {
   unlocked: boolean;
 };
 
-export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
-  // Bab 2: Perkenalan & relasi (chapter-1)
-  const chapter2Missions =
-    chapters.find((c) => c.number === '02')?.missions ?? [];
-  const chapter2SignIds = Array.from(
-    new Set(chapter2Missions.flatMap((m) => m.signIds)),
-  );
-  const chapter2Mastered =
-    (chapter2SignIds.length > 0 &&
-      chapter2SignIds.every((id) => progress.signMastery[id]?.passed)) ||
-    Boolean(
-      progress.signMastery['saya']?.passed &&
-        progress.signMastery['teman']?.passed &&
-        progress.signMastery['terima-kasih']?.passed,
-    );
+function isChapterTestPassed(
+  chapterNumber: string,
+  progress: UserProgress,
+): boolean {
+  const chapter = chapters.find((c) => c.number === chapterNumber);
+  if (!chapter || chapter.missions.length === 0) return false;
 
-  // Bab 3: Tanya Jawab Dasar (chapter-2)
-  const chapter3Missions =
-    chapters.find((c) => c.number === '03')?.missions ?? [];
-  const chapter3SignIds = Array.from(
-    new Set(chapter3Missions.flatMap((m) => m.signIds)),
-  );
-  const chapter3Mastered =
-    chapter3SignIds.length > 0 &&
-    chapter3SignIds.every((id) => progress.signMastery[id]?.passed);
-
-  // Bab 4: Kebutuhan & Aktivitas (chapter-3)
-  const chapter4Missions =
-    chapters.find((c) => c.number === '04')?.missions ?? [];
-  const chapter4SignIds = Array.from(
-    new Set(chapter4Missions.flatMap((m) => m.signIds)),
-  );
-  const chapter4Mastered =
-    chapter4SignIds.length > 0 &&
-    chapter4SignIds.every((id) => progress.signMastery[id]?.passed);
-
-  // Bab 5: Waktu & Rencana (chapter-4)
-  const chapter5Missions =
-    chapters.find((c) => c.number === '05')?.missions ?? [];
-  const chapter5SignIds = Array.from(
-    new Set(chapter5Missions.flatMap((m) => m.signIds)),
-  );
-  const chapter5Mastered =
-    chapter5SignIds.length > 0 &&
-    chapter5SignIds.every((id) => progress.signMastery[id]?.passed);
-
-  // Pionir Abjad: Bab 1 (chapter-5)
-  const alphabetMissions =
-    chapters.find((c) => c.number === '01')?.missions ?? [];
-  const alphabetMastered =
-    alphabetMissions.length > 0 &&
-    alphabetMissions.every(
+  // Bab 1 (Alfabet): all alphabet missions must be completed and tests passed with score >= 70
+  if (chapterNumber === '01') {
+    return chapter.missions.every(
       (m) =>
         progress.completedMissionIds.includes(m.id) &&
         (progress.missionScores[m.id] ?? 0) >= 70,
     );
+  }
+
+  // Chapters 2-5: each chapter has a final checkpoint test ('checkpoint')
+  const checkpointMission = chapter.missions.find(
+    (m) => m.type === 'checkpoint',
+  );
+  if (checkpointMission) {
+    const isCheckpointComplete = progress.completedMissionIds.includes(
+      checkpointMission.id,
+    );
+    const isCheckpointPassed =
+      (progress.missionScores[checkpointMission.id] ?? 0) >= 70;
+    const allMissionsComplete = chapter.missions.every((m) =>
+      progress.completedMissionIds.includes(m.id),
+    );
+    return isCheckpointComplete && isCheckpointPassed && allMissionsComplete;
+  }
+
+  return chapter.missions.every(
+    (m) =>
+      progress.completedMissionIds.includes(m.id) &&
+      (progress.missionScores[m.id] ?? 0) >= 70,
+  );
+}
+
+export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
+  const isSignMastered = (id: SignId) =>
+    Boolean(
+      progress.signMastery[id]?.passed ||
+        (progress.signMastery[id]?.productionPassedMissionIds &&
+          progress.signMastery[id].productionPassedMissionIds.length > 0),
+    );
+
+  // Bab 2: Perkenalan & relasi (chapter-1)
+  const chapter2Mastered = isChapterTestPassed('02', progress);
+
+  // Bab 3: Tanya Jawab Dasar (chapter-2)
+  const chapter3Mastered = isChapterTestPassed('03', progress);
+
+  // Bab 4: Kebutuhan & Aktivitas (chapter-3)
+  const chapter4Mastered = isChapterTestPassed('04', progress);
+
+  // Bab 5: Waktu & Rencana (chapter-4)
+  const chapter5Mastered = isChapterTestPassed('05', progress);
+
+  // Pionir Abjad: Bab 1 (chapter-5)
+  const alphabetMastered = isChapterTestPassed('01', progress);
 
   // Kamus Berjalan: Kuasai seluruh kosa kata (32 signs)
   const allVocabMastered =
-    signs.length > 0 && signs.every((s) => progress.signMastery[s.id]?.passed);
+    signs.length > 0 && signs.every((s) => isSignMastered(s.id));
 
   // Pahlawan Streak: Belajar 10 hari berturut-turut
   const streakMastered = progress.streak >= 10;
@@ -166,12 +171,33 @@ export function markBadgeAsSeen(badgeId: string): void {
   }
 }
 
-export function initSeenBadgesIfEmpty(unlockedBadgeIds: string[]): void {
+export function initSeenBadgesIfEmpty(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(SEEN_BADGES_KEY);
+    if (raw === null) {
+      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify([]));
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function syncSeenBadgesWithUnlocked(unlockedBadgeIds: string[]): void {
   if (typeof window === 'undefined') return;
   try {
     const raw = localStorage.getItem(SEEN_BADGES_KEY);
     if (raw === null) {
       localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify(unlockedBadgeIds));
+      return;
+    }
+    const seen = JSON.parse(raw) as string[];
+    const unlockedSet = new Set(unlockedBadgeIds);
+    // Keep only badges that are actually still unlocked.
+    // This heals any badge that was prematurely marked as seen before its requirements were actually met.
+    const filtered = seen.filter((id) => unlockedSet.has(id));
+    if (filtered.length !== seen.length) {
+      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify(filtered));
     }
   } catch {
     // Ignore storage errors

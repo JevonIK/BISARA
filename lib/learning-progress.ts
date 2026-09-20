@@ -147,14 +147,17 @@ export function getMissionLearningState(
       : !recognitionComplete
         ? {
             href: `/missions/test?${missionQuery}&mode=recognition`,
-            label: 'Mulai uji pengenalan',
+            label:
+              mission.type === 'checkpoint'
+                ? 'Mulai Tes Bab'
+                : 'Mulai uji pengenalan',
           }
-        : !missionComplete
-          ? {
+        : mission.type === 'checkpoint' || missionComplete
+          ? getNextMissionAction(mission.id)
+          : {
               href: `/missions/test?${missionQuery}&mode=recall`,
               label: 'Lanjut ke Uji peragaan',
-            }
-          : getNextMissionAction(mission.id);
+            };
 
   return {
     mission,
@@ -232,9 +235,7 @@ export function getMissionActiveStageHref(
   }
 
   if (mission.type === 'checkpoint') {
-    return learning.recognitionComplete
-      ? `/missions/test?mission=${mission.id}&mode=recall`
-      : `/missions/test?mission=${mission.id}&mode=recognition`;
+    return `/missions/test?mission=${mission.id}&mode=recognition`;
   }
 
   if (!learning.practiceStarted) {

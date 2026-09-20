@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { CameraPractice } from '@/components/camera-practice';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { allMissions } from '@/lib/learning-data';
 import {
   getProductionTestSignIds,
   hasPassedProductionTest,
+  recordMissionCompletion,
   recordProductionAssessment,
 } from '@/lib/progress-storage';
 import { useProgress } from '@/hooks/use-progress';
@@ -40,6 +41,12 @@ export function ProductionTest({
   } | null>(null);
   const activeSignId = selectedSignId ?? remainingIds[0];
 
+  useEffect(() => {
+    if (!activeSignId && signIds.length > 0) {
+      recordMissionCompletion(missionId);
+    }
+  }, [activeSignId, missionId, signIds.length]);
+
   if (!activeSignId) {
     return (
       <section className="rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center max-w-xl mx-auto space-y-6">
@@ -55,8 +62,11 @@ export function ProductionTest({
           </p>
         </div>
         <Button
-          onClick={onExit}
-          className="h-12 w-full rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all text-sm flex items-center justify-center gap-2 shadow-xs"
+          onClick={() => {
+            recordMissionCompletion(missionId);
+            onExit();
+          }}
+          className="h-12 w-full rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer"
         >
           Lihat Hasil Misi <ArrowRight className="size-4" />
         </Button>

@@ -31,12 +31,17 @@ export default async function MissionTestPage({
         : 'recognition';
     redirect(`/missions/learn?mission=${mission.id}&section=${section}`);
   }
+  if (mission.type === 'checkpoint' && params.mode === 'recall') {
+    redirect(`/missions/test?mission=${mission.id}&mode=recognition`);
+  }
   const chapter = getChapterForMission(mission.id);
+  const isComplete = params.mode === 'complete';
   const isRecall =
-    params.mode === 'recall' ||
-    params.mode === 'context' ||
-    params.mode === 'conversation';
-  const section = isRecall ? 'recall' : 'recognition';
+    mission.type !== 'checkpoint' &&
+    (params.mode === 'recall' ||
+      params.mode === 'context' ||
+      params.mode === 'conversation');
+  const section = isComplete ? 'complete' : isRecall ? 'recall' : 'recognition';
 
   return (
     <main className="min-h-screen bg-[#FFE8A3] pb-44">
@@ -62,14 +67,16 @@ export default async function MissionTestPage({
                 Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
               </span>
               <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-black text-[#E54D2E]">
-                Tahap Latihan
+                {isComplete ? 'Misi Selesai' : 'Tahap Latihan'}
               </span>
             </div>
             <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
-              Asah Kemampuanmu!
+              {isComplete ? 'Hebat, Misi Terselesaikan!' : 'Asah Kemampuanmu!'}
             </h1>
             <p className="mt-2 text-sm sm:text-base font-semibold text-slate-700">
-              Selesaikan latihan singkat ini untuk mengunci kosakata yang baru kamu pelajari
+              {isComplete
+                ? 'Seluruh tahapan latihan telah berhasil kamu selesaikan dengan baik.'
+                : 'Selesaikan latihan singkat ini untuk mengunci kosakata yang baru kamu pelajari'}
             </p>
           </div>
         )}
@@ -86,11 +93,13 @@ export default async function MissionTestPage({
       </div>
 
       {/* Fixed bottom timeline navigation */}
-      <MissionSectionNavigation
-        missionId={mission.id}
-        section={section}
-        variant="bottom-bar"
-      />
+      {mission.type !== 'checkpoint' && (
+        <MissionSectionNavigation
+          missionId={mission.id}
+          section={section}
+          variant="bottom-bar"
+        />
+      )}
     </main>
   );
 }

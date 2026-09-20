@@ -11,8 +11,8 @@ import {
   BADGE_UNLOCK_EVENT,
   getProfileBadges,
   getSeenBadgeIds,
-  initSeenBadgesIfEmpty,
   markBadgeAsSeen,
+  syncSeenBadgesWithUnlocked,
   type ProfileBadge,
 } from '@/lib/badges';
 
@@ -115,8 +115,8 @@ export function BadgeUnlockCelebration() {
     const unlocked = allBadges.filter((b) => b.unlocked);
     const unlockedIds = unlocked.map((b) => b.id);
 
-    // Initialize seen list if user visits for the first time
-    initSeenBadgesIfEmpty(unlockedIds);
+    // Keep seen badges synchronized with valid unlocked badges
+    syncSeenBadgesWithUnlocked(unlockedIds);
 
     const seenIds = new Set(getSeenBadgeIds());
     const newlyUnlocked = unlocked.filter((b) => !seenIds.has(b.id));
