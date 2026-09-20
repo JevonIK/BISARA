@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AccountProvider } from '@/components/account-provider';
+import { BadgeUnlockCelebration } from '@/components/badge-unlock-modal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>
-        <AccountProvider>{children}</AccountProvider>
+        <AccountProvider>
+          {children}
+          <BadgeUnlockCelebration />
+        </AccountProvider>
       </body>
     </html>
   );

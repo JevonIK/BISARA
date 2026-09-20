@@ -61,7 +61,11 @@ export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
     chapters.find((c) => c.number === '01')?.missions ?? [];
   const alphabetMastered =
     alphabetMissions.length > 0 &&
-    alphabetMissions.every((m) => progress.completedMissionIds.includes(m.id));
+    alphabetMissions.every(
+      (m) =>
+        progress.completedMissionIds.includes(m.id) &&
+        (progress.missionScores[m.id] ?? 0) >= 70,
+    );
 
   // Kamus Berjalan: Kuasai seluruh kosa kata (32 signs)
   const allVocabMastered =
@@ -136,4 +140,45 @@ export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
   ];
 
   return badges.sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
+}
+
+export const BADGE_UNLOCK_EVENT = 'bisara:badge-unlocked';
+const SEEN_BADGES_KEY = 'bisara_seen_badge_ids';
+
+export function getSeenBadgeIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SEEN_BADGES_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function markBadgeAsSeen(badgeId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const seen = new Set(getSeenBadgeIds());
+    seen.add(badgeId);
+    localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify([...seen]));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function initSeenBadgesIfEmpty(unlockedBadgeIds: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(SEEN_BADGES_KEY);
+    if (raw === null) {
+      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify(unlockedBadgeIds));
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function triggerBadgeUnlock(badge: ProfileBadge): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(BADGE_UNLOCK_EVENT, { detail: badge }));
 }

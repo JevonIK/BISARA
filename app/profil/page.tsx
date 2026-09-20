@@ -15,7 +15,7 @@ import { AppHeader } from '@/components/app-header';
 import { useAccount } from '@/hooks/use-account';
 import { useProgress } from '@/hooks/use-progress';
 import { logoutAccount } from '@/lib/account-session';
-import { getProfileBadges } from '@/lib/badges';
+import { getProfileBadges, triggerBadgeUnlock } from '@/lib/badges';
 import { signs } from '@/lib/curriculum-data';
 import { getPrototypeMissionCount } from '@/lib/learning-progress';
 
@@ -194,9 +194,16 @@ export default function ProfilPage() {
           {/* 8 Badges Grid (4 columns x 2 rows) */}
           <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-10">
             {badges.map((badge, index) => (
-              <div
+              <button
                 key={badge.id}
-                className="flex flex-col items-center text-center"
+                type="button"
+                onClick={() => triggerBadgeUnlock(badge)}
+                title={
+                  badge.unlocked
+                    ? `Klik untuk melihat lencana ${badge.title}`
+                    : `Klik untuk melihat syarat ${badge.title}`
+                }
+                className="group flex flex-col items-center text-center cursor-pointer transition-transform duration-200 hover:-translate-y-1 focus:outline-none"
               >
                 <div className="relative flex size-20 sm:size-24 md:size-28 items-center justify-center">
                   <Image
@@ -205,9 +212,9 @@ export default function ProfilPage() {
                     width={112}
                     height={112}
                     priority={index < 4}
-                    className={`size-full object-contain select-none transition-all duration-200 ${
+                    className={`size-full object-contain select-none transition-all duration-200 group-hover:scale-105 ${
                       badge.unlocked
-                        ? 'hover:scale-105'
+                        ? 'drop-shadow-xs'
                         : 'grayscale opacity-60'
                     }`}
                   />
@@ -215,7 +222,7 @@ export default function ProfilPage() {
 
                 <h3
                   className={`mt-3 sm:mt-3.5 text-xs sm:text-sm font-black ${
-                    badge.unlocked ? 'text-slate-900' : 'text-slate-400'
+                    badge.unlocked ? 'text-slate-900 group-hover:text-amber-600' : 'text-slate-400'
                   }`}
                 >
                   {badge.title}
@@ -227,7 +234,7 @@ export default function ProfilPage() {
                 >
                   {badge.subtitle}
                 </p>
-              </div>
+              </button>
             ))}
           </div>
         </section>
