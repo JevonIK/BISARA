@@ -130,6 +130,13 @@ const missionArtworkByChapterId: Record<string, string[]> = {
     '/assets/bisara/Misi12.png',
     '/assets/bisara/TesBab4.png',
   ],
+  'chapter-4': [
+    '/assets/bisara/Misi13.png',
+    '/assets/bisara/Misi14.png',
+    '/assets/bisara/Misi15.png',
+    '/assets/bisara/Misi16.png',
+    '/assets/bisara/TesBab5.png',
+  ],
 };
 
 export function ChapterAccordionCard({
