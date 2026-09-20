@@ -86,8 +86,10 @@ function ConfettiParticles() {
 export function BadgeUnlockCelebration() {
   const pathname = usePathname();
   const progress = useProgress();
-  const [activeBadge, setActiveBadge] = useState<ProfileBadge | null>(null);
+  const [badgeQueue, setBadgeQueue] = useState<ProfileBadge[]>([]);
   const [, startTransition] = useTransition();
+
+  const activeBadge = badgeQueue[0] ?? null;
 
   // 1. Listen for manual trigger (e.g., clicking on a badge in the profile page)
   useEffect(() => {
@@ -95,7 +97,11 @@ export function BadgeUnlockCelebration() {
       const customEvent = event as CustomEvent<ProfileBadge>;
       if (customEvent.detail) {
         startTransition(() => {
-          setActiveBadge(customEvent.detail);
+          setBadgeQueue((prev) => {
+            const existingIds = new Set(prev.map((b) => b.id));
+            if (existingIds.has(customEvent.detail.id)) return prev;
+            return [...prev, customEvent.detail];
+          });
         });
       }
     };
@@ -126,28 +132,40 @@ export function BadgeUnlockCelebration() {
       newlyUnlocked.forEach((b) => markBadgeAsSeen(b.id));
 
       startTransition(() => {
-        setActiveBadge(newlyUnlocked[0]);
+        setBadgeQueue((prev) => {
+          const existingIds = new Set(prev.map((b) => b.id));
+          const toAdd = newlyUnlocked.filter((b) => !existingIds.has(b.id));
+          return [...prev, ...toAdd];
+        });
       });
     }
   }, [progress, pathname]);
 
-  const handleClose = useCallback(() => {
+  const handleNextOrClose = useCallback(() => {
+    startTransition(() => {
+      setBadgeQueue((prev) => prev.slice(1));
+    });
+  }, []);
+
+  const handleDismissAll = useCallback(() => {
     // Ensure all currently unlocked badges are marked as seen
     const allBadges = getProfileBadges(progress);
     allBadges.filter((b) => b.unlocked).forEach((b) => markBadgeAsSeen(b.id));
-    setActiveBadge(null);
+    startTransition(() => {
+      setBadgeQueue([]);
+    });
   }, [progress]);
 
   useEffect(() => {
     if (!activeBadge) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleClose();
+        handleDismissAll();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeBadge, handleClose]);
+  }, [activeBadge, handleDismissAll]);
 
   if (!activeBadge) return null;
 
@@ -158,12 +176,13 @@ export function BadgeUnlockCelebration() {
         type="button"
         tabIndex={-1}
         aria-label="Tutup modal"
-        onClick={handleClose}
+        onClick={handleDismissAll}
         className="fixed inset-0 bg-black/65 backdrop-blur-sm animate-in fade-in duration-300 cursor-default"
       />
 
       {/* Modal Dialog Card */}
       <div
+        key={activeBadge.id}
         aria-labelledby="badge-modal-title"
         className={`relative z-10 w-full max-w-md overflow-hidden rounded-[2.5rem] bg-white p-7 sm:p-9 text-center shadow-2xl border-4 animate-in zoom-in-75 duration-300 ${
           activeBadge.unlocked ? 'border-[#FFAE00]' : 'border-slate-200'
@@ -174,7 +193,7 @@ export function BadgeUnlockCelebration() {
         {/* Close Button */}
         <button
           type="button"
-          onClick={handleClose}
+          onClick={handleDismissAll}
           aria-label="Tutup"
           className="absolute top-4 right-4 z-20 flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer"
         >
@@ -186,7 +205,9 @@ export function BadgeUnlockCelebration() {
           {activeBadge.unlocked ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-300 px-4 py-1 text-xs font-black tracking-widest uppercase text-[#F06543] shadow-2xs">
               <Sparkles className="size-3.5 text-[#FFAE00] fill-[#FFAE00]" />
-              Lencana Baru Terbuka!
+              {badgeQueue.length > 1
+                ? `Lencana Baru (${badgeQueue.length} Terbuka!)`
+                : 'Lencana Baru Terbuka!'}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-300 px-4 py-1 text-xs font-black tracking-widest uppercase text-slate-600 shadow-2xs">
@@ -263,7 +284,7 @@ export function BadgeUnlockCelebration() {
         <div className="relative z-10 mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             type="button"
-            onClick={handleClose}
+            onClick={handleNextOrClose}
             className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs sm:text-sm font-black shadow-sm transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
               activeBadge.unlocked
                 ? 'bg-[#FFAE00] hover:bg-[#F8A51D] text-slate-950'
@@ -271,7 +292,12 @@ export function BadgeUnlockCelebration() {
             }`}
           >
             {activeBadge.unlocked ? (
-              pathname === '/profil' ? (
+              badgeQueue.length > 1 ? (
+                <>
+                  Lencana Berikutnya ({badgeQueue.length - 1} lagi){' '}
+                  <ArrowRight className="size-4" />
+                </>
+              ) : pathname === '/profil' ? (
                 'Tutup'
               ) : (
                 <>
@@ -285,7 +311,7 @@ export function BadgeUnlockCelebration() {
           {pathname !== '/profil' && (
             <Link
               href="/profil"
-              onClick={handleClose}
+              onClick={handleDismissAll}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-5 py-3 text-xs sm:text-sm font-bold text-slate-700 shadow-2xs transition-colors"
             >
               <Trophy className="size-4 text-[#FFAE00]" /> Lihat Koleksi

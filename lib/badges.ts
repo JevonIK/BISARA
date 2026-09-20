@@ -1,3 +1,4 @@
+import { scopedProgressKey } from '@/lib/account-cache';
 import { signs, type SignId } from '@/lib/curriculum-data';
 import { chapters } from '@/lib/learning-data';
 import type { UserProgress } from '@/lib/progress-storage';
@@ -150,11 +151,23 @@ export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
 export const BADGE_UNLOCK_EVENT = 'bisara:badge-unlocked';
 const SEEN_BADGES_KEY = 'bisara_seen_badge_ids';
 
+function getScopedSeenBadgesKey(): string {
+  try {
+    return `bisara_seen_badges_${scopedProgressKey()}`;
+  } catch {
+    return SEEN_BADGES_KEY;
+  }
+}
+
 export function getSeenBadgeIds(): string[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(SEEN_BADGES_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    const key = getScopedSeenBadgesKey();
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw) as string[];
+    // Fallback to legacy global key if scoped key not yet set
+    const legacy = localStorage.getItem(SEEN_BADGES_KEY);
+    return legacy ? (JSON.parse(legacy) as string[]) : [];
   } catch {
     return [];
   }
@@ -163,9 +176,12 @@ export function getSeenBadgeIds(): string[] {
 export function markBadgeAsSeen(badgeId: string): void {
   if (typeof window === 'undefined') return;
   try {
+    const key = getScopedSeenBadgesKey();
     const seen = new Set(getSeenBadgeIds());
     seen.add(badgeId);
-    localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify([...seen]));
+    const seenArray = JSON.stringify([...seen]);
+    localStorage.setItem(key, seenArray);
+    localStorage.setItem(SEEN_BADGES_KEY, seenArray);
   } catch {
     // Ignore storage errors
   }
@@ -174,9 +190,10 @@ export function markBadgeAsSeen(badgeId: string): void {
 export function initSeenBadgesIfEmpty(): void {
   if (typeof window === 'undefined') return;
   try {
-    const raw = localStorage.getItem(SEEN_BADGES_KEY);
+    const key = getScopedSeenBadgesKey();
+    const raw = localStorage.getItem(key);
     if (raw === null) {
-      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify([]));
+      localStorage.setItem(key, JSON.stringify([]));
     }
   } catch {
     // Ignore storage errors
@@ -186,9 +203,10 @@ export function initSeenBadgesIfEmpty(): void {
 export function syncSeenBadgesWithUnlocked(unlockedBadgeIds: string[]): void {
   if (typeof window === 'undefined') return;
   try {
-    const raw = localStorage.getItem(SEEN_BADGES_KEY);
+    const key = getScopedSeenBadgesKey();
+    const raw = localStorage.getItem(key);
     if (raw === null) {
-      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify(unlockedBadgeIds));
+      localStorage.setItem(key, JSON.stringify(unlockedBadgeIds));
       return;
     }
     const seen = JSON.parse(raw) as string[];
@@ -197,7 +215,7 @@ export function syncSeenBadgesWithUnlocked(unlockedBadgeIds: string[]): void {
     // This heals any badge that was prematurely marked as seen before its requirements were actually met.
     const filtered = seen.filter((id) => unlockedSet.has(id));
     if (filtered.length !== seen.length) {
-      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify(filtered));
+      localStorage.setItem(key, JSON.stringify(filtered));
     }
   } catch {
     // Ignore storage errors
