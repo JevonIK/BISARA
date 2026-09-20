@@ -37,14 +37,13 @@ export function getMissionLearningState(
   if (mission.type === 'alphabet') {
     const missionComplete = progress.completedMissionIds.includes(mission.id);
     const unlocked = isMissionUnlocked(mission.id, progress);
+    const practiceComplete =
+      missionComplete || isAlphabetPracticeCompleted(mission.id);
+    const practiceStarted = practiceComplete;
     const recognitionScore = progress.missionScores[mission.id] ?? 0;
     const recognitionComplete =
-      missionComplete || recognitionScore >= RECOGNITION_PASS_SCORE;
-    const practiceComplete =
-      missionComplete ||
-      recognitionComplete ||
-      isAlphabetPracticeCompleted(mission.id);
-    const practiceStarted = practiceComplete;
+      practiceComplete &&
+      (missionComplete || recognitionScore >= RECOGNITION_PASS_SCORE);
     const letterCount = mission.alphabetLetters?.length ?? 5;
     const progressPercent = missionComplete
       ? 100

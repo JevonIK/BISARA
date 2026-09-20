@@ -47,6 +47,11 @@ export function ProductionTest({
     }
   }, [activeSignId, missionId, signIds.length]);
 
+  const currentMissionIndex = allMissions.findIndex((m) => m.id === missionId);
+  const nextMission =
+    currentMissionIndex >= 0 ? allMissions[currentMissionIndex + 1] : null;
+  const isNextCheckpoint = nextMission?.type === 'checkpoint';
+
   if (!activeSignId) {
     return (
       <section className="rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center max-w-xl mx-auto space-y-6">
@@ -68,7 +73,8 @@ export function ProductionTest({
           }}
           className="h-12 w-full rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer"
         >
-          Lihat Hasil Misi <ArrowRight className="size-4" />
+          {isNextCheckpoint ? 'Lanjut ke Tes Bab' : 'Lihat Hasil Misi'}{' '}
+          <ArrowRight className="size-4" />
         </Button>
       </section>
     );

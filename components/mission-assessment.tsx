@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ProductionTest } from '@/components/production-test';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ import {
   chapters,
   getChapterForMission,
   getMission,
+  getMissionPosition,
 } from '@/lib/learning-data';
 import {
   getMissionActiveStageHref,
@@ -93,6 +94,23 @@ export function MissionAssessment({
     [mission, recognitionAttempt],
   );
   const [view, setView] = useState<View>(initialView);
+
+  // When reaching complete view on the final mission before a checkpoint, immediately jump to the chapter test
+  useEffect(() => {
+    if (
+      !isCheckpoint &&
+      (view === 'complete' || searchParamMode === 'complete')
+    ) {
+      const nextIndex = getMissionPosition(mission.id) + 1;
+      const nextMission =
+        nextIndex < allMissions.length ? allMissions[nextIndex] : null;
+      if (nextMission?.type === 'checkpoint') {
+        router.replace(
+          `/missions/test?mission=${nextMission.id}&mode=recognition`,
+        );
+      }
+    }
+  }, [isCheckpoint, mission.id, router, searchParamMode, view]);
 
   const [prevMode, setPrevMode] = useState(searchParamMode);
   if (prevMode !== searchParamMode) {
@@ -188,6 +206,15 @@ export function MissionAssessment({
         missionId={mission.id}
         onExit={() => {
           recordMissionCompletion(mission.id);
+          const nextIndex = getMissionPosition(mission.id) + 1;
+          const nextMission =
+            nextIndex < allMissions.length ? allMissions[nextIndex] : null;
+          if (nextMission?.type === 'checkpoint') {
+            router.replace(
+              `/missions/test?mission=${nextMission.id}&mode=recognition`,
+            );
+            return;
+          }
           const nextView = isMissionFullyCompleted ? 'complete' : 'menu';
           router.replace(
             `/missions/test?mission=${mission.id}${nextView === 'complete' ? '&mode=complete' : ''}`,
@@ -482,7 +509,7 @@ export function MissionAssessment({
                     href={nextChapterHref}
                     className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-black text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
                   >
-                    <span>Lanjut Bab selanjutnya</span>
+                    <span>{nextChapter ? 'Lanjut Bab selanjutnya' : 'Kembali ke Beranda'}</span>
                     <ArrowRight className="size-4 stroke-[2.5]" />
                   </Link>
                 ) : learning.productionPassedCount >= learning.productionSignCount ? (
@@ -635,7 +662,7 @@ export function MissionAssessment({
                     href={nextChapterHref}
                     className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-black text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
                   >
-                    <span>Lanjut Bab selanjutnya</span>
+                    <span>{nextChapter ? 'Lanjut Bab selanjutnya' : 'Kembali ke Beranda'}</span>
                     <ArrowRight className="size-4 stroke-[2.5]" />
                   </Link>
                 ) : learning.productionPassedCount >= learning.productionSignCount ? (
@@ -668,14 +695,10 @@ export function MissionAssessment({
     );
   }
 
-  const missionIndex = allMissions.findIndex(
-    (item) => item.id === mission.id,
-  );
+  const missionIndex = allMissions.findIndex((item) => item.id === mission.id);
   const nextMission =
-    missionIndex >= 0
-      ? missionIndex + 1 < allMissions.length
-        ? allMissions[missionIndex + 1]
-        : null
+    missionIndex >= 0 && missionIndex + 1 < allMissions.length
+      ? allMissions[missionIndex + 1]
       : null;
   const currentChapter = getChapterForMission(mission.id);
   const isLastMissionInChapter =

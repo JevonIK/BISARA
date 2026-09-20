@@ -8,7 +8,12 @@ import { Suspense } from 'react';
 import { AppHeader } from '@/components/app-header';
 import { MissionAssessment } from '@/components/mission-assessment';
 import { MissionSectionNavigation } from '@/components/mission-section-navigation';
-import { getChapterForMission, getMission } from '@/lib/learning-data';
+import {
+  allMissions,
+  getChapterForMission,
+  getMission,
+  getMissionPosition,
+} from '@/lib/learning-data';
 
 export const metadata: Metadata = {
   title: 'Uji Misi BISINDO',
@@ -33,6 +38,14 @@ export default async function MissionTestPage({
   }
   if (mission.type === 'checkpoint' && params.mode === 'recall') {
     redirect(`/missions/test?mission=${mission.id}&mode=recognition`);
+  }
+  const nextMission = allMissions[getMissionPosition(mission.id) + 1];
+  if (
+    mission.type !== 'checkpoint' &&
+    nextMission?.type === 'checkpoint' &&
+    params.mode === 'complete'
+  ) {
+    redirect(`/missions/test?mission=${nextMission.id}&mode=recognition`);
   }
   const chapter = getChapterForMission(mission.id);
   const isComplete = params.mode === 'complete';
