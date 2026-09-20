@@ -357,7 +357,34 @@ function MissionVisualIcon({
   }
 
   if (alphabetRange) {
-    return <span className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{alphabetRange}</span>;
+    const alphabetMissionArtwork = [
+      '/assets/bisara/Misi17.png',
+      '/assets/bisara/Misi18.png',
+      '/assets/bisara/Misi19.png',
+      '/assets/bisara/Misi20.png',
+      '/assets/bisara/Misi21.png',
+    ];
+    const artworkSrc = alphabetMissionArtwork[index];
+
+    if (artworkSrc) {
+      return (
+        <Image
+          src={artworkSrc}
+          alt=""
+          width={96}
+          height={112}
+          className="h-20 w-16 object-contain sm:h-24 sm:w-20 lg:h-28 lg:w-24"
+          draggable={false}
+          loading="lazy"
+        />
+      );
+    }
+
+    return (
+      <span className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+        {alphabetRange}
+      </span>
+    );
   }
 
   if (isCheckpoint) {
