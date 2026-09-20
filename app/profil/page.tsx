@@ -5,7 +5,6 @@ import {
   Bookmark,
   Flag,
   Flame,
-  LockKeyhole,
   LogOut,
   Star,
 } from 'lucide-react';
@@ -206,21 +205,26 @@ export default function ProfilPage() {
                     width={112}
                     height={112}
                     priority={index < 4}
-                    className={`size-full object-contain select-none transition-transform duration-200 hover:scale-105 ${
-                      badge.unlocked ? '' : 'opacity-85'
+                    className={`size-full object-contain select-none transition-all duration-200 ${
+                      badge.unlocked
+                        ? 'hover:scale-105'
+                        : 'grayscale opacity-60'
                     }`}
                   />
-                  {!badge.unlocked && (
-                    <div className="absolute -bottom-1 -right-1 flex size-6 sm:size-6.5 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-2xs">
-                      <LockKeyhole className="size-3 sm:size-3.5 text-slate-500" />
-                    </div>
-                  )}
                 </div>
 
-                <h3 className="mt-3 sm:mt-3.5 text-xs sm:text-sm font-black text-slate-900">
+                <h3
+                  className={`mt-3 sm:mt-3.5 text-xs sm:text-sm font-black ${
+                    badge.unlocked ? 'text-slate-900' : 'text-slate-400'
+                  }`}
+                >
                   {badge.title}
                 </h3>
-                <p className="mt-0.5 text-[11px] sm:text-xs font-semibold text-slate-500 max-w-[140px] leading-tight">
+                <p
+                  className={`mt-0.5 text-[11px] sm:text-xs font-semibold max-w-[140px] leading-tight ${
+                    badge.unlocked ? 'text-slate-500' : 'text-slate-400'
+                  }`}
+                >
                   {badge.subtitle}
                 </p>
               </div>

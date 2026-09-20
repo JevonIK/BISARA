@@ -76,7 +76,7 @@ export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
     progress.chapterOneStars === 3 ||
     Object.values(progress.missionScores ?? {}).some((score) => score >= 100);
 
-  return [
+  const badges: ProfileBadge[] = [
     {
       id: 'penyapa-handal',
       title: 'Penyapa Handal',
@@ -134,4 +134,6 @@ export function getProfileBadges(progress: UserProgress): ProfileBadge[] {
       unlocked: perfectMastered,
     },
   ];
+
+  return badges.sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
 }
