@@ -101,6 +101,23 @@ const chapterThemes: Record<string, ChapterTheme> = {
   },
 };
 
+const missionArtworkByChapterId: Record<string, string[]> = {
+  'chapter-5': [
+    '/assets/bisara/Misi17.png',
+    '/assets/bisara/Misi18.png',
+    '/assets/bisara/Misi19.png',
+    '/assets/bisara/Misi20.png',
+    '/assets/bisara/Misi21.png',
+  ],
+  'chapter-1': [
+    '/assets/bisara/Misi01.png',
+    '/assets/bisara/Misi02.png',
+    '/assets/bisara/Misi03.png',
+    '/assets/bisara/Misi04.png',
+    '/assets/bisara/TesBab2.png',
+  ],
+};
+
 export function ChapterAccordionCard({
   chapter,
   chapterIndex,
@@ -295,6 +312,7 @@ export function ChapterAccordionCard({
                             isCheckpoint={mission.type === 'checkpoint'}
                             isLocked={false}
                             alphabetRange={mission.type === 'alphabet' ? mission.title : undefined}
+                            artworkSrc={missionArtworkByChapterId[chapter.id]?.[missionIdx]}
                           />
                         </div>
                         <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
@@ -346,40 +364,33 @@ function MissionVisualIcon({
   isCheckpoint,
   isLocked,
   alphabetRange,
+  artworkSrc,
 }: {
   index: number;
   isCheckpoint: boolean;
   isLocked: boolean;
   alphabetRange?: string;
+  artworkSrc?: string;
 }) {
   if (isLocked) {
     return <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />;
   }
 
+  if (artworkSrc) {
+    return (
+      <Image
+        src={artworkSrc}
+        alt=""
+        width={128}
+        height={112}
+        className="h-20 w-24 object-contain sm:h-24 sm:w-28 lg:h-28 lg:w-32"
+        draggable={false}
+        loading="lazy"
+      />
+    );
+  }
+
   if (alphabetRange) {
-    const alphabetMissionArtwork = [
-      '/assets/bisara/Misi17.png',
-      '/assets/bisara/Misi18.png',
-      '/assets/bisara/Misi19.png',
-      '/assets/bisara/Misi20.png',
-      '/assets/bisara/Misi21.png',
-    ];
-    const artworkSrc = alphabetMissionArtwork[index];
-
-    if (artworkSrc) {
-      return (
-        <Image
-          src={artworkSrc}
-          alt=""
-          width={96}
-          height={112}
-          className="h-20 w-16 object-contain sm:h-24 sm:w-20 lg:h-28 lg:w-24"
-          draggable={false}
-          loading="lazy"
-        />
-      );
-    }
-
     return (
       <span className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
         {alphabetRange}
