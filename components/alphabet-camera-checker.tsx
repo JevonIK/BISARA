@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import type { AlphabetLetter } from '@/lib/alphabet-data';
 import { scoreAlphabetWithAlternatives, type AlphabetAssessment, type AlphabetReferenceSet } from '@/lib/alphabet-scoring';
 import { getRequiredHandCount, type GestureFrame, type HandObservation } from '@/lib/gesture-scoring';
+import { drawHandLandmarkOverlay } from '@/lib/landmark-overlay';
 import { getAlphabetReferenceFrames, getAlphabetReferenceSet } from '@/lib/reference-extractor';
 
 const WASM_ROOT = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
@@ -261,33 +262,5 @@ export function AlphabetCameraChecker({
 }
 
 function drawHandLandmarks(canvas: HTMLCanvasElement, video: HTMLVideoElement, hands: HandObservation[]) {
-  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-  }
-  const context = canvas.getContext('2d');
-  if (!context) return;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-
-  for (const { landmarks } of hands) {
-    context.strokeStyle = '#55c7b5';
-    context.lineWidth = Math.max(3, canvas.width / 320);
-    for (const [startIndex, endIndex] of HAND_CONNECTIONS) {
-      const start = landmarks[startIndex];
-      const end = landmarks[endIndex];
-      if (!start || !end) continue;
-      context.beginPath();
-      context.moveTo(start.x * canvas.width, start.y * canvas.height);
-      context.lineTo(end.x * canvas.width, end.y * canvas.height);
-      context.stroke();
-    }
-    for (const [index, landmark] of landmarks.entries()) {
-      context.beginPath();
-      context.fillStyle = index === 0 ? '#f4c95d' : '#ff6f61';
-      context.arc(landmark.x * canvas.width, landmark.y * canvas.height, index === 0 ? 7 : 5, 0, Math.PI * 2);
-      context.fill();
-    }
-  }
+  drawHandLandmarkOverlay(canvas, video, hands, HAND_CONNECTIONS);
 }
