@@ -32,20 +32,24 @@ export default function ProfilPage() {
   ).length;
   const reviewedSignsCount = progress.reviewedSigns.length;
 
-  const displayName = account.user?.displayName || 'Ahmad Fauzi';
+  const displayName = account.user?.displayName || 'Pengguna Tamu';
   const joinedDate = account.user?.createdAt
     ? new Date(account.user.createdAt).toLocaleDateString('id-ID', {
         month: 'short',
         year: 'numeric',
       })
-    : 'Jan 2025';
+    : null;
+
+  const subtitle = account.user
+    ? `Bergabung sejak ${joinedDate || 'Baru saja'}`
+    : 'Mode Tamu · Belum masuk akun';
 
   const streakDisplay = progress.streak > 0 ? `${progress.streak} hari` : '80 hari';
   const missionsDisplay =
     completedMissionsCount > 0 ? `${completedMissionsCount} / 25` : '2 / 25';
   const vocabDisplay =
     masteredSignsCount > 0 ? `${masteredSignsCount} / 32` : '12 / 32';
-  const starsDisplay = '80 hari';
+  const starsDisplay = '20';
 
   const badges = [
     {
@@ -159,7 +163,7 @@ export default function ProfilPage() {
               {displayName}
             </h1>
             <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500">
-              Bergabung sejak {joinedDate}
+              {subtitle}
             </p>
 
             {account.user ? (
