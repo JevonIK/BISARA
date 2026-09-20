@@ -13,6 +13,7 @@ import {
   hasPassedProductionTest,
   type UserProgress,
 } from '@/lib/progress-storage';
+import { getProfileBadges } from '@/lib/badges';
 
 export const RECOGNITION_PASS_SCORE = 70;
 export type LearningStageState = 'completed' | 'current' | 'locked';
@@ -263,13 +264,7 @@ export function getPrototypeMissionCount(progress: UserProgress) {
 }
 
 export function getBadgeCount(progress: UserProgress): number {
-  const completedMissions = getPrototypeMissionCount(progress);
-  return [
-    completedMissions > 0,
-    progress.streak >= 7,
-    progress.bestChapterScore >= 70,
-    Object.values(progress.signMastery).some((item) => item.recall),
-  ].filter(Boolean).length;
+  return getProfileBadges(progress).filter((badge) => badge.unlocked).length;
 }
 
 export function getChapterProgress(chapterId: string, progress: UserProgress) {

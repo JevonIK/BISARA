@@ -3,22 +3,20 @@
 import {
   Award,
   Bookmark,
-  Ear,
   Flag,
   Flame,
   LockKeyhole,
   LogOut,
-  MessageSquare,
   Star,
-  Trophy,
-  Zap,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
 import { useAccount } from '@/hooks/use-account';
 import { useProgress } from '@/hooks/use-progress';
 import { logoutAccount } from '@/lib/account-session';
+import { getProfileBadges } from '@/lib/badges';
 import { signs } from '@/lib/curriculum-data';
 import { getPrototypeMissionCount } from '@/lib/learning-progress';
 
@@ -30,7 +28,6 @@ export default function ProfilPage() {
   const masteredSignsCount = signs.filter(
     (sign) => progress.signMastery[sign.id]?.passed,
   ).length;
-  const reviewedSignsCount = progress.reviewedSigns.length;
 
   const displayName = account.user?.displayName || 'Ahmad Fauzi';
   const joinedDate = account.user?.createdAt
@@ -47,81 +44,7 @@ export default function ProfilPage() {
     masteredSignsCount > 0 ? `${masteredSignsCount} / 32` : '12 / 32';
   const starsDisplay = '80 hari';
 
-  const badges = [
-    {
-      id: 'penyapa-handal-1',
-      title: 'Penyapa Handal',
-      subtitle: 'Kuasai kosa kata Bab 2',
-      icon: Trophy,
-      unlocked: true,
-      progress: 'Progres: 5/5',
-    },
-    {
-      id: 'penyapa-handal-2',
-      title: 'Penyapa Handal',
-      subtitle: 'Kuasai kosa kata Bab 2',
-      icon: Trophy,
-      unlocked: true,
-      progress: 'Progres: 5/5',
-    },
-    {
-      id: 'komunikator',
-      title: 'Komunikator',
-      subtitle:
-        progress.conversationCompletions > 0
-          ? 'Percakapan selesai'
-          : 'Progres: 0/1',
-      icon: MessageSquare,
-      unlocked: progress.conversationCompletions > 0,
-      progress: `Progres: ${progress.conversationCompletions}/1`,
-    },
-    {
-      id: 'pahlawan-streak-1',
-      title: 'Pahlawan Streak',
-      subtitle:
-        progress.streak >= 7
-          ? '7 hari beruntun'
-          : `Progres: ${Math.min(progress.streak, 7)}/7`,
-      icon: Zap,
-      unlocked: progress.streak >= 7,
-      progress: `Progres: ${Math.min(progress.streak, 7)}/7`,
-    },
-    {
-      id: 'penyapa-handal-3',
-      title: 'Penyapa Handal',
-      subtitle: 'Kuasai kosa kata Bab 2',
-      icon: Trophy,
-      unlocked: true,
-      progress: 'Progres: 5/5',
-    },
-    {
-      id: 'penyimak-teliti-1',
-      title: 'Penyimak Teliti',
-      subtitle: `Progres: ${Math.min(reviewedSignsCount, 5) || 2}/5`,
-      icon: Ear,
-      unlocked: reviewedSignsCount >= 5,
-      progress: `Progres: ${Math.min(reviewedSignsCount, 5) || 2}/5`,
-    },
-    {
-      id: 'pahlawan-streak-2',
-      title: 'Pahlawan Streak',
-      subtitle:
-        progress.streak >= 7
-          ? '7 hari beruntun'
-          : `Progres: ${Math.min(progress.streak, 7)}/7`,
-      icon: Zap,
-      unlocked: progress.streak >= 7,
-      progress: `Progres: ${Math.min(progress.streak, 7)}/7`,
-    },
-    {
-      id: 'penyimak-teliti-2',
-      title: 'Penyimak Teliti',
-      subtitle: `Progres: ${Math.min(reviewedSignsCount, 5) || 2}/5`,
-      icon: Ear,
-      unlocked: reviewedSignsCount >= 5,
-      progress: `Progres: ${Math.min(reviewedSignsCount, 5) || 2}/5`,
-    },
-  ];
+  const badges = getProfileBadges(progress);
 
   return (
     <main className="min-h-screen bg-[#FFE8A3]">
@@ -256,7 +179,7 @@ export default function ProfilPage() {
         </section>
 
         {/* Card 3: Koleksi Lencana (Achievements / Badges) */}
-        <section className="rounded-[2.5rem] sm:rounded-[3rem] bg-white p-6 sm:p-8 lg:p-12 shadow-sm border border-amber-200/30">
+        <section className="rounded-[2.5rem] sm:rounded-[3rem] bg-[#FFFDF0] p-6 sm:p-8 lg:p-12 shadow-sm border-2 border-[#FFAE00]">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#F06543]">
@@ -266,54 +189,42 @@ export default function ProfilPage() {
                 Pencapaian yang sudah kamu buka
               </h2>
             </div>
-            <Award className="size-6 sm:size-7 text-[#FFAE00]" strokeWidth={2.2} />
+            <Award className="size-6 sm:size-7 text-[#FFAE00]" strokeWidth={2.5} />
           </div>
 
           {/* 8 Badges Grid (4 columns x 2 rows) */}
           <div className="mt-8 sm:mt-12 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-10">
-            {badges.map((badge) => {
-              const Icon = badge.icon;
-              return (
-                <div
-                  key={badge.id}
-                  className="flex flex-col items-center text-center"
-                >
-                  {badge.unlocked ? (
-                    <div className="flex size-20 sm:size-24 items-center justify-center rounded-full border-2 border-[#FCD561] bg-[#FFF9E6] shadow-xs">
-                      <Icon
-                        className="size-9 sm:size-11 text-[#F8A51D]"
-                        strokeWidth={2}
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative flex size-20 sm:size-24 items-center justify-center rounded-full border-2 border-slate-200 bg-[#F8FAFC] shadow-xs">
-                      <Icon
-                        className="size-8 sm:size-10 text-slate-400"
-                        strokeWidth={1.8}
-                      />
-                      <div className="absolute -bottom-1 -right-1 flex size-6 sm:size-6.5 items-center justify-center rounded-full border border-slate-200 bg-white shadow-2xs">
-                        <LockKeyhole className="size-3 sm:size-3.5 text-slate-500" />
-                      </div>
+            {badges.map((badge, index) => (
+              <div
+                key={badge.id}
+                className="flex flex-col items-center text-center"
+              >
+                <div className="relative flex size-20 sm:size-24 md:size-28 items-center justify-center">
+                  <Image
+                    src={badge.image}
+                    alt={badge.title}
+                    width={112}
+                    height={112}
+                    priority={index < 4}
+                    className={`size-full object-contain select-none transition-transform duration-200 hover:scale-105 ${
+                      badge.unlocked ? '' : 'opacity-85'
+                    }`}
+                  />
+                  {!badge.unlocked && (
+                    <div className="absolute -bottom-1 -right-1 flex size-6 sm:size-6.5 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-2xs">
+                      <LockKeyhole className="size-3 sm:size-3.5 text-slate-500" />
                     </div>
                   )}
-
-                  <h3
-                    className={`mt-3 sm:mt-3.5 text-xs sm:text-sm font-black ${
-                      badge.unlocked ? 'text-slate-900' : 'text-slate-700'
-                    }`}
-                  >
-                    {badge.title}
-                  </h3>
-                  <p
-                    className={`mt-0.5 text-[11px] sm:text-xs font-semibold ${
-                      badge.unlocked ? 'text-slate-500' : 'text-slate-400'
-                    }`}
-                  >
-                    {badge.subtitle}
-                  </p>
                 </div>
-              );
-            })}
+
+                <h3 className="mt-3 sm:mt-3.5 text-xs sm:text-sm font-black text-slate-900">
+                  {badge.title}
+                </h3>
+                <p className="mt-0.5 text-[11px] sm:text-xs font-semibold text-slate-500 max-w-[140px] leading-tight">
+                  {badge.subtitle}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
       </div>
