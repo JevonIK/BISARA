@@ -1049,7 +1049,7 @@ export function CameraPractice({
   return (
     <div
       className={cn(
-        'grid items-stretch gap-5',
+        'grid items-start gap-5',
         exampleCard
           ? 'grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[300px_1fr_300px]'
           : 'grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]',
@@ -1057,7 +1057,7 @@ export function CameraPractice({
     >
       {exampleCard}
 
-      <section className="flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
+      <section className="flex flex-col overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
         <div className="relative aspect-video bg-[#0B0F19] sm:min-h-[360px]">
           <video
             ref={videoRef}

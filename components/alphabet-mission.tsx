@@ -898,7 +898,7 @@ function StageTirukan({
       </div>
 
       {/* 3-Column Practice Area */}
-      <div className="grid items-stretch gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[300px_1fr_300px]">
+      <div className="grid items-start gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[300px_1fr_300px]">
         {/* Column 1: CONTOH TANDA */}
         <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
           <div>
@@ -946,7 +946,7 @@ function StageTirukan({
         </aside>
 
         {/* Column 2: Center Camera Practice */}
-        <section className="flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
+        <section className="flex flex-col overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
           <div className="relative aspect-video bg-[#0B0F19] sm:min-h-[360px]">
             <video
               ref={videoRef}
