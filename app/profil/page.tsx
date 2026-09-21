@@ -33,7 +33,7 @@ export default function ProfilPage() {
     setIsLoggingOut(true);
     try {
       await logoutAccount();
-      router.push('/');
+      router.push('/account');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
