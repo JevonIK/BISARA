@@ -5,11 +5,14 @@ import {
   Bookmark,
   Flag,
   Flame,
+  LoaderCircle,
   LogOut,
   Star,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { AppHeader } from '@/components/app-header';
 import { useAccount } from '@/hooks/use-account';
@@ -22,12 +25,28 @@ import { getPrototypeMissionCount } from '@/lib/learning-progress';
 export default function ProfilPage() {
   const account = useAccount();
   const progress = useProgress();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logoutAccount();
+      router.push('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const completedMissionsCount = getPrototypeMissionCount(progress);
   const masteredSignsCount = signs.filter(
     (sign) => progress.signMastery[sign.id]?.passed,
   ).length;
 
+  const isLoading = account.status === 'loading' && !account.user;
   const displayName = account.user?.displayName || 'Pengguna Tamu';
   const joinedDate = account.user?.createdAt
     ? new Date(account.user.createdAt).toLocaleDateString('id-ID', {
@@ -81,39 +100,54 @@ export default function ProfilPage() {
 
           {/* User Info */}
           <div className="pt-3 pb-8 sm:pb-10 px-4 text-center">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              {displayName}
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500">
-              {subtitle}
-            </p>
-
-            {account.user ? (
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
-                  <span className="size-2 rounded-full bg-emerald-500" />
-                  {account.user.email}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await logoutAccount();
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs cursor-pointer"
-                >
-                  <LogOut className="size-3.5 text-slate-500" />
-                  Keluar dari Akun
-                </button>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center animate-pulse pt-1">
+                <div className="h-8 sm:h-9 w-48 sm:w-64 rounded-full bg-slate-200" />
+                <div className="mt-2 h-4 w-36 sm:w-44 rounded-full bg-slate-100" />
+                <div className="mt-4 h-7 w-28 rounded-full bg-slate-200" />
               </div>
             ) : (
-              <div className="mt-4 flex items-center justify-center">
-                <Link
-                  href="/account"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#F8A51D] px-4 py-1.5 text-xs font-black text-slate-900 shadow-2xs hover:bg-[#E59312] transition-colors"
-                >
-                  Masuk ke Akun
-                </Link>
-              </div>
+              <>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+                  {displayName}
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500">
+                  {subtitle}
+                </p>
+
+                {account.user ? (
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                      <span className="size-2 rounded-full bg-emerald-500" />
+                      {account.user.email}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleLogout();
+                      }}
+                      disabled={isLoggingOut}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isLoggingOut ? (
+                        <LoaderCircle className="size-3.5 text-slate-500 animate-spin" />
+                      ) : (
+                        <LogOut className="size-3.5 text-slate-500" />
+                      )}
+                      {isLoggingOut ? 'Mengeluarkan...' : 'Keluar dari Akun'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex items-center justify-center">
+                    <Link
+                      href="/account"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#F8A51D] px-4 py-1.5 text-xs font-black text-slate-900 shadow-2xs hover:bg-[#E59312] transition-colors"
+                    >
+                      Masuk ke Akun
+                    </Link>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>

@@ -7,9 +7,49 @@ export type AccountCache = {
 
 export const GUEST_KEY = 'bisara-progress-v1';
 export const PROGRESS_EVENT = 'bisara-progress-change';
+export const CACHED_USER_KEY = 'bisara-cached-user-v1';
+
+export type CachedUserProfile = {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+};
+
 let accountId: string | null = null;
 const memory = new Map<string, string>();
 let storageFailed = false;
+
+export function readCachedUser(): CachedUserProfile | null {
+  try {
+    const raw = readLocal(CACHED_USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof parsed.id === 'string' &&
+      typeof parsed.displayName === 'string'
+    ) {
+      return parsed as CachedUserProfile;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCachedUser(user: CachedUserProfile | null) {
+  if (user) {
+    writeLocal(CACHED_USER_KEY, JSON.stringify(user));
+  } else {
+    try {
+      window.localStorage.removeItem(CACHED_USER_KEY);
+    } catch {
+      writeLocal(CACHED_USER_KEY, '');
+    }
+  }
+}
 
 export function readLocal(key: string): string | null {
   try {
