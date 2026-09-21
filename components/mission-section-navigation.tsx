@@ -7,13 +7,22 @@ import { useSyncExternalStore } from 'react';
 import { useProgress } from '@/hooks/use-progress';
 import {
   allMissions,
+  getChapterForMission,
   getMission,
   getMissionPosition,
 } from '@/lib/learning-data';
-import { getMissionLearningState } from '@/lib/learning-progress';
+import {
+  getMissionActiveStageHref,
+  getMissionLearningState,
+} from '@/lib/learning-progress';
 import { cn } from '@/lib/utils';
 
-export type MissionSection = 'amati' | 'tirukan' | 'recognition' | 'recall';
+export type MissionSection =
+  | 'amati'
+  | 'tirukan'
+  | 'recognition'
+  | 'recall'
+  | 'complete';
 const subscribeHydration = () => () => undefined;
 const clientReady = () => true;
 const serverReady = () => false;
@@ -87,18 +96,26 @@ export function MissionSectionNavigation({
       available: learning.unlocked && learning.recognitionComplete,
     },
   ];
-  const currentIndex = stages.findIndex((stage) => stage.id === section);
+  const isCompleteSection = section === 'complete';
+  const effectiveSection = isCompleteSection ? 'recall' : section;
+  const currentIndex = stages.findIndex(
+    (stage) => stage.id === effectiveSection,
+  );
   if (currentIndex === -1) return null;
   const previous = stages[currentIndex - 1];
-  const following = stages[currentIndex + 1];
+  const following = isCompleteSection ? undefined : stages[currentIndex + 1];
   const nextMission = allMissions[getMissionPosition(mission.id) + 1];
   const next = following
     ? { ...following, label: `Lanjut ke ${following.label}` }
-    : learning.missionComplete
+    : learning.missionComplete || isCompleteSection
       ? {
-          href: nextMission?.href ?? '/review',
+          href: nextMission
+            ? getMissionActiveStageHref(nextMission, progress)
+            : '/review',
           label: nextMission
-            ? `Lanjut ke misi: ${nextMission.title}`
+            ? nextMission.type === 'checkpoint'
+              ? `Mulai Tes Bab ${getChapterForMission(nextMission.id).number.replace(/^0/, '')}`
+              : `Lanjut ke misi: ${nextMission.title}`
             : 'Lanjut ke review',
           available: true,
         }
@@ -128,8 +145,12 @@ export function MissionSectionNavigation({
           />
 
           {stages.map((stage) => {
-            const isCurrent = stage.id === section;
-            const isDone = ready ? !isCurrent && stage.complete : false;
+            const isCurrent = !isCompleteSection && stage.id === section;
+            const isDone = ready
+              ? isCompleteSection || learning.missionComplete
+                ? stage.complete
+                : !isCurrent && stage.complete
+              : false;
             const isAvailable = ready
               ? !isCurrent && !isDone && stage.available
               : false;

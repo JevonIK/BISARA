@@ -235,22 +235,46 @@ export function AlphabetMission({
                 )}
 
                 {activeSection === 'recognition' && (
-                  <div className="mt-6">
+                  !learning.practiceComplete ? (
+                    <AlphabetGate
+                      title="Selesaikan tahap Tirukan"
+                      description={`Latihlah seluruh huruf ${mission.title} pada tahap Tirukan terlebih dahulu sebelum memulai uji pengenalan.`}
+                      href={`/missions/learn?mission=${mission.id}&section=tirukan`}
+                      action="Mulai tahap Tirukan"
+                      onAction={() => setOverrideSection('tirukan')}
+                    />
+                  ) : (
                     <StageRecognition
                       mission={mission}
                       onPass={() => setOverrideSection('recall')}
                     />
-                  </div>
+                  )
                 )}
 
                 {activeSection === 'recall' && (
-                  <div className="mt-6">
+                  !learning.practiceComplete ? (
+                    <AlphabetGate
+                      title="Selesaikan tahap Tirukan"
+                      description={`Latihlah seluruh huruf ${mission.title} pada tahap Tirukan terlebih dahulu sebelum memulai uji peragaan.`}
+                      href={`/missions/learn?mission=${mission.id}&section=tirukan`}
+                      action="Mulai tahap Tirukan"
+                      onAction={() => setOverrideSection('tirukan')}
+                    />
+                  ) : !learning.recognitionComplete ? (
+                    <AlphabetGate
+                      title="Uji peragaan belum terbuka"
+                      description="Selesaikan uji pengenalan dan raih nilai kelulusan minimal 70 terlebih dahulu sebelum memulai uji peragaan."
+                      href={`/missions/learn?mission=${mission.id}&section=recognition`}
+                      action="Mulai uji pengenalan"
+                      onAction={() => setOverrideSection('recognition')}
+                    />
+                  ) : (
                     <StageRecall
                       mission={mission}
                       videos={videos}
                       onRestart={() => setOverrideSection('amati')}
                     />
-                  </div>
+                  )
                 )}
               </div>
             )}
@@ -2375,3 +2399,41 @@ function StageRecall({
     </section>
   );
 }
+
+function AlphabetGate({
+  title,
+  description,
+  href,
+  action,
+  onAction,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  action: string;
+  onAction?: () => void;
+}) {
+  return (
+    <section className="grid min-h-[380px] place-items-center rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center">
+      <div className="max-w-xl">
+        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-100 text-amber-900">
+          <LockKeyhole className="size-7" />
+        </span>
+        <h2 className="mt-5 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          {title}
+        </h2>
+        <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+          {description}
+        </p>
+        <Link
+          href={href}
+          onClick={onAction}
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-sm font-black text-white hover:bg-slate-800 transition-all shadow-sm"
+        >
+          {action} <ArrowRight className="size-4" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+

@@ -13,6 +13,7 @@ const sources = [
   'lib/alphabet-data.ts',
   'lib/learning-data.ts',
   'lib/berkenalan-data.ts',
+  'lib/badges.ts',
   'lib/learning-progress.ts',
   'lib/progress-storage.ts',
   'lib/account-cache.ts',
