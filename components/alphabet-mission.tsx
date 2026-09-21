@@ -1821,36 +1821,33 @@ function StageRecall({
       if (assessment.passed) {
         setPassedLetters((prev) => new Set(prev).add(letter));
       }
-    }, 500);
+    }, 40);
   }, [setPracticePhase]);
 
   const renderFrame = useCallback(() => {
-    if (!mountedRef.current) return;
     const video = videoRef.current;
-    const canvas = canvasRef.current;
     const landmarker = landmarkerRef.current;
-
-    if (video && canvas && landmarker && video.readyState >= 2) {
+    if (!video || !landmarker || video.paused || !mountedRef.current) return;
+    const now = performance.now();
+    if (
+      video.readyState >= 2 &&
+      video.currentTime !== lastVideoTimeRef.current &&
+      now - lastInferenceRef.current >= 66
+    ) {
+      lastVideoTimeRef.current = video.currentTime;
+      lastInferenceRef.current = now;
       try {
-        const now = performance.now();
-        let hands: HandObservation[] = [];
+        const detection = landmarker.detectForVideo(video, now);
+        const hands: HandObservation[] = detection.landmarks.map((landmarks, index) => ({
+          landmarks: landmarks.map(({ x, y, z }) => ({ x, y, z })),
+          worldLandmarks: detection.worldLandmarks[index]?.map(({ x, y, z }) => ({ x, y, z })),
+          handedness: detection.handedness[index]?.[0]?.categoryName ?? 'Right',
+          confidence: detection.handedness[index]?.[0]?.score ?? 0,
+        }));
+        if (canvasRef.current) drawHandLandmarks(canvasRef.current, video, hands);
+        setHandCount((previous) => (previous === hands.length ? previous : hands.length));
 
-        if (now - lastInferenceRef.current >= 45 && video.currentTime !== lastVideoTimeRef.current) {
-          lastInferenceRef.current = now;
-          lastVideoTimeRef.current = video.currentTime;
-          const detection = landmarker.detectForVideo(video, now);
-          hands = detection.landmarks.map((landmarks, index) => ({
-            landmarks: landmarks.map(({ x, y, z }) => ({ x, y, z })),
-            worldLandmarks: detection.worldLandmarks[index]?.map(({ x, y, z }) => ({ x, y, z })),
-            handedness: detection.handedness[index]?.[0]?.categoryName ?? 'Right',
-            confidence: detection.handedness[index]?.[0]?.score ?? 0,
-          }));
-          setHandCount(hands.length);
-        }
-
-        drawHandLandmarks(canvas, video, hands);
-
-        if (now - lastLightingCheckRef.current >= 500) {
+        if (now - lastLightingCheckRef.current >= 600) {
           lastLightingCheckRef.current = now;
           if (!brightnessCanvasRef.current) {
             brightnessCanvasRef.current = document.createElement('canvas');
@@ -2039,8 +2036,29 @@ function StageRecall({
         {/* Left Column: Camera Box */}
         <div className="overflow-hidden rounded-2xl bg-[#0F172A] shadow-inner border border-slate-800">
           <div className="relative aspect-[16/10] w-full bg-slate-950 flex items-center justify-center overflow-hidden">
-            {!cameraActive ? (
-              <div className="flex flex-col items-center justify-center p-6 text-center">
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              autoPlay
+              className={cn(
+                'absolute inset-0 size-full -scale-x-100 object-cover transition-opacity',
+                cameraActive ? 'opacity-100' : 'opacity-0 pointer-events-none',
+              )}
+            >
+              <track kind="captions" />
+            </video>
+            <canvas
+              ref={canvasRef}
+              className={cn(
+                'pointer-events-none absolute inset-0 size-full -scale-x-100 transition-opacity',
+                cameraActive ? 'opacity-100' : 'opacity-0',
+              )}
+              aria-hidden="true"
+            />
+
+            {!cameraActive && (
+              <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white shadow-xs">
                   <Camera className="size-7" />
                 </div>
@@ -2070,22 +2088,10 @@ function StageRecall({
                   </p>
                 )}
               </div>
-            ) : (
-              <>
-                <video
-                  ref={videoRef}
-                  playsInline
-                  muted
-                  className="size-full -scale-x-100 object-cover"
-                >
-                  <track kind="captions" />
-                </video>
-                <canvas
-                  ref={canvasRef}
-                  className="pointer-events-none absolute inset-0 size-full -scale-x-100"
-                  aria-hidden="true"
-                />
+            )}
 
+            {cameraActive && (
+              <>
                 {/* Overlays */}
                 {phase === 'countdown' && (
                   <div
