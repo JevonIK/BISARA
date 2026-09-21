@@ -16,13 +16,11 @@ import {
   RotateCcw,
   ShieldCheck,
   SunMedium,
-  Trophy,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
-import { AlphabetCameraChecker } from '@/components/alphabet-camera-checker';
 import {
   MissionHeroProgressCard,
   ToastingIllustration,
@@ -124,12 +122,21 @@ export function AlphabetMission({
     <main className="min-h-screen bg-[#FFE8A3] pb-44">
       <AppHeader active="home" />
       <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8 lg:py-5">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-slate-950 transition-colors"
-        >
-          <ArrowLeft className="size-4" /> Kembali ke beranda
-        </Link>
+        {activeSection === 'amati' ? (
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-slate-950 transition-colors"
+          >
+            <ArrowLeft className="size-4" /> Kembali ke beranda
+          </Link>
+        ) : (
+          <Link
+            href={`/missions/learn?mission=${mission.id}&section=amati`}
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-slate-950 transition-colors"
+          >
+            <ArrowLeft className="size-4" /> Kembali ke detail misi
+          </Link>
+        )}
 
         {!ready ? (
           <div className="mt-6 rounded-2xl border border-amber-200/50 bg-white p-6 font-semibold text-slate-600">
@@ -189,16 +196,27 @@ export function AlphabetMission({
 
             {activeSection !== 'amati' && (
               <div className="mt-4">
-                {activeSection !== 'tirukan' && (
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
-                      Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number.replace(/^0/, '')}
-                    </span>
-                    {replay ? (
-                      <Badge className="bg-[#FFAE00] text-slate-900 font-black rounded-full px-3 py-1">
-                        <RotateCcw className="size-3" /> Mode ulang misi
-                      </Badge>
-                    ) : null}
+                {(activeSection === 'recognition' || activeSection === 'recall') && (
+                  <div>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                      <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
+                        Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
+                      </span>
+                      <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-black text-[#E54D2E]">
+                        Tahap Latihan
+                      </span>
+                      {replay ? (
+                        <Badge className="bg-[#FFAE00] text-slate-900 font-black rounded-full px-3 py-1">
+                          <RotateCcw className="size-3" /> Mode ulang misi
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+                      Asah Kemampuanmu!
+                    </h1>
+                    <p className="mt-2 text-sm sm:text-base font-semibold text-slate-700">
+                      Selesaikan latihan singkat ini untuk mengunci kosakata yang baru kamu pelajari
+                    </p>
                   </div>
                 )}
 
@@ -1329,7 +1347,7 @@ function StageTirukan({
 }
 
 // ---------------------------------------------------------------------------
-// 3. TAHAP 3: UJI PENGENALAN
+// 3. TAHAP 3: UJI PENGENALAN (Consistent with Image 2 & MissionAssessment)
 // ---------------------------------------------------------------------------
 function StageRecognition({
   mission,
@@ -1346,27 +1364,33 @@ function StageRecognition({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<AlphabetLetter | null>(null);
-  const [score, setScore] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [answers, setAnswers] = useState<
+    Array<{ letter: AlphabetLetter; selected: AlphabetLetter; correct: boolean }>
+  >([]);
   const [isCompleted, setIsCompleted] = useState(false);
 
   const currentQ: AlphabetQuestion | undefined = questions[currentIndex];
 
-  const handleSelectOption = (option: AlphabetLetter) => {
-    if (selectedOption !== null || !currentQ) return;
-    setSelectedOption(option);
-    const isCorrect = option === currentQ.letter;
-    if (isCorrect) {
-      setScore((prev) => prev + Math.round(100 / questions.length));
-    }
+  const handleSubmitAnswer = () => {
+    if (!selectedOption || !currentQ || isSubmitted) return;
+    const isCorrect = selectedOption === currentQ.letter;
+    setIsSubmitted(true);
+    setAnswers((prev) => [
+      ...prev,
+      { letter: currentQ.letter, selected: selectedOption, correct: isCorrect },
+    ]);
   };
 
   const handleNextQuestion = () => {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
       setSelectedOption(null);
+      setIsSubmitted(false);
     } else {
       setIsCompleted(true);
-      const finalScore = Math.min(100, score);
+      const correctCount = answers.filter((a) => a.correct).length;
+      const finalScore = Math.round((correctCount / questions.length) * 100);
       if (finalScore >= RECOGNITION_PASS_SCORE) {
         const stars = calculateStars(finalScore);
         recordMissionRecognition(mission.id, finalScore, stars);
@@ -1378,51 +1402,109 @@ function StageRecognition({
     setAttempt((prev) => prev + 1);
     setCurrentIndex(0);
     setSelectedOption(null);
-    setScore(0);
+    setIsSubmitted(false);
+    setAnswers([]);
     setIsCompleted(false);
   };
 
-  const passed = score >= RECOGNITION_PASS_SCORE;
-
   if (isCompleted) {
-    return (
-      <div className="space-y-6 py-8 max-w-2xl mx-auto text-center">
-        <div
-          className={cn(
-            'p-8 sm:p-10 border rounded-[2.5rem] bg-white shadow-xs',
-            passed ? 'border-emerald-300' : 'border-amber-200',
-          )}
-        >
-          {passed ? (
-            <Trophy className="size-16 mx-auto text-[#00D5D1] stroke-[2.5]" />
-          ) : (
-            <RotateCcw className="size-16 mx-auto text-[#E54D2E]" />
-          )}
+    const correctCount = answers.filter((a) => a.correct).length;
+    const finalScore = Math.round((correctCount / questions.length) * 100);
+    const passed = finalScore >= RECOGNITION_PASS_SCORE;
+    const missed = answers.filter((a) => !a.correct);
 
-          <h2 className="mt-5 text-3xl font-black text-slate-900">
-            {passed ? 'Uji Pengenalan Lulus!' : 'Perlu Berlatih Lagi'}
+    return (
+      <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 lg:p-10 shadow-xs border border-amber-200/50">
+        <div className="max-w-2xl mx-auto py-4">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-black uppercase tracking-wider',
+              passed
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-[#FFF0ED] text-[#E54D2E]',
+            )}
+          >
+            {passed ? 'Lulus' : 'Perlu diulang'}
+          </span>
+
+          <h2 className="mt-4 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">
+            {correctCount} dari {questions.length} jawaban benar
           </h2>
-          <p className="mt-2 text-sm font-semibold text-slate-600">
+
+          <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-slate-600 max-w-xl">
             {passed
-              ? `Hebat! Kamu berhasil meraih skor ${score} dari 100 poin.`
-              : `Kamu meraih skor ${score} dari 100 poin. Butuh minimal 70 poin untuk membuka tahap peragaan.`}
+              ? `Bagus! Kamu sudah mencapai skor kelulusan (${finalScore}/100). Butuh minimal 70 poin untuk membuka tahap peragaan.`
+              : `Skor minimal kelulusan adalah ${RECOGNITION_PASS_SCORE} poin (${finalScore}/100). Tonton ulang huruf yang keliru lalu coba lagi.`}
           </p>
 
-          <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <Button
-              variant="outline"
+          {/* Question Pills */}
+          <div className="mt-6 flex flex-wrap gap-2.5 sm:gap-3">
+            {questions.map((_, i) => {
+              const isCorrect = answers[i]?.correct;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    'inline-flex min-w-[68px] sm:min-w-[76px] items-center justify-center rounded-full border-2 px-5 sm:px-6 py-2 text-sm font-black shadow-2xs',
+                    isCorrect
+                      ? 'border-[#00BDCD] bg-white text-slate-900'
+                      : 'border-[#E54D2E] bg-[#FFF0ED] text-[#E54D2E]',
+                  )}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Missed answers list if any */}
+          {missed.length > 0 && (
+            <div className="mt-6 w-full rounded-2xl border border-amber-200/60 bg-[#FFFDF5] p-4 sm:p-5">
+              <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+                Huruf yang perlu diperkuat :
+              </p>
+              <ul className="mt-2.5 space-y-2 text-xs sm:text-sm">
+                {missed.map((answer) => (
+                  <li
+                    key={answer.letter}
+                    className="flex flex-wrap items-center justify-between gap-2 font-semibold text-slate-700"
+                  >
+                    <span>
+                      Jawabanmu:{' '}
+                      <strong className="text-slate-900 font-bold">
+                        Huruf {answer.selected}
+                      </strong>{' '}
+                      · Huruf benar:{' '}
+                      <strong className="text-emerald-700 font-bold">
+                        Huruf {answer.letter}
+                      </strong>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="mt-8 flex flex-wrap items-center gap-3.5">
+            <button
+              type="button"
               onClick={handleRetry}
-              className="rounded-full font-black border-slate-300 text-slate-800 hover:bg-slate-100 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-6 sm:px-7 py-3 sm:py-3.5 text-sm sm:text-base font-black text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
             >
-              <RotateCcw className="size-4 mr-2" /> Ulangi uji pengenalan
-            </Button>
+              <RotateCcw className="size-4 stroke-[2.5]" />
+              <span>Coba lagi</span>
+            </button>
+
             {passed && (
-              <Button
+              <button
+                type="button"
                 onClick={onPass}
-                className="rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-black text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
               >
-                Lanjut ke Uji peragaan <ArrowRight className="size-4 ml-2" />
-              </Button>
+                <span>Lanjut ke Uji peragaan</span>
+                <ArrowRight className="size-4 stroke-[2.5]" />
+              </button>
             )}
           </div>
         </div>
@@ -1431,111 +1513,183 @@ function StageRecognition({
   }
 
   if (!currentQ) return null;
+  const percentage = Math.round(((currentIndex + 1) / questions.length) * 100);
 
   return (
-    <div className="space-y-8 py-6 max-w-3xl mx-auto">
-      <header className="rounded-[2rem] border border-amber-200/50 bg-white p-6 sm:p-7 shadow-xs flex items-center justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[#E54D2E]">
-            Tahap 3 · Uji pengenalan
-          </p>
-          <h2 className="mt-1 text-2xl font-black text-slate-900">
-            Huruf apa yang diperagakan?
-          </h2>
-        </div>
-        <div className="text-right">
-          <span className="font-mono text-sm font-black text-slate-900">
-            Soal {currentIndex + 1} / {questions.length}
+    <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 lg:p-10 shadow-xs border border-amber-200/50">
+      {/* Top Progress Track matching Image 2 */}
+      <div className="mb-6 sm:mb-8 border-b border-slate-100 pb-6">
+        <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+          <span className="text-slate-900">
+            Soal {currentIndex + 1} dari {questions.length}
           </span>
-          <p className="text-xs font-black text-emerald-700">Skor: {score}</p>
+          <span className="text-slate-500">{percentage}%</span>
         </div>
-      </header>
-
-      {/* Mystery Video without label */}
-      <div className="overflow-hidden rounded-[2rem] border border-amber-200/50 bg-black aspect-video w-full shadow-xs">
-        <video
-          key={currentQ.videoSrc}
-          src={currentQ.videoSrc}
-          aria-label="Soal video pengenalan huruf"
-          className="w-full h-full object-contain"
-          controls
-          autoPlay
-          loop
-          playsInline
-        >
-          <track kind="captions" />
-        </video>
+        <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-[#E54D2E] transition-all duration-300"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
       </div>
 
-      {/* Multiple Choice Options */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {currentQ.options.map((option) => {
-          const isSelected = selectedOption === option;
-          const isCorrect = option === currentQ.letter;
-          let btnStyle = 'border-slate-200 bg-white hover:border-slate-400 text-slate-900';
-
-          if (selectedOption !== null) {
-            if (isCorrect) {
-              btnStyle = 'border-emerald-500 bg-emerald-500 text-white font-black';
-            } else if (isSelected) {
-              btnStyle = 'border-[#E54D2E] bg-red-100 text-[#E54D2E] font-black';
-            } else {
-              btnStyle = 'border-slate-200 bg-white/50 text-slate-400 opacity-60';
-            }
-          }
-
-          return (
-            <button
-              key={option}
-              type="button"
-              disabled={selectedOption !== null}
-              onClick={() => handleSelectOption(option)}
-              className={cn(
-                'flex h-20 items-center justify-center rounded-2xl border text-3xl font-black shadow-xs transition-all active:scale-95 cursor-pointer',
-                btnStyle,
-              )}
-            >
-              {option}
-            </button>
-          );
-        })}
+      {/* Question Heading matching Image 2 */}
+      <div>
+        <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+          PERHATIKAN TANDA
+        </span>
+        <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+          Apa arti tanda dalam video ini?
+        </h2>
       </div>
 
-      {/* Feedback & Next Button */}
-      {selectedOption !== null && (
-        <div className="rounded-2xl border border-amber-200/50 bg-white p-4 shadow-xs flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            {selectedOption === currentQ.letter ? (
-              <>
-                <Check className="size-5 text-emerald-600 stroke-[3]" />
-                <span className="font-bold text-emerald-800 text-sm">
-                  Tepat! Ini adalah huruf {currentQ.letter}.
-                </span>
-              </>
+      {/* 2-Column Grid matching Image 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 sm:gap-10 items-start mt-4">
+        {/* Left: Video */}
+        <div>
+          <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-black shadow-inner">
+            <div className="absolute top-3.5 left-3.5 z-10 rounded-full bg-black/65 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-xs">
+              WL-BISINDO • Banten
+            </div>
+            <video
+              key={currentQ.videoSrc}
+              src={currentQ.videoSrc}
+              aria-label="Video peragaan huruf"
+              className="size-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+              controls
+            />
+          </div>
+        </div>
+
+        {/* Right: Choices & Submit */}
+        <div className="flex flex-col justify-between h-full pt-1">
+          <div>
+            <span className="text-xs font-black uppercase tracking-wider text-slate-900 block mb-4">
+              PILIH SATU JAWABAN
+            </span>
+            <div className="space-y-3" role="radiogroup">
+              {currentQ.options.map((option, optionIndex) => {
+                const isSelected = selectedOption === option;
+                const isCorrect = option === currentQ.letter;
+
+                let containerStyle = isSelected
+                  ? 'border-slate-900 bg-slate-50/50 shadow-xs'
+                  : 'border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50/30';
+                let circleStyle = isSelected
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-200 bg-white text-slate-700';
+
+                if (isSubmitted) {
+                  if (isCorrect) {
+                    containerStyle = 'border-emerald-500 bg-emerald-50/60 shadow-xs';
+                    circleStyle = 'border-emerald-600 bg-emerald-600 text-white';
+                  } else if (isSelected) {
+                    containerStyle = 'border-[#E54D2E] bg-red-50/60 shadow-xs';
+                    circleStyle = 'border-[#E54D2E] bg-[#E54D2E] text-white';
+                  } else {
+                    containerStyle = 'border-slate-100 bg-white/50 opacity-60';
+                  }
+                }
+
+                return (
+                  <button
+                    type="button"
+                    key={option}
+                    disabled={isSubmitted}
+                    onClick={() => setSelectedOption(option)}
+                    className={cn(
+                      'flex w-full items-center gap-4 rounded-2xl border-2 p-4 sm:p-5 text-left transition-all cursor-pointer select-none',
+                      containerStyle,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'grid size-8 sm:size-9 shrink-0 place-items-center rounded-full border text-xs sm:text-sm font-black transition-colors',
+                        circleStyle,
+                      )}
+                    >
+                      {String.fromCharCode(65 + optionIndex)}
+                    </span>
+                    <span className="text-sm sm:text-base font-black text-slate-900">
+                      Huruf {option}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Feedback & Submit / Next button */}
+          <div className="mt-6 sm:mt-8 space-y-3">
+            {isSubmitted && (
+              <div
+                className={cn(
+                  'rounded-2xl border p-4 flex items-center gap-3',
+                  selectedOption === currentQ.letter
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-red-200 bg-red-50 text-[#E54D2E]',
+                )}
+              >
+                {selectedOption === currentQ.letter ? (
+                  <>
+                    <Check className="size-5 text-emerald-600 stroke-[3] shrink-0" />
+                    <span className="font-bold text-xs sm:text-sm">
+                      Tepat! Ini adalah huruf {currentQ.letter}.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <X className="size-5 text-[#E54D2E] stroke-[3] shrink-0" />
+                    <span className="font-bold text-xs sm:text-sm">
+                      Kurang tepat. Jawaban yang benar adalah huruf {currentQ.letter}.
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {!isSubmitted ? (
+              <button
+                type="button"
+                disabled={selectedOption === null}
+                onClick={handleSubmitAnswer}
+                className={cn(
+                  'w-full rounded-2xl py-4 text-sm font-black transition-all flex items-center justify-center gap-2 select-none shadow-xs',
+                  selectedOption !== null
+                    ? 'bg-slate-700 sm:bg-slate-800 hover:bg-slate-900 text-white cursor-pointer'
+                    : 'bg-[#94A3B8] text-white cursor-not-allowed opacity-90',
+                )}
+              >
+                <span>Periksa jawaban</span>
+                <ArrowRight className="size-4" />
+              </button>
             ) : (
-              <>
-                <X className="size-5 text-[#E54D2E] stroke-[3]" />
-                <span className="font-bold text-[#E54D2E] text-sm">
-                  Kurang tepat. Jawaban yang benar adalah huruf {currentQ.letter}.
+              <button
+                type="button"
+                onClick={handleNextQuestion}
+                className="w-full rounded-2xl bg-slate-900 hover:bg-slate-800 py-4 text-sm font-black text-white cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-2"
+              >
+                <span>
+                  {currentIndex + 1 < questions.length
+                    ? 'Lanjut ke soal berikutnya'
+                    : 'Lihat hasil evaluasi'}
                 </span>
-              </>
+                <ArrowRight className="size-4" />
+              </button>
             )}
           </div>
-          <Button
-            onClick={handleNextQuestion}
-            className="rounded-full bg-slate-900 font-bold text-white text-xs px-6 hover:bg-slate-800 cursor-pointer shadow-xs"
-          >
-            {currentIndex + 1 < questions.length ? 'Soal berikutnya' : 'Lihat hasil'}
-            <ArrowRight className="size-3.5 ml-1" />
-          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// 4. TAHAP 4: UJI PERAGAAN
+// 4. TAHAP 4: UJI PERAGAAN (Consistent with Image 3 & ProductionTest)
 // ---------------------------------------------------------------------------
 function StageRecall({
   mission,
@@ -1551,155 +1705,698 @@ function StageRecall({
   const [showHint, setShowHint] = useState(false);
   const [passedLetters, setPassedLetters] = useState<Set<AlphabetLetter>>(() => new Set());
 
-  const currentLetter = videos[step]?.letter;
-  const currentVideo = videos[step];
+  const currentVideo = videos[step] ?? videos[0];
+  const currentLetter = currentVideo.letter;
 
-  const handlePassed = useCallback(() => {
-    if (currentLetter) setPassedLetters((previous) => new Set(previous).add(currentLetter));
-  }, [currentLetter]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const brightnessCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const landmarkerRef = useRef<HandLandmarker | null>(null);
+  const referenceRef = useRef<GestureFrame[]>([]);
+  const referencesRef = useRef<AlphabetReferenceSet>({ frames: {}, variants: {} });
+  const capturedRef = useRef<GestureFrame[]>([]);
+  const frameRequestRef = useRef<number | null>(null);
+  const renderFrameRef = useRef<(() => void) | null>(null);
+  const lastInferenceRef = useRef(0);
+  const lastLightingCheckRef = useRef(0);
+  const lastVideoTimeRef = useRef(-1);
+  const recordStartRef = useRef(0);
+  const phaseRef = useRef<TirukanPhase>('idle');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
+  const attemptLetterRef = useRef(currentLetter);
+
+  const [cameraActive, setCameraActive] = useState(false);
+  const [loadingCamera, setLoadingCamera] = useState(false);
+  const [referenceState, setReferenceState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [phase, setPhase] = useState<TirukanPhase>('idle');
+  const [countdown, setCountdown] = useState(3);
+  const [handCount, setHandCount] = useState(0);
+  const [requiredHands, setRequiredHands] = useState<1 | 2>(1);
+  const [lighting, setLighting] = useState<LightingStatus>('unknown');
+  const [result, setResult] = useState<AlphabetAssessment | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const setPracticePhase = useCallback((next: TirukanPhase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = null;
+    if (frameRequestRef.current !== null) cancelAnimationFrame(frameRequestRef.current);
+    frameRequestRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    const canvas = canvasRef.current;
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    landmarkerRef.current?.close();
+    landmarkerRef.current = null;
+    setCameraActive(false);
+    setLoadingCamera(false);
+    setHandCount(0);
+    setPracticePhase('idle');
+  }, [setPracticePhase]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (frameRequestRef.current !== null) cancelAnimationFrame(frameRequestRef.current);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      landmarkerRef.current?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    attemptLetterRef.current = currentLetter;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setReferenceState('loading');
+      setResult(null);
+    });
+    void Promise.all([
+      getAlphabetReferenceFrames(currentVideo.videoSrc),
+      getAlphabetReferenceSet(),
+    ])
+      .then(([frames, references]) => {
+        if (cancelled) return;
+        referenceRef.current = frames;
+        referencesRef.current = references;
+        setRequiredHands(getRequiredHandCount(frames));
+        setReferenceState('ready');
+      })
+      .catch(() => {
+        if (!cancelled) setReferenceState('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLetter, currentVideo.videoSrc]);
+
+  const finishRecording = useCallback(() => {
+    if (phaseRef.current !== 'recording') return;
+    phaseRef.current = 'scoring';
+    setPhase('scoring');
+    const letter = attemptLetterRef.current;
+    timerRef.current = setTimeout(() => {
+      if (!mountedRef.current || letter !== attemptLetterRef.current) return;
+      const assessment = scoreAlphabetWithAlternatives(
+        letter,
+        referenceRef.current,
+        capturedRef.current,
+        referencesRef.current,
+      );
+      setResult(assessment);
+      setPracticePhase('result');
+      if (assessment.passed) {
+        setPassedLetters((prev) => new Set(prev).add(letter));
+      }
+    }, 500);
+  }, [setPracticePhase]);
+
+  const renderFrame = useCallback(() => {
+    if (!mountedRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const landmarker = landmarkerRef.current;
+
+    if (video && canvas && landmarker && video.readyState >= 2) {
+      try {
+        const now = performance.now();
+        let hands: HandObservation[] = [];
+
+        if (now - lastInferenceRef.current >= 45 && video.currentTime !== lastVideoTimeRef.current) {
+          lastInferenceRef.current = now;
+          lastVideoTimeRef.current = video.currentTime;
+          const detection = landmarker.detectForVideo(video, now);
+          hands = detection.landmarks.map((landmarks, index) => ({
+            landmarks: landmarks.map(({ x, y, z }) => ({ x, y, z })),
+            worldLandmarks: detection.worldLandmarks[index]?.map(({ x, y, z }) => ({ x, y, z })),
+            handedness: detection.handedness[index]?.[0]?.categoryName ?? 'Right',
+            confidence: detection.handedness[index]?.[0]?.score ?? 0,
+          }));
+          setHandCount(hands.length);
+        }
+
+        drawHandLandmarks(canvas, video, hands);
+
+        if (now - lastLightingCheckRef.current >= 500) {
+          lastLightingCheckRef.current = now;
+          if (!brightnessCanvasRef.current) {
+            brightnessCanvasRef.current = document.createElement('canvas');
+          }
+          setLighting(readFrameLighting(video, brightnessCanvasRef.current));
+        }
+
+        if (phaseRef.current === 'recording') {
+          capturedRef.current.push({ timeMs: Math.round(now - recordStartRef.current), hands });
+        }
+      } catch {
+        // Keep loop alive
+      }
+    }
+    frameRequestRef.current = requestAnimationFrame(() => renderFrameRef.current?.());
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    if (loadingCamera || cameraActive) return;
+    setLoadingCamera(true);
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+        audio: false,
+      });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      const video = videoRef.current;
+      if (!video) throw new Error('Kamera tidak siap.');
+      video.srcObject = stream;
+      await video.play();
+      const { FilesetResolver, HandLandmarker } = await import('@mediapipe/tasks-vision');
+      const vision = await FilesetResolver.forVisionTasks(WASM_ROOT);
+      const landmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: HAND_MODEL_URL },
+        runningMode: 'VIDEO',
+        numHands: 2,
+        minHandDetectionConfidence: 0.5,
+        minHandPresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+      if (!mountedRef.current) {
+        landmarker.close();
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      landmarkerRef.current = landmarker;
+      setCameraActive(true);
+      setLoadingCamera(false);
+      renderFrameRef.current = renderFrame;
+      frameRequestRef.current = requestAnimationFrame(renderFrame);
+    } catch {
+      stopCamera();
+      if (mountedRef.current) {
+        setError('Kamera atau model landmark tidak dapat dimuat. Periksa izin dan koneksi, lalu coba lagi.');
+      }
+    }
+  }, [cameraActive, loadingCamera, renderFrame, stopCamera]);
+
+  const beginPractice = useCallback(() => {
+    if (!cameraActive || referenceState !== 'ready' || phaseRef.current === 'recording' || phaseRef.current === 'countdown') return;
+    capturedRef.current = [];
+    setResult(null);
+    setCountdown(3);
+    setPracticePhase('countdown');
+    let remaining = 3;
+    countdownIntervalRef.current = setInterval(() => {
+      if (phaseRef.current !== 'countdown') return;
+      remaining -= 1;
+      if (remaining > 0) {
+        setCountdown(remaining);
+      } else {
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+        recordStartRef.current = performance.now();
+        setPracticePhase('recording');
+        timerRef.current = setTimeout(
+          finishRecording,
+          currentLetter === 'J' || currentLetter === 'Z' ? 4000 : 3000,
+        );
+      }
+    }, 1000);
+  }, [cameraActive, currentLetter, finishRecording, referenceState, setPracticePhase]);
 
   const handleNextLetter = () => {
     setShowHint(false);
     if (step + 1 < videos.length) {
       setStep((prev) => prev + 1);
+      setResult(null);
+      setPracticePhase('idle');
     } else {
       setCompleted(true);
+      stopCamera();
       recordMissionCompletion(mission.id);
     }
   };
 
-  const nextMission = allMissions[getMissionPosition(mission.id) + 1];
-
   if (completed) {
+    const nextMission = allMissions[getMissionPosition(mission.id) + 1];
     return (
-      <div className="space-y-6 py-10 max-w-2xl mx-auto text-center">
-        <div className="p-8 sm:p-10 border border-amber-200/50 bg-white rounded-[2.5rem] shadow-xs">
-          <Trophy className="size-20 mx-auto text-[#FFAE00] stroke-[2.5]" />
-          <h2 className="mt-6 text-4xl font-black text-slate-900">
-            Misi Selesai!
-          </h2>
-          <p className="mt-3 text-base font-semibold text-slate-600">
-            Selamat! Kamu telah menyelesaikan seluruh 4 tahap materi{' '}
-            <strong className="text-slate-900">Huruf {mission.title}</strong>!
-          </p>
-
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Button
-              variant="outline"
-              onClick={onRestart}
-              className="rounded-full font-black border-slate-300 text-slate-800 hover:bg-slate-100 cursor-pointer"
-            >
-              <RotateCcw className="size-4 mr-2" /> Ulangi dari awal
-            </Button>
-            {nextMission ? (
-              <Link
-                href={nextMission.href}
-                className={cn(
-                  buttonVariants(),
-                  'rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs',
-                )}
-              >
-                Lanjut ke: {nextMission.title} <ArrowRight className="size-4 ml-2" />
-              </Link>
-            ) : (
-              <Link
-                href="/missions"
-                className={cn(
-                  buttonVariants(),
-                  'rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs',
-                )}
-              >
-                Kembali ke perjalanan <ArrowRight className="size-4 ml-2" />
-              </Link>
-            )}
-          </div>
+      <section className="rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-xs border border-amber-200/50 text-center max-w-xl mx-auto space-y-6">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+          <Check className="size-8 stroke-[2.5]" />
         </div>
-      </div>
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+            Uji Peragaan Selesai!
+          </h2>
+          <p className="mt-3 text-sm font-medium text-slate-600 leading-relaxed">
+            {videos.length} huruf telah berhasil kamu peragakan di depan kamera tanpa contoh. Progresmu tersimpan!
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            onClick={onRestart}
+            className="rounded-full font-black border-slate-300 text-slate-800 hover:bg-slate-100 cursor-pointer w-full sm:w-auto"
+          >
+            <RotateCcw className="size-4 mr-2" /> Ulangi dari awal
+          </Button>
+          {nextMission ? (
+            <Link
+              href={nextMission.href}
+              className={cn(
+                buttonVariants(),
+                'rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs w-full sm:w-auto',
+              )}
+            >
+              Lanjut ke: {nextMission.title} <ArrowRight className="size-4 ml-2" />
+            </Link>
+          ) : (
+            <Link
+              href="/missions"
+              className={cn(
+                buttonVariants(),
+                'rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs w-full sm:w-auto',
+              )}
+            >
+              Kembali ke perjalanan <ArrowRight className="size-4 ml-2" />
+            </Link>
+          )}
+        </div>
+      </section>
     );
   }
 
+  const isPassedCurrent = passedLetters.has(currentLetter);
+  const progressPercent = Math.round(((step + 1) / videos.length) * 100);
+
   return (
-    <div className="space-y-8 py-6 max-w-3xl mx-auto">
-      <header className="rounded-[2rem] border border-amber-200/50 bg-white p-6 sm:p-7 shadow-xs flex items-center justify-between">
+    <section className="rounded-[2.5rem] bg-white p-6 sm:p-8 lg:p-10 shadow-xs border border-amber-200/50">
+      {/* Top Progress Track matching Image 3 */}
+      <div className="mb-6 sm:mb-8 border-b border-slate-100 pb-6">
+        <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
+          <span className="text-slate-900">
+            Soal {step + 1} dari {videos.length}
+          </span>
+          <span className="text-slate-500">{progressPercent}%</span>
+        </div>
+        <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-[#E54D2E] transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Heading matching Image 3 */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[#E54D2E]">
-            Tahap 4 · Uji peragaan
-          </p>
-          <h2 className="mt-1 text-2xl font-black text-slate-900">
-            Peragakan huruf dari ingatan tanpa contoh
+          <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+            TIRUKAN TANDA
+          </span>
+          <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+            Tunjukkan isyarat untuk kata: <span className="text-slate-900">Huruf {currentLetter}</span>
           </h2>
         </div>
-        <span className="font-mono text-sm font-black text-slate-900">
-          Huruf {step + 1} / {videos.length}
-        </span>
-      </header>
-
-      {/* Target Prompt */}
-      <div className="rounded-[2rem] border border-amber-200/50 bg-white p-6 text-center shadow-xs">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-          Peragakan sekarang
-        </p>
-        <h3 className="mt-2 text-6xl font-black text-slate-900">
-          Huruf {currentLetter}
-        </h3>
-        <p className="mt-3 text-xs font-semibold text-slate-600">
-          Tunjukkan bentuk huruf ini di depan kamera cerminmu.
-        </p>
-        <p className="mt-1 text-xs font-semibold text-slate-600">
-          Luluskan huruf ini dengan checker untuk melanjutkan.
-        </p>
       </div>
 
-      <AlphabetCameraChecker letter={currentLetter} videoSrc={currentVideo.videoSrc} onPass={handlePassed} />
+      {/* 2-Column Layout matching Image 3 */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 sm:gap-10 items-start mt-6 sm:mt-8">
+        {/* Left Column: Camera Box */}
+        <div className="overflow-hidden rounded-2xl bg-[#0F172A] shadow-inner border border-slate-800">
+          <div className="relative aspect-[16/10] w-full bg-slate-950 flex items-center justify-center overflow-hidden">
+            {!cameraActive ? (
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white shadow-xs">
+                  <Camera className="size-7" />
+                </div>
+                <h3 className="mt-4 text-xl sm:text-2xl font-black text-white">
+                  Siapkan kamera latihan
+                </h3>
+                <p className="mt-2 max-w-sm text-xs font-medium text-slate-300 leading-relaxed">
+                  Video diproses langsung di browser. BISARA tidak merekam atau menyimpan video latihan ini.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { void startCamera(); }}
+                  disabled={loadingCamera}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#00D5D1] px-7 py-3 text-xs sm:text-sm font-black text-slate-900 hover:bg-[#00BDCD] shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {loadingCamera ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" /> Menyiapkan kamera…
+                    </>
+                  ) : (
+                    'Aktifkan kamera'
+                  )}
+                </button>
+                {error && (
+                  <p className="mt-3 text-xs text-[#E54D2E] font-bold max-w-sm">
+                    {error}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <video
+                  ref={videoRef}
+                  playsInline
+                  muted
+                  className="size-full -scale-x-100 object-cover"
+                >
+                  <track kind="captions" />
+                </video>
+                <canvas
+                  ref={canvasRef}
+                  className="pointer-events-none absolute inset-0 size-full -scale-x-100"
+                  aria-hidden="true"
+                />
 
-      {/* Hint toggle if stuck */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowHint(!showHint)}
-          className="text-xs font-bold text-emerald-800 underline underline-offset-4 hover:text-slate-900 cursor-pointer"
-        >
-          {showHint ? 'Sembunyikan petunjuk' : 'Lupa bentuknya? Lihat petunjuk video'}
-        </button>
-
-        {showHint && currentVideo && (
-          <div className="mt-4 p-4 border border-amber-200/50 bg-white rounded-2xl shadow-xs space-y-3">
-            <p className="text-xs font-semibold text-slate-600">
-              {letterTips[currentLetter] ?? defaultLetterTip}
-            </p>
-            <video
-              src={currentVideo.videoSrc}
-              controls
-              autoPlay
-              loop
-              playsInline
-              className="max-h-48 rounded-xl bg-black mx-auto"
-            >
-              <track kind="captions" />
-            </video>
+                {/* Overlays */}
+                {phase === 'countdown' && (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-7xl font-black text-white backdrop-blur-2xs"
+                    aria-live="polite"
+                  >
+                    {countdown}
+                  </div>
+                )}
+                {phase === 'recording' && (
+                  <div className="absolute left-4 top-4 rounded-full bg-[#E54D2E] px-4 py-1.5 text-xs font-black text-white flex items-center gap-2 shadow-sm">
+                    <span className="size-2 rounded-full bg-white animate-ping" />
+                    Merekam gerakan
+                  </div>
+                )}
+                {phase === 'scoring' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 text-white backdrop-blur-xs">
+                    <LoaderCircle className="size-8 animate-spin text-[#00D5D1]" />
+                    <p className="mt-3 text-xs sm:text-sm font-bold">Mengevaluasi gerakan…</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
+
+          {/* Unified Bottom Dark Status & Control Bar */}
+          <div className="flex flex-col gap-3 border-t border-white/10 bg-[#0B0F19] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#00D5D1] block">
+                STATUS KAMERA
+              </span>
+              <p className="mt-0.5 text-xs sm:text-sm font-bold text-white">
+                {!cameraActive
+                  ? 'Kamera belum aktif'
+                  : phase === 'countdown'
+                    ? 'Bersiap…'
+                    : phase === 'recording'
+                      ? `Merekam gerakan huruf ${currentLetter}…`
+                      : phase === 'scoring'
+                        ? 'Menganalisis kecocokan gerakan…'
+                        : isPassedCurrent
+                          ? `Tepat! Huruf ${currentLetter} berhasil diperagakan!`
+                          : 'Kamera aktif & siap berlatih'}
+              </p>
+            </div>
+
+            {cameraActive && (
+              <div className="flex flex-wrap items-center gap-2">
+                {phase === 'idle' || phase === 'result' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={beginPractice}
+                      disabled={referenceState !== 'ready'}
+                      className="rounded-full bg-[#00D5D1] px-5 py-2 text-xs font-black text-slate-900 hover:bg-[#00BDCD] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Play className="size-3.5 fill-current" />
+                      {phase === 'result' ? 'Uji lagi' : 'Mulai uji'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer"
+                    >
+                      <CameraOff className="size-3.5 mr-1 inline" /> Matikan
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (timerRef.current) clearTimeout(timerRef.current);
+                      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                      setPracticePhase('idle');
+                    }}
+                    className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer"
+                  >
+                    <X className="size-3.5 mr-1 inline" /> Batalkan
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Feedback Output Banner if evaluated */}
+          {result && (
+            <div
+              className={cn(
+                'border-t p-4 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3',
+                result.passed
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                  : 'border-red-200 bg-red-50 text-[#E54D2E]',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {result.passed ? (
+                  <>
+                    <Check className="size-5 text-emerald-700 stroke-[3] shrink-0" />
+                    <span>Huruf {currentLetter} sesuai! Gerakan kamu tepat.</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="size-5 text-[#E54D2E] stroke-[3] shrink-0" />
+                    <span>{result.feedback || 'Gerakan belum sesuai. Silakan coba lagi.'}</span>
+                  </>
+                )}
+              </div>
+              {result.passed && (
+                <span className="rounded-full bg-emerald-200 text-emerald-900 px-3 py-1 text-xs font-black">
+                  Lulus
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Calibration Card matching Image 3 */}
+        <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+          <div>
+            <div className="mb-7 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+                  KALIBRASI
+                </p>
+                <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                  Sebelum berlatih
+                </h2>
+              </div>
+              <ShieldCheck className="size-6 text-[#FFAE00]" />
+            </div>
+
+            <ul className="space-y-5">
+              {/* 1. Kamera Aktif */}
+              <li className="flex items-center gap-3.5">
+                <span
+                  className={cn(
+                    'grid size-10 shrink-0 place-items-center rounded-full',
+                    cameraActive
+                      ? 'bg-[#00D5D1]/20 text-emerald-800'
+                      : 'bg-slate-100 text-slate-600',
+                  )}
+                >
+                  {cameraActive ? (
+                    <Check className="size-5 stroke-[2.5] text-emerald-700" />
+                  ) : (
+                    <Camera className="size-5" />
+                  )}
+                </span>
+                <div>
+                  <span className="block text-sm font-black text-slate-900">
+                    Kamera aktif
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {cameraActive ? 'Siap' : 'Belum siap'}
+                  </span>
+                </div>
+              </li>
+
+              {/* 2. Pencahayaan */}
+              <li className="flex items-center gap-3.5">
+                <span
+                  className={cn(
+                    'grid size-10 shrink-0 place-items-center rounded-full',
+                    lighting === 'good'
+                      ? 'bg-[#00D5D1]/20 text-emerald-800'
+                      : 'bg-slate-100 text-slate-600',
+                  )}
+                >
+                  {lighting === 'good' ? (
+                    <Check className="size-5 stroke-[2.5] text-emerald-700" />
+                  ) : (
+                    <SunMedium className="size-5" />
+                  )}
+                </span>
+                <div>
+                  <span className="block text-sm font-black text-slate-900">
+                    Pencahayaan
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {cameraActive ? lightingLabel(lighting) : 'Belum diperiksa'}
+                  </span>
+                </div>
+              </li>
+
+              {/* 3. Tangan Terlihat */}
+              <li className="flex items-center gap-3.5">
+                <span
+                  className={cn(
+                    'grid size-10 shrink-0 place-items-center rounded-full',
+                    handCount > 0
+                      ? 'bg-[#00D5D1]/20 text-emerald-800'
+                      : 'bg-slate-100 text-slate-600',
+                  )}
+                >
+                  {handCount > 0 ? (
+                    <Check className="size-5 stroke-[2.5] text-emerald-700" />
+                  ) : (
+                    <Hand className="size-5" />
+                  )}
+                </span>
+                <div>
+                  <span className="block text-sm font-black text-slate-900">
+                    Tangan terlihat
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {handCount > 0
+                      ? requiredHands === 2
+                        ? handCount >= 2
+                          ? 'Kedua tangan terdeteksi'
+                          : '1 tangan terdeteksi (butuh 2)'
+                        : 'Tangan terdeteksi'
+                      : 'Belum terdeteksi'}
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div className="mt-7 border-t border-slate-200 pt-5">
+            <p className="text-xs font-medium leading-relaxed text-slate-500">
+              Gunakan cahaya dari depan, jaga tubuh bagian atas tetap terlihat, dan beri ruang di sekitar kedua tangan.
+            </p>
+          </div>
+        </aside>
       </div>
 
-      {/* Confirmation Button */}
-      <div className="flex justify-end pt-4 border-t border-amber-200/50">
-        <Button
-          onClick={handleNextLetter}
-          disabled={!passedLetters.has(currentLetter)}
-          className="rounded-full bg-[#00D5D1] px-8 py-3 text-base font-black text-slate-900 hover:bg-[#00c2be] cursor-pointer shadow-xs disabled:opacity-50"
-        >
-          {step + 1 < videos.length ? (
-            <>
-              Huruf berikutnya <ArrowRight className="size-4 ml-1" />
-            </>
-          ) : (
-            <>
-              Selesaikan misi <Check className="size-4 ml-1" />
-            </>
-          )}
-        </Button>
+      {/* Underneath Controls: Letter Quick Jump & Video Hint Toggle */}
+      <div className="mt-8 border-t border-slate-100 pt-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold text-slate-500 mr-1">Daftar huruf:</span>
+          {videos.map(({ letter }, idx) => {
+            const isPassed = passedLetters.has(letter);
+            const isCurrent = letter === currentLetter;
+            return (
+              <button
+                type="button"
+                key={letter}
+                onClick={() => {
+                  setStep(idx);
+                  setResult(null);
+                  setPracticePhase('idle');
+                  setShowHint(false);
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-black transition-all cursor-pointer',
+                  isCurrent
+                    ? 'border-2 border-slate-900 bg-slate-900 text-white shadow-xs'
+                    : isPassed
+                      ? 'border-2 border-emerald-300 bg-emerald-50 text-emerald-800'
+                      : 'border-2 border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                )}
+              >
+                {isPassed && <Check className="size-3 stroke-[3] text-emerald-600" />}
+                Huruf {letter}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowHint(!showHint)}
+            className="text-xs font-bold text-emerald-800 underline underline-offset-4 hover:text-slate-900 cursor-pointer"
+          >
+            {showHint ? 'Sembunyikan petunjuk' : 'Lupa bentuknya? Lihat petunjuk video'}
+          </button>
+
+          <Button
+            onClick={handleNextLetter}
+            disabled={!isPassedCurrent}
+            className={cn(
+              'rounded-full px-7 py-3 text-sm font-black transition-all shadow-xs flex items-center gap-2 cursor-pointer',
+              isPassedCurrent
+                ? 'bg-[#00D5D1] text-slate-900 hover:bg-[#00c2be]'
+                : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75',
+            )}
+          >
+            {step + 1 < videos.length ? (
+              <>
+                Huruf berikutnya <ArrowRight className="size-4" />
+              </>
+            ) : (
+              <>
+                Selesaikan misi <Check className="size-4" />
+              </>
+            )}
+          </Button>
+        </div>
       </div>
-    </div>
+
+      {/* Video Hint Drawer */}
+      {showHint && currentVideo && (
+        <div className="mt-4 p-5 border border-amber-200/50 bg-[#FFFDF7] rounded-2xl shadow-xs space-y-3">
+          <p className="text-xs font-semibold text-slate-600">
+            {letterTips[currentLetter] ?? defaultLetterTip}
+          </p>
+          <video
+            src={currentVideo.videoSrc}
+            controls
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="max-h-52 rounded-xl bg-black mx-auto"
+          >
+            <track kind="captions" />
+          </video>
+        </div>
+      )}
+    </section>
   );
 }
 
