@@ -12,6 +12,7 @@ import {
   Play,
   X,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { AppHeader } from '@/components/app-header';
@@ -185,7 +186,15 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center justify-center">
-                  <HeroCheersIllustration />
+                  <Image
+                    src="/assets/bisara/Bab41.png"
+                    alt=""
+                    width={260}
+                    height={210}
+                    className="h-44 w-56 object-contain sm:h-52 sm:w-64"
+                    draggable={false}
+                    priority
+                  />
                 </div>
               </div>
             </div>
@@ -336,142 +345,5 @@ export default function Home() {
         </footer>
       </div>
     </main>
-  );
-}
-
-function HeroCheersIllustration() {
-  return (
-    <svg
-      className="h-44 w-56 sm:h-52 sm:w-64"
-      viewBox="0 0 260 210"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Liquid splash bursting between the cups */}
-      <path
-        d="M130 18L137 50L162 34L148 64L184 70L152 90L174 122L138 100L126 132L116 100L80 122L102 90L70 70L106 64L92 34L117 50L124 18Z"
-        fill="#C4561D"
-      />
-
-      {/* Left arm with yellow sleeve and cuff */}
-      <path
-        d="M72 210L94 140L112 146L90 210H72Z"
-        fill="#F8A51D"
-      />
-      <rect
-        x="91"
-        y="136"
-        width="22"
-        height="6"
-        rx="2"
-        transform="rotate(15 91 136)"
-        fill="#D67E08"
-      />
-      {/* Left wrist & hand */}
-      <path
-        d="M97 138L110 106L122 110L113 142L97 138Z"
-        fill="#E8927C"
-      />
-      {/* Left cup */}
-      <rect
-        x="105"
-        y="84"
-        width="28"
-        height="35"
-        rx="4"
-        transform="rotate(15 105 84)"
-        fill="#FFF2B8"
-        stroke="#E69680"
-        strokeWidth="2"
-      />
-      <rect
-        x="103"
-        y="80"
-        width="32"
-        height="8"
-        rx="2.5"
-        transform="rotate(15 103 80)"
-        fill="#362B28"
-      />
-      {/* Hand fingers clasping left cup */}
-      <rect
-        x="115"
-        y="96"
-        width="16"
-        height="6"
-        rx="3"
-        transform="rotate(15 115 96)"
-        fill="#E8927C"
-      />
-      <rect
-        x="113"
-        y="105"
-        width="16"
-        height="6"
-        rx="3"
-        transform="rotate(15 113 105)"
-        fill="#E8927C"
-      />
-
-      {/* Right arm with reddish orange sleeve and cuff */}
-      <path
-        d="M188 210L166 140L148 146L170 210H188Z"
-        fill="#CF5336"
-      />
-      <rect
-        x="146"
-        y="142"
-        width="22"
-        height="6"
-        rx="2"
-        transform="rotate(-15 146 142)"
-        fill="#A6381F"
-      />
-      {/* Right wrist & hand */}
-      <path
-        d="M163 138L150 106L138 110L147 142L163 138Z"
-        fill="#F1AB99"
-      />
-      {/* Right cup */}
-      <rect
-        x="127"
-        y="91"
-        width="28"
-        height="35"
-        rx="4"
-        transform="rotate(-15 127 91)"
-        fill="#FFF2B8"
-        stroke="#E69680"
-        strokeWidth="2"
-      />
-      <rect
-        x="125"
-        y="87"
-        width="32"
-        height="8"
-        rx="2.5"
-        transform="rotate(-15 125 87)"
-        fill="#362B28"
-      />
-      {/* Hand fingers clasping right cup */}
-      <rect
-        x="129"
-        y="100"
-        width="16"
-        height="6"
-        rx="3"
-        transform="rotate(-15 129 100)"
-        fill="#F1AB99"
-      />
-      <rect
-        x="131"
-        y="109"
-        width="16"
-        height="6"
-        rx="3"
-        transform="rotate(-15 131 109)"
-        fill="#F1AB99"
-      />
-    </svg>
   );
 }
