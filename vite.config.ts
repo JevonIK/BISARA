@@ -29,7 +29,15 @@ export default defineConfig(async () => {
     server: {
       port: 3000,
       strictPort: true,
-      proxy: { '/api/v1': { target: 'http://127.0.0.1:8000' } },
+      proxy: {
+        '/api/v1': {
+          target:
+            process.env.BACKEND_URL ||
+            'https://bisara-production.up.railway.app',
+          changeOrigin: true,
+          secure: true,
+        },
+      },
       watch: isCodexSeatbeltSandbox
         ? { useFsEvents: false, usePolling: true }
         : undefined,

@@ -94,7 +94,7 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
                 : 'Masuk ke akun'
             }
           >
-            {account.status === 'loading' ? '…' : initials || 'Masuk'}
+            {initials || (account.status === 'loading' ? '…' : 'Masuk')}
           </Link>
         </div>
       </div>

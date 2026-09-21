@@ -3,9 +3,11 @@ import {
   GUEST_KEY,
   hasPersistentStorage,
   readAccountCache,
+  readCachedUser,
   readLocal,
   saveAccountCache,
   selectProgressAccount,
+  writeCachedUser,
   writeLocal,
 } from '@/lib/account-cache';
 import {
@@ -73,14 +75,23 @@ function remoteSnapshot(remote: RemoteProgress) {
 
 export async function refreshAccount() {
   const epoch = ++generation;
-  publish({ user: null, status: 'loading', sync: 'idle', message: '' });
-  selectProgressAccount(null);
+  const currentOrCachedUser = state.user ?? readCachedUser();
+  if (currentOrCachedUser?.id) {
+    selectProgressAccount(currentOrCachedUser.id);
+  }
+  publish({
+    user: currentOrCachedUser,
+    status: 'loading',
+    sync: 'idle',
+    message: '',
+  });
   try {
     const user = await apiRequest<AccountUser>('/auth/me');
     const remote = await apiRequest<RemoteProgress>('/progress', {
       headers: { 'X-Progress-Owner': user.id },
     });
     if (epoch !== generation) return;
+    writeCachedUser(user);
     const cached = readAccountCache(user.id);
     if (!cached?.dirty) {
       saveAccountCache(user.id, {
@@ -103,8 +114,12 @@ export async function refreshAccount() {
   } catch (error) {
     if (epoch !== generation) return;
     const guest = error instanceof ApiError && error.status === 401;
+    if (guest) {
+      writeCachedUser(null);
+      selectProgressAccount(null);
+    }
     publish({
-      user: null,
+      user: guest ? null : currentOrCachedUser,
       status: guest ? 'guest' : 'offline',
       sync: 'idle',
       message: guest
@@ -122,23 +137,51 @@ export async function authenticate(
     method: 'POST',
     body: JSON.stringify(fields),
   });
+  writeCachedUser(user);
   announceAuthChange();
   await refreshAccount();
   return state.user ?? user;
 }
 
 export async function logoutAccount() {
-  // Flush pending changes first. Errors/conflicts keep the session and local cache intact.
-  await syncProgress();
-  if (state.sync === 'conflict' || state.sync === 'pending') {
-    throw new Error(
-      'Sinkronisasi belum selesai. Selesaikan konflik atau coba sinkronkan kembali sebelum keluar.',
-    );
+  // 1. Flush pending changes if possible, without blocking logout if sync fails
+  try {
+    await syncProgress();
+  } catch {
+    // Proceed with logout even if sync encounters an error
   }
-  if (activeSave) await activeSave;
-  await apiRequest<void>('/auth/logout', { method: 'POST' });
+  if (activeSave) {
+    try {
+      await activeSave;
+    } catch {
+      // Proceed even if active save errors
+    }
+  }
+
+  // 2. Call backend logout endpoint (best-effort)
+  try {
+    await apiRequest<void>('/auth/logout', { method: 'POST' });
+  } catch {
+    // Even if backend fails (e.g. CSRF mismatch, expired session, network error),
+    // proceed to clear local session so the user is not stuck.
+  }
+
+  // 3. Always clear local session, cookies, and cached user
   generation++;
   selectProgressAccount(null);
+  writeCachedUser(null);
+
+  if (typeof document !== 'undefined') {
+    try {
+      document.cookie =
+        'bisara_csrf=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie =
+        'bisara_access=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    } catch {
+      // Ignore cookie errors
+    }
+  }
+
   publish({ user: null, status: 'guest', sync: 'idle', message: '' });
   announceAuthChange();
 }
