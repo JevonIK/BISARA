@@ -122,7 +122,7 @@ export function ProgressDashboard() {
           <Badge className="bg-signal-teal text-signal-navy">
             {unlockedBadges.size} Lencana · Communicator
           </Badge>
-          <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.08] tracking-[-0.05em] sm:text-5xl">
+          <h1 className="mt-5 max-w-2xl text-4xl font-bold leading-[1.08] tracking-[-0.05em] sm:text-5xl">
             Progresmu mulai membentuk kebiasaan komunikasi.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-white/60">
@@ -134,10 +134,10 @@ export function ProgressDashboard() {
         <div className="flex flex-col justify-between border-t border-white/10 bg-white/[0.04] p-7 lg:border-l lg:border-t-0 sm:p-9">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-signal-teal">
                 Total lencana
               </p>
-              <p className="mt-2 text-5xl font-black tracking-[-0.06em]">
+              <p className="mt-2 text-5xl font-bold tracking-[-0.06em]">
                 {unlockedBadges.size}
               </p>
               <p className="text-sm font-bold text-white/45">Lencana diraih</p>
@@ -191,10 +191,10 @@ export function ProgressDashboard() {
         <article className="border border-signal-navy/10 bg-card p-6 sm:p-8">
           <div className="mb-7 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
                 Aktivitas mingguan
               </p>
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+              <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
                 {activeDays} hari aktif minggu ini
               </h2>
             </div>
@@ -246,7 +246,7 @@ export function ProgressDashboard() {
                 Daily quest
               </Badge>
             </div>
-            <h2 className="mt-6 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+            <h2 className="mt-6 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
               Perkuat lima tanda hari ini
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -265,7 +265,7 @@ export function ProgressDashboard() {
             </Progress>
             <Link
               href="/review"
-              className="mt-6 flex items-center justify-between border-t border-signal-navy/10 pt-5 text-sm font-extrabold text-signal-navy hover:text-emerald-700"
+              className="mt-6 flex items-center justify-between border-t border-signal-navy/10 pt-5 text-sm font-bold text-signal-navy hover:text-emerald-700"
             >
               {reviewProgress === 100
                 ? 'Lihat hasil review'
@@ -278,10 +278,10 @@ export function ProgressDashboard() {
 
       <section className="grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
         <article className="border border-signal-navy/10 bg-card p-6 sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
             Tingkat mastery
           </p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+          <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
             Tirukan, kenali, dan ingat kembali
           </h2>
           <div className="mt-7 space-y-6">
@@ -322,10 +322,10 @@ export function ProgressDashboard() {
         <article className="border border-signal-navy/10 bg-card p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
                 Koleksi lencana
               </p>
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+              <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
                 Pencapaian yang sudah kamu buka
               </h2>
             </div>
@@ -371,7 +371,7 @@ export function ProgressDashboard() {
                     )}
                   </span>
                   <span>
-                    <span className="block text-sm font-black text-signal-navy">
+                    <span className="block text-sm font-bold text-signal-navy">
                       {badge.name}
                     </span>
                     <span className="mt-1 block text-xs leading-5 text-muted-foreground">
@@ -413,7 +413,7 @@ function StatCard({
         <Icon className="size-5" />
       </span>
       <div>
-        <p className="text-xl font-black tracking-[-0.03em] text-signal-navy">
+        <p className="text-xl font-bold tracking-[-0.03em] text-signal-navy">
           {value}
         </p>
         <p className="mt-0.5 text-xs font-bold text-muted-foreground">

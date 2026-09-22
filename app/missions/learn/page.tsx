@@ -75,13 +75,13 @@ export default async function MissionLearningPage({
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_350px] gap-8 items-center">
             {/* Left: Mission Information */}
             <div>
-              <span className="inline-block rounded-full bg-[#FFAE00] px-4 py-1 text-xs font-black text-slate-950 shadow-2xs">
+              <span className="inline-block rounded-full bg-[#FFAE00] px-4 py-1 text-xs font-bold text-slate-950 shadow-2xs">
                 Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number.replace(/^0/, '')}
               </span>
-              <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block mt-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block mt-4">
                 MISI AKTIF
               </span>
-              <h1 className="mt-1.5 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.1]">
+              <h1 className="mt-1.5 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 leading-[1.1]">
                 {mission.type === 'alphabet' ? `Huruf ${mission.title}` : mission.title}
               </h1>
               <p className="mt-4 max-w-xl text-sm sm:text-base font-semibold text-slate-600 leading-relaxed">

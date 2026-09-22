@@ -70,20 +70,20 @@ export default async function MissionTestPage({
 
         {/* Dynamic header matching attachment */}
         {mission.type === 'checkpoint' ? (
-          <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm font-black uppercase tracking-wider text-[#E54D2E]">
+          <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#E54D2E]">
             <Flag className="size-4 fill-[#E54D2E]" /> TES BAB {chapter.number.replace(/^0/, '')}
           </div>
         ) : (
           <div>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
+              <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-bold text-slate-900 shadow-2xs">
                 Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
               </span>
-              <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-black text-[#E54D2E]">
+              <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-bold text-[#E54D2E]">
                 {isComplete ? 'Misi Selesai' : 'Tahap Latihan'}
               </span>
             </div>
-            <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+            <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
               {isComplete ? 'Hebat, Misi Terselesaikan!' : 'Asah Kemampuanmu!'}
             </h1>
             <p className="mt-2 text-sm sm:text-base font-semibold text-slate-700">

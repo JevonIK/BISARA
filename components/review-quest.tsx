@@ -34,10 +34,10 @@ export function ReviewQuest() {
       <section className="grid overflow-hidden bg-signal-navy text-white lg:grid-cols-[1fr_280px]">
         <div className="p-7 sm:p-10">
           <Brain className="size-9 text-signal-teal" />
-          <p className="mt-6 text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-signal-teal">
             Review berkala
           </p>
-          <h1 className="mt-3 text-4xl font-black leading-tight">
+          <h1 className="mt-3 text-4xl font-bold leading-tight">
             Coba ingat sebelum melihat contoh.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">
@@ -49,7 +49,7 @@ export function ReviewQuest() {
         <aside className="border-t border-white/15 p-7 lg:border-l lg:border-t-0">
           <Clock3 className="size-7 text-signal-yellow" />
           <p className="mt-6 text-sm text-white/70">Review hari ini</p>
-          <p className="mt-2 text-4xl font-black">
+          <p className="mt-2 text-4xl font-bold">
             {completed}/{targetIds.length}
           </p>
           <p className="mt-3 text-sm text-white/70">
@@ -62,7 +62,7 @@ export function ReviewQuest() {
 
       {pending.length ? (
         <section className="border border-signal-navy/10 bg-card p-6 sm:p-8">
-          <h2 className="text-2xl font-black text-signal-navy">
+          <h2 className="text-2xl font-bold text-signal-navy">
             Tanda untuk sesi ini
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -76,7 +76,7 @@ export function ReviewQuest() {
               const done = progress.reviewedSigns.includes(id);
               return (
                 <li key={id} className="border border-signal-navy/10 p-4">
-                  <p className="flex items-center gap-2 font-black text-signal-navy">
+                  <p className="flex items-center gap-2 font-bold text-signal-navy">
                     {done ? (
                       <Check className="size-4 text-emerald-700" />
                     ) : null}
@@ -108,7 +108,7 @@ export function ReviewQuest() {
         </section>
       ) : (
         <section className="border border-signal-teal bg-signal-teal-soft p-7">
-          <h2 className="text-2xl font-black text-signal-navy">
+          <h2 className="text-2xl font-bold text-signal-navy">
             {hasLearned
               ? 'Beri jeda sebelum mengulang lagi'
               : 'Pelajari tanda pertamamu'}

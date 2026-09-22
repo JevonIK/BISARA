@@ -990,7 +990,7 @@ export function CameraPractice({
           <span className="mx-auto grid size-16 place-items-center rounded-full bg-signal-yellow/30 text-amber-800">
             <Hand className="size-7" />
           </span>
-          <h2 className="mt-6 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+          <h2 className="mt-6 text-3xl font-bold tracking-[-0.04em] text-signal-navy">
             Misi ini belum terbuka
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -1001,7 +1001,7 @@ export function CameraPractice({
             href="/"
             className={cn(
               buttonVariants({ size: 'lg' }),
-              'mt-7 rounded-full bg-signal-navy px-6 font-extrabold text-white',
+              'mt-7 rounded-full bg-signal-navy px-6 font-bold text-white',
             )}
           >
             Kembali ke beranda <ArrowRight className="size-4" />
@@ -1029,7 +1029,7 @@ export function CameraPractice({
           <span className="mx-auto grid size-16 place-items-center rounded-full bg-amber-100 text-amber-700 shadow-2xs">
             <LockKeyhole className="size-7" />
           </span>
-          <h2 className="mt-6 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+          <h2 className="mt-6 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
             Kosakata masih terkunci
           </h2>
           <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">
@@ -1037,7 +1037,7 @@ export function CameraPractice({
           </p>
           <Link
             href={`/missions/practice?mission=${missionId}&sign=${firstUnpassed.id}`}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 py-3 text-sm font-black text-slate-950 shadow-xs transition-all hover:bg-[#ff9f00] hover:scale-105 active:scale-95"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 py-3 text-sm font-bold text-slate-950 shadow-xs transition-all hover:bg-[#ff9f00] hover:scale-105 active:scale-95"
           >
             Latih kosakata {firstUnpassed.label} <ArrowRight className="size-4" />
           </Link>
@@ -1060,7 +1060,7 @@ export function CameraPractice({
       <section className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
               {productionMode ? 'KAMERA PERAGAAN' : 'KAMERA LATIHAN'}
             </span>
             {isReady && (
@@ -1107,7 +1107,7 @@ export function CameraPractice({
                       <Camera className="size-8" />
                     )}
                   </span>
-                  <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
+                  <h2 className="mt-5 text-2xl sm:text-3xl font-bold text-white">
                     Siapkan kamera latihan
                   </h2>
                   <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
@@ -1119,7 +1119,7 @@ export function CameraPractice({
                     size="lg"
                     onClick={startCamera}
                     disabled={isBusy}
-                    className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-black text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+                    className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-bold text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
                   >
                     {isBusy ? (
                       <LoaderCircle className="size-4 animate-spin" />
@@ -1162,7 +1162,7 @@ export function CameraPractice({
               <div className="absolute inset-x-3 top-3 flex items-start sm:inset-x-4 sm:top-4">
                 <span
                   className={cn(
-                    'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-extrabold leading-4 backdrop-blur-sm',
+                    'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-bold leading-4 backdrop-blur-sm',
                     handCount > 0
                       ? 'bg-signal-teal text-signal-navy'
                       : 'bg-black/45 text-white',
@@ -1181,7 +1181,7 @@ export function CameraPractice({
           {practicePhase === 'countdown' && (
             <div className="absolute inset-0 grid place-items-center bg-signal-navy/40 backdrop-blur-sm">
               <output className="text-center" aria-live="polite">
-                <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-yellow text-5xl font-black text-signal-navy">
+                <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-yellow text-5xl font-bold text-signal-navy">
                   {waitingForHands ? <Hand className="size-10" /> : countdown}
                 </span>
                 <p className="mt-4 text-sm font-bold text-white">
@@ -1207,7 +1207,7 @@ export function CameraPractice({
             <>
               {recordingProgress < 15 && (
                 <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <span className="rounded-full bg-[#F8A51D] px-6 py-3 text-2xl font-black text-slate-900 shadow-lg">
+                  <span className="rounded-full bg-[#F8A51D] px-6 py-3 text-2xl font-bold text-slate-900 shadow-lg">
                     Mulai!
                   </span>
                 </div>
@@ -1256,7 +1256,7 @@ export function CameraPractice({
       {/* Unified Bottom Control Bar matching rest of white cards */}
         <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div aria-live="polite">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
               STATUS KAMERA
             </span>
             <p className="mt-0.5 text-xs sm:text-sm font-bold text-slate-900">
@@ -1286,7 +1286,7 @@ export function CameraPractice({
                   type="button"
                   onClick={startPractice}
                   disabled={!canStartPractice}
-                  className="rounded-full bg-[#F8A51D] px-5 py-2 font-black text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
+                  className="rounded-full bg-[#F8A51D] px-5 py-2 font-bold text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
                 >
                   <Play className="size-4 fill-current" />{' '}
                   {productionMode ? 'Mulai uji' : 'Mulai latihan'}
@@ -1328,10 +1328,10 @@ export function CameraPractice({
       {practicePhase === 'result' && gestureScore ? (
         <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-sm border border-amber-200/50">
           <div className="mb-5">
-            <p className="text-xs font-black uppercase tracking-[0.13em] text-[#E54D2E]">
+            <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#E54D2E]">
               {productionMode ? 'Hasil uji peragaan' : 'Hasil latihan'}
             </p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               {gestureScore.assessable
                 ? practiceResultLabel(gestureScore, previouslyMastered)
                 : 'Belum bisa dinilai'}
@@ -1431,7 +1431,7 @@ export function CameraPractice({
           ) : null}
 
           <div className="mt-5 border-t border-signal-navy/10 pt-4">
-            <p className="mb-3 text-[0.65rem] font-black uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
               Kualitas rekaman
             </p>
             <QualitativeMetric
@@ -1519,7 +1519,7 @@ export function CameraPractice({
 
           {gestureScore.passed && nextAction ? (
             <div className="mt-5 border border-signal-teal bg-signal-teal-soft p-4">
-              <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-800">
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-800">
                 <Check className="size-4" strokeWidth={3} />{' '}
                 {nextAction.practiceComplete
                   ? 'Tahap Tirukan selesai'
@@ -1537,7 +1537,7 @@ export function CameraPractice({
                 href={nextAction.href}
                 className={cn(
                   buttonVariants(),
-                  'h-11 w-full rounded-full bg-[#F8A51D] font-black text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer',
+                  'h-11 w-full rounded-full bg-[#F8A51D] font-bold text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer',
                 )}
               >
                 {nextAction.label} <ArrowRight className="size-4" />
@@ -1551,7 +1551,7 @@ export function CameraPractice({
                 href={`/missions/test?mission=${missionId}&mode=recognition`}
                 className={cn(
                   buttonVariants({ variant: 'outline' }),
-                  'h-11 w-full rounded-full border-2 border-[#F8A51D] font-black text-slate-900 hover:bg-amber-50 cursor-pointer',
+                  'h-11 w-full rounded-full border-2 border-[#F8A51D] font-bold text-slate-900 hover:bg-amber-50 cursor-pointer',
                 )}
               >
                 Lanjut ke Uji pengenalan <ArrowRight className="size-4" />
@@ -1563,7 +1563,7 @@ export function CameraPractice({
               variant={gestureScore.passed ? 'outline' : 'default'}
               onClick={retryPractice}
               className={cn(
-                'h-11 w-full rounded-full font-black cursor-pointer',
+                'h-11 w-full rounded-full font-bold cursor-pointer',
                 gestureScore.passed
                   ? 'border-2 border-slate-200 text-slate-700 hover:bg-slate-100'
                   : 'bg-[#F8A51D] text-slate-900 hover:bg-[#E59312] shadow-xs',
@@ -1578,10 +1578,10 @@ export function CameraPractice({
           <div>
             <div className="mb-7 flex items-center justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#E54D2E]">
                   KALIBRASI
                 </p>
-                <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                <h2 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                   Sebelum berlatih
                 </h2>
               </div>
@@ -1608,7 +1608,7 @@ export function CameraPractice({
                       )}
                     </span>
                     <div>
-                      <span className="block text-sm font-black text-slate-900">
+                      <span className="block text-sm font-bold text-slate-900">
                         {check.label}
                       </span>
                       <span className="text-xs font-semibold text-slate-500">

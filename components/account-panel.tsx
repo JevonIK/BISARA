@@ -108,10 +108,10 @@ export function AccountPanel() {
           priority
         />
         <div className="relative z-10">
-          <span className="text-xs font-black uppercase tracking-widest text-slate-900/80">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-900/80">
             BISARA
           </span>
-          <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.12] tracking-tight text-slate-900">
+          <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.12] tracking-tight text-slate-900">
             Perjalanan
             <br />
             belajarmu, di
@@ -146,7 +146,7 @@ export function AccountPanel() {
                   setResetSent(false);
                 }}
                 className={cn(
-                  'rounded-full px-5 py-1.5 text-xs sm:text-sm font-black transition-colors',
+                  'rounded-full px-5 py-1.5 text-xs sm:text-sm font-bold transition-colors',
                   mode === 'login' || mode === 'forgot'
                     ? 'bg-[#FFAE00] text-slate-950 shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900 font-bold',
@@ -162,7 +162,7 @@ export function AccountPanel() {
                   setResetSent(false);
                 }}
                 className={cn(
-                  'rounded-full px-5 py-1.5 text-xs sm:text-sm font-black transition-colors',
+                  'rounded-full px-5 py-1.5 text-xs sm:text-sm font-bold transition-colors',
                   mode === 'register'
                     ? 'bg-[#FFAE00] text-slate-950 shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900 font-bold',
@@ -175,7 +175,7 @@ export function AccountPanel() {
             {/* View 1: Login Form (Photo 1) */}
             {mode === 'login' && (
               <>
-                <h2 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <h2 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                   Lanjutkan belajarmu
                 </h2>
 
@@ -256,7 +256,7 @@ export function AccountPanel() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="w-full rounded-2xl bg-[#FFAE00] hover:bg-[#F2A300] py-3.5 sm:py-4 text-sm sm:text-base font-black text-slate-950 shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-6 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full rounded-2xl bg-[#FFAE00] hover:bg-[#F2A300] py-3.5 sm:py-4 text-sm sm:text-base font-bold text-slate-950 shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-6 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {busy && <LoaderCircle className="size-4 animate-spin" />}
                     Masuk ke akun
@@ -299,7 +299,7 @@ export function AccountPanel() {
 
                 <Link
                   href="/"
-                  className="mt-6 inline-block text-xs sm:text-sm font-black text-[#F06543] hover:text-[#D84315] hover:underline"
+                  className="mt-6 inline-block text-xs sm:text-sm font-bold text-[#F06543] hover:text-[#D84315] hover:underline"
                 >
                   Lanjutkan sebagai tamu →
                 </Link>
@@ -309,7 +309,7 @@ export function AccountPanel() {
             {/* View 2: Register Form (Photo 3) */}
             {mode === 'register' && (
               <>
-                <h2 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <h2 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                   Buat akun Bisara
                 </h2>
 
@@ -400,7 +400,7 @@ export function AccountPanel() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="w-full rounded-2xl bg-[#FFAE00] hover:bg-[#F2A300] py-3.5 sm:py-4 text-sm sm:text-base font-black text-slate-950 shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-6 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full rounded-2xl bg-[#FFAE00] hover:bg-[#F2A300] py-3.5 sm:py-4 text-sm sm:text-base font-bold text-slate-950 shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-6 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {busy && <LoaderCircle className="size-4 animate-spin" />}
                     Buat akun
@@ -443,7 +443,7 @@ export function AccountPanel() {
 
                 <Link
                   href="/"
-                  className="mt-6 inline-block text-xs sm:text-sm font-black text-[#F06543] hover:text-[#D84315] hover:underline"
+                  className="mt-6 inline-block text-xs sm:text-sm font-bold text-[#F06543] hover:text-[#D84315] hover:underline"
                 >
                   Lanjutkan sebagai tamu →
                 </Link>
@@ -453,7 +453,7 @@ export function AccountPanel() {
             {/* View 3: Forgot Password (Photo 2) */}
             {mode === 'forgot' && (
               <>
-                <h2 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <h2 className="mt-6 sm:mt-8 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                   Atur Ulang Kata Sandi
                 </h2>
                 <p className="mt-2 text-xs sm:text-sm font-medium text-slate-600 leading-relaxed">
@@ -487,7 +487,7 @@ export function AccountPanel() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="w-full rounded-2xl bg-[#FFAE00] hover:bg-[#F2A300] py-3.5 sm:py-4 text-sm sm:text-base font-black text-slate-950 shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-6 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full rounded-2xl bg-[#FFAE00] hover:bg-[#F2A300] py-3.5 sm:py-4 text-sm sm:text-base font-bold text-slate-950 shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-6 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {busy && <LoaderCircle className="size-4 animate-spin" />}
                     Kirim Tautan Reset
@@ -499,7 +499,7 @@ export function AccountPanel() {
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="size-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="text-xs sm:text-sm font-black text-emerald-950">
+                        <h4 className="text-xs sm:text-sm font-bold text-emerald-950">
                           Tautan Terkirim!
                         </h4>
                         <p className="mt-0.5 text-[11px] sm:text-xs font-semibold text-emerald-800">
@@ -524,7 +524,7 @@ export function AccountPanel() {
                     setMode('login');
                     setError('');
                   }}
-                  className="mt-6 inline-block text-xs sm:text-sm font-black text-slate-600 hover:text-slate-950 hover:underline"
+                  className="mt-6 inline-block text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-950 hover:underline"
                 >
                   ← Kembali ke Masuk
                 </button>

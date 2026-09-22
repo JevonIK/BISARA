@@ -76,17 +76,17 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-2xs">
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs">
             <Star className="size-3.5 text-amber-500 fill-amber-500" />
             <span>20</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-2xs">
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs">
             <Flame className="size-3.5 text-orange-500" fill="currentColor" />
             <span>{progress.streak > 0 ? progress.streak : 7} hari</span>
           </div>
           <Link
             href={account.user ? '/profil' : '/account'}
-            className="grid h-9 min-w-9 place-items-center rounded-full bg-slate-900 px-5 text-xs font-black text-white shadow-xs outline-none ring-offset-2 transition-transform hover:scale-105 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-ring"
+            className="grid h-9 min-w-9 place-items-center rounded-full bg-slate-900 px-5 text-xs font-bold text-white shadow-xs outline-none ring-offset-2 transition-transform hover:scale-105 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={
               account.user
                 ? `Buka profil ${account.user.displayName}`
@@ -109,7 +109,7 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
             className={cn(
               'rounded-full px-4 py-1.5 text-xs font-bold transition-colors',
               isNavActive(item.key)
-                ? 'bg-[#F8A51D] text-slate-900 font-black'
+                ? 'bg-[#F8A51D] text-slate-900 font-bold'
                 : 'text-slate-800',
             )}
           >

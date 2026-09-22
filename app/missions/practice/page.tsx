@@ -54,7 +54,7 @@ export default async function PracticePage({
   const exampleCard = (
     <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
       <div>
-        <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
           CONTOH TANDA
         </span>
         <div className="mt-4 overflow-hidden rounded-2xl bg-black aspect-[4/3] relative">
@@ -73,10 +73,10 @@ export default async function PracticePage({
       </div>
 
       <div className="mt-6 border-t border-slate-100 pt-5">
-        <span className="text-xs font-black uppercase tracking-wider text-slate-900 block">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-900 block">
           AMATI SECARA MENYELURUH
         </span>
-        <ul className="mt-3.5 space-y-2.5 text-xs sm:text-sm font-black text-slate-800">
+        <ul className="mt-3.5 space-y-2.5 text-xs sm:text-sm font-bold text-slate-800">
           <li className="flex items-center gap-2.5">
             <span className="size-2 rounded-full bg-[#00D5D1] shrink-0" />
             <span>Bentuk tangan</span>
@@ -118,18 +118,18 @@ export default async function PracticePage({
 
         {/* Chapter / Mission Badge & Replay badge */}
         <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
+          <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-bold text-slate-900 shadow-2xs">
             Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
           </span>
           {replayMode ? (
-            <Badge className="bg-[#FFAE00] text-slate-900 font-black rounded-full px-3 py-1">
+            <Badge className="bg-[#FFAE00] text-slate-900 font-bold rounded-full px-3 py-1">
               <RotateCcw className="size-3" /> Mode ulang misi
             </Badge>
           ) : null}
         </div>
 
         {/* Heading */}
-        <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+        <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
           Latih tanda “{sign.label}”
         </h1>
 
