@@ -155,28 +155,35 @@ export default function Home() {
             Lanjutkan langkahmu untuk berkomunikasi.
           </h1>
 
+<<<<<<< feat/perfecting
           <div className="mt-8 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
             {/* Active Mission Warm Cream Card with Clinking Cups Illustration Inside */}
             <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[#FCE5B5] bg-[#FFF8EA] p-6 shadow-2xs sm:p-8">
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1.2fr_1fr]">
+=======
+          <div className="mt-8 grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_270px]">
+            {/* Active Mission Warm Cream Card */}
+            <div className="relative flex flex-col justify-center overflow-hidden rounded-3xl border border-[#FCE5B5] bg-[#FFF8EA] p-5 shadow-2xs sm:p-6 lg:p-7">
+              <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+>>>>>>> local
                 <div>
                   <span className="inline-block rounded-full bg-[#F8A51D] px-3.5 py-1 text-[11px] font-black tracking-wide text-white shadow-2xs">
                     Misi aktif • Bab {currentChapter.number}
                   </span>
-                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-900">
+                  <p className="mt-3 text-xs font-black uppercase tracking-widest text-slate-900">
                     MISI {currentMission.number}
                   </p>
                   <h2 className="mt-1 text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-3xl">
                     {currentMission.title}
                   </h2>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-600 sm:text-sm line-clamp-2">
                     {currentMission.description}
                   </p>
 
-                  <div className="mt-6">
+                  <div className="mt-4 sm:mt-5">
                     <Link
                       href={getMissionActiveStageHref(currentMission, progress)}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-6 py-3 text-sm font-black text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-5 py-2.5 text-xs sm:text-sm font-black text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
                     >
                       <Play className="size-4 fill-slate-900" />
                       Lanjutkan latihan
@@ -184,51 +191,64 @@ export default function Home() {
                   </div>
                 </div>
 
+<<<<<<< feat/perfecting
                 <div className="flex items-center justify-center">
                   <HeroCheersIllustration />
+=======
+                <div className="flex min-w-0 items-center justify-center">
+                  <Image
+                    src={currentChapterIllustration}
+                    alt=""
+                    width={320}
+                    height={260}
+                    className="h-44 w-full max-w-[200px] object-contain sm:h-48 sm:max-w-[240px] xl:h-52 xl:max-w-[260px]"
+                    draggable={false}
+                    priority
+                  />
+>>>>>>> local
                 </div>
               </div>
             </div>
 
             {/* 3 Stacked White Stat Cards */}
-            <div className="flex flex-col justify-between gap-3">
-              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-                <div className="grid size-12 place-items-center rounded-xl bg-orange-50 text-[#E54D2E]">
-                  <Flag className="size-7 fill-[#E54D2E]" />
+            <div className="grid grid-rows-3 gap-3 sm:gap-3.5">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 sm:px-5 sm:py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                <div className="grid size-11 place-items-center rounded-xl bg-orange-50 text-[#E54D2E]">
+                  <Flag className="size-6 fill-[#E54D2E]" />
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-bold text-slate-500">
                     Misi selesai
                   </p>
-                  <p className="text-3xl font-black text-slate-900">
+                  <p className="text-2xl font-black text-slate-900 sm:text-3xl">
                     {completedMissions}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-                <div className="grid size-12 place-items-center rounded-xl bg-cyan-50 text-[#00BDCD]">
-                  <Bookmark className="size-7 fill-[#00BDCD]" />
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 sm:px-5 sm:py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                <div className="grid size-11 place-items-center rounded-xl bg-cyan-50 text-[#00BDCD]">
+                  <Bookmark className="size-6 fill-[#00BDCD]" />
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-bold text-slate-500">
                     Tanda dikuasai
                   </p>
-                  <p className="text-3xl font-black text-slate-900">
+                  <p className="text-2xl font-black text-slate-900 sm:text-3xl">
                     {progress.masteredSigns}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-                <div className="grid size-12 place-items-center rounded-xl bg-amber-50 text-[#F8A51D]">
-                  <Award className="size-7 fill-[#F8A51D]" />
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 sm:px-5 sm:py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                <div className="grid size-11 place-items-center rounded-xl bg-amber-50 text-[#F8A51D]">
+                  <Award className="size-6 fill-[#F8A51D]" />
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-bold text-slate-500">
                     Lencana
                   </p>
-                  <p className="text-3xl font-black text-slate-900">
+                  <p className="text-2xl font-black text-slate-900 sm:text-3xl">
                     {badgeCount}
                   </p>
                 </div>
