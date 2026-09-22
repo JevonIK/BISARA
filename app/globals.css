@@ -11,6 +11,8 @@
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);
   --font-heading: var(--font-sans);
+  --font-weight-black: 800;
+  --font-weight-extrabold: 800;
   --color-signal-navy: var(--signal-navy);
   --color-signal-teal: var(--signal-teal);
   --color-signal-teal-soft: var(--signal-teal-soft);

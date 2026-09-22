@@ -192,10 +192,10 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
           <div className="bg-signal-navy p-5 sm:p-8">
             <div className="mb-4 flex items-center justify-between text-white">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-signal-teal">
                   Perhatikan tanda
                 </p>
-                <h2 className="mt-1 text-xl font-black">
+                <h2 className="mt-1 text-xl font-bold">
                   Apa arti tanda dalam video ini?
                 </h2>
               </div>
@@ -215,7 +215,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
 
           <div className="flex min-h-[480px] flex-col justify-between p-6 sm:p-8">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
                 Pilih satu jawaban
               </p>
               <div className="mt-5 grid gap-3" role="radiogroup">
@@ -223,7 +223,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
                   <label
                     key={option}
                     className={cn(
-                      'flex min-h-16 cursor-pointer items-center gap-4 border p-4 text-left text-sm font-extrabold outline-none transition-all has-focus-visible:ring-2 has-focus-visible:ring-ring',
+                      'flex min-h-16 cursor-pointer items-center gap-4 border p-4 text-left text-sm font-bold outline-none transition-all has-focus-visible:ring-2 has-focus-visible:ring-ring',
                       selectedAnswer === option
                         ? 'border-signal-teal bg-signal-teal-soft text-signal-navy'
                         : 'border-signal-navy/10 bg-background text-signal-navy hover:border-signal-teal',
@@ -263,7 +263,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
                 size="lg"
                 disabled={!selectedAnswer}
                 onClick={submitTranslationAnswer}
-                className="h-12 w-full rounded-full bg-signal-navy px-5 font-extrabold text-white"
+                className="h-12 w-full rounded-full bg-signal-navy px-5 font-bold text-white"
               >
                 {questionIndex === translationQuestions.length - 1
                   ? 'Lihat hasil tes'
@@ -313,14 +313,14 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
         <div className="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
           <div className="bg-signal-navy p-5 sm:p-8">
             <div className="mb-4 flex items-center gap-3 text-white">
-              <span className="grid size-10 place-items-center rounded-full bg-signal-coral font-black text-signal-navy">
+              <span className="grid size-10 place-items-center rounded-full bg-signal-coral font-bold text-signal-navy">
                 T
               </span>
               <div>
                 <p className="text-xs font-bold text-white/50">
                   {turn.speaker}
                 </p>
-                <p className="text-sm font-black">
+                <p className="text-sm font-bold">
                   Sedang berkomunikasi denganmu
                 </p>
               </div>
@@ -337,7 +337,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
               <Badge className="bg-signal-yellow/35 text-amber-900">
                 Cabang {conversationIndex + 1}
               </Badge>
-              <h2 className="mt-4 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+              <h2 className="mt-4 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
                 Bagaimana kamu merespons?
               </h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -356,7 +356,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
                       type="button"
                       onClick={() => chooseConversationResponse(option)}
                       className={cn(
-                        'flex min-h-14 items-center justify-between border p-4 text-left text-sm font-extrabold text-signal-navy outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                        'flex min-h-14 items-center justify-between border p-4 text-left text-sm font-bold text-signal-navy outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                         !selected &&
                           'border-signal-navy/10 bg-background hover:border-signal-teal',
                         selectedCorrect &&
@@ -397,7 +397,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
               size="lg"
               disabled={!conversationPassed}
               onClick={continueConversation}
-              className="mt-8 h-12 w-full rounded-full bg-signal-navy px-5 font-extrabold text-white"
+              className="mt-8 h-12 w-full rounded-full bg-signal-navy px-5 font-bold text-white"
             >
               {conversationIndex === conversationTurns.length - 1
                 ? 'Selesaikan percakapan'
@@ -418,16 +418,16 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
             <span className="mx-auto grid size-24 place-items-center rounded-full bg-signal-navy text-signal-teal">
               <Award className="size-10" />
             </span>
-            <p className="mt-7 text-xs font-black uppercase tracking-[0.15em]">
+            <p className="mt-7 text-xs font-bold uppercase tracking-[0.15em]">
               Skenario selesai
             </p>
-            <p className="mt-2 text-3xl font-black tracking-tight">
+            <p className="mt-2 text-3xl font-bold tracking-tight">
               Lencana Diraih
             </p>
           </div>
         </div>
         <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-12">
-          <h2 className="text-3xl font-black tracking-[-0.04em] text-signal-navy">
+          <h2 className="text-3xl font-bold tracking-[-0.04em] text-signal-navy">
             Kamu berhasil menjaga percakapan tetap berjalan.
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
@@ -440,7 +440,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
               type="button"
               size="lg"
               onClick={startConversation}
-              className="h-12 rounded-full bg-signal-navy px-5 font-extrabold text-white"
+              className="h-12 rounded-full bg-signal-navy px-5 font-bold text-white"
             >
               <RefreshCw className="size-4" /> Ulangi skenario
             </Button>
@@ -449,7 +449,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
               size="lg"
               variant="outline"
               onClick={() => setView('menu')}
-              className="h-12 rounded-full px-5 font-extrabold"
+              className="h-12 rounded-full px-5 font-bold"
             >
               Kembali ke pilihan tes
             </Button>
@@ -495,7 +495,7 @@ export function ChapterTest({ initialView = 'menu' }: ChapterTestProps) {
               <Hand className="size-5" />
             </span>
             <div>
-              <h2 className="text-sm font-black text-signal-navy">
+              <h2 className="text-sm font-bold text-signal-navy">
                 Mode respons langsung dengan kamera
               </h2>
               <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
@@ -533,7 +533,7 @@ function TestTopBar({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-left text-sm font-extrabold text-muted-foreground hover:text-signal-navy"
+        className="inline-flex items-center gap-2 text-left text-sm font-bold text-muted-foreground hover:text-signal-navy"
       >
         <ArrowLeft className="size-4" /> {label}
       </button>
@@ -595,7 +595,7 @@ function TestVideo({ src, label }: { src: string; label: string }) {
 
       {playbackState === 'loading' ? (
         <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/35 text-white">
-          <span className="flex items-center gap-2 rounded-full bg-black/65 px-4 py-2 text-xs font-extrabold">
+          <span className="flex items-center gap-2 rounded-full bg-black/65 px-4 py-2 text-xs font-bold">
             <RefreshCw className="size-4 animate-spin" /> Menyiapkan video…
           </span>
         </div>
@@ -608,7 +608,7 @@ function TestVideo({ src, label }: { src: string; label: string }) {
           className="absolute inset-0 grid place-items-center bg-black/35 text-white outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-signal-teal"
           aria-label={`Putar ${label.toLowerCase()}`}
         >
-          <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-extrabold text-signal-navy shadow-lg">
+          <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-signal-navy shadow-lg">
             <Play className="size-4" fill="currentColor" /> Putar video
           </span>
         </button>
@@ -618,7 +618,7 @@ function TestVideo({ src, label }: { src: string; label: string }) {
         <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-white">
           <div>
             <CircleAlert className="mx-auto size-6 text-signal-coral" />
-            <p className="mt-2 text-sm font-extrabold">Video gagal dimuat</p>
+            <p className="mt-2 text-sm font-bold">Video gagal dimuat</p>
             <button
               type="button"
               onClick={() => {
@@ -668,10 +668,10 @@ function TranslationResult({
             <span className="mx-auto grid size-20 place-items-center rounded-full bg-signal-teal text-signal-navy">
               <Trophy className="size-8" />
             </span>
-            <p className="mt-6 text-xs font-black uppercase tracking-[0.15em] text-signal-teal">
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.15em] text-signal-teal">
               Hasil tes
             </p>
-            <p className="mt-2 text-7xl font-black tracking-[-0.07em]">
+            <p className="mt-2 text-7xl font-bold tracking-[-0.07em]">
               {score}
             </p>
             <p className="text-sm font-bold text-white/55">dari 100 poin</p>
@@ -705,7 +705,7 @@ function TranslationResult({
               ? 'Tes pengenalan lulus'
               : 'Perlu latihan ulang'}
           </Badge>
-          <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+          <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-signal-navy">
             {correctCount} dari {translationQuestions.length} jawaban benar
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -723,10 +723,10 @@ function TranslationResult({
                     : 'border-signal-coral bg-signal-coral/10',
                 )}
               >
-                <p className="font-mono text-[10px] font-black text-muted-foreground">
+                <p className="font-mono text-[10px] font-bold text-muted-foreground">
                   {String(index + 1).padStart(2, '0')}
                 </p>
-                <p className="mt-1 text-xs font-black text-signal-navy">
+                <p className="mt-1 text-xs font-bold text-signal-navy">
                   {answer.correct ? 'Benar' : answer.expected}
                 </p>
               </div>
@@ -739,7 +739,7 @@ function TranslationResult({
                 type="button"
                 size="lg"
                 onClick={onContinue}
-                className="h-12 rounded-full bg-signal-teal px-5 font-extrabold text-signal-navy hover:bg-signal-teal/90"
+                className="h-12 rounded-full bg-signal-teal px-5 font-bold text-signal-navy hover:bg-signal-teal/90"
               >
                 Terapkan dalam konteks <ArrowRight className="size-4" />
               </Button>
@@ -748,7 +748,7 @@ function TranslationResult({
               type="button"
               size="lg"
               onClick={onRetry}
-              className="h-12 rounded-full bg-signal-navy px-5 font-extrabold text-white"
+              className="h-12 rounded-full bg-signal-navy px-5 font-bold text-white"
             >
               <RefreshCw className="size-4" /> Coba lagi
             </Button>
@@ -757,7 +757,7 @@ function TranslationResult({
               size="lg"
               variant="outline"
               onClick={onMenu}
-              className="h-12 rounded-full px-5 font-extrabold"
+              className="h-12 rounded-full px-5 font-bold"
             >
               Pilih mode lain
             </Button>
@@ -809,13 +809,13 @@ function ModeCard({
         </span>
         <p
           className={cn(
-            'mt-7 text-xs font-black uppercase tracking-[0.15em]',
+            'mt-7 text-xs font-bold uppercase tracking-[0.15em]',
             color === 'teal' ? 'text-emerald-700' : 'text-signal-coral',
           )}
         >
           {eyebrow}
         </p>
-        <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+        <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-signal-navy">
           {title}
         </h2>
         <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
@@ -828,7 +828,7 @@ function ModeCard({
           type="button"
           onClick={onStart}
           disabled={locked}
-          className="rounded-full bg-signal-navy px-4 font-extrabold text-white"
+          className="rounded-full bg-signal-navy px-4 font-bold text-white"
         >
           {locked ? (
             <>
@@ -862,10 +862,10 @@ function PrerequisiteGate({
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-signal-yellow/30 text-amber-800">
           <LockKeyhole className="size-7" />
         </span>
-        <p className="mt-6 text-xs font-black uppercase tracking-[0.14em] text-amber-700">
+        <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-amber-700">
           Prasyarat belum selesai
         </p>
-        <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+        <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-signal-navy">
           {title}
         </h2>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
@@ -875,7 +875,7 @@ function PrerequisiteGate({
           href={href}
           className={cn(
             buttonVariants({ size: 'lg' }),
-            'mt-7 h-12 rounded-full bg-signal-navy px-6 font-extrabold text-white',
+            'mt-7 h-12 rounded-full bg-signal-navy px-6 font-bold text-white',
           )}
         >
           {action} <ArrowRight className="size-4" />

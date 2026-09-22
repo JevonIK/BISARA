@@ -114,7 +114,7 @@ export default function KamusPage() {
           >
             {/* Yellow Header with Circular Letter Badge */}
             <div className="bg-[#FFCF52] px-6 py-3.5 sm:px-8 sm:py-4 flex items-center">
-              <div className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-[#FFAE00] text-slate-950 font-black text-xs sm:text-sm shadow-xs">
+              <div className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-[#FFAE00] text-slate-950 font-bold text-xs sm:text-sm shadow-xs">
                 {letter}
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function KamusPage() {
                         onClick={() => setSelectedSign(sign)}
                         className="group flex items-center justify-between rounded-2xl border border-[#FCD561] bg-white px-5 py-4 sm:px-6 sm:py-4.5 text-left shadow-2xs transition-all hover:border-[#F8A51D] hover:shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                       >
-                        <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors">
+                        <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors">
                           {sign.label}
                         </span>
                         <span className="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-full bg-[#FFAE00] shadow-xs transition-transform group-hover:scale-105 group-active:scale-95">
@@ -172,7 +172,7 @@ export default function KamusPage() {
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="mt-4 rounded-full bg-[#FFAE00] px-6 py-2 text-xs font-black text-slate-950 shadow-xs hover:bg-[#F2A300]"
+              className="mt-4 rounded-full bg-[#FFAE00] px-6 py-2 text-xs font-bold text-slate-950 shadow-xs hover:bg-[#F2A300]"
             >
               Reset Pencarian
             </button>
@@ -218,7 +218,7 @@ export default function KamusPage() {
                 />
               </div>
               <div className="mt-5 text-center">
-                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                   {selectedSign.label}
                 </h3>
                 {selectedSign.focus ? (

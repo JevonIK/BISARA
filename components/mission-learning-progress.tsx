@@ -81,7 +81,7 @@ export function MissionHeroProgress({
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/50">
             Progres misi
           </p>
-          <p className="mt-1 text-3xl font-black">{state.progressPercent}%</p>
+          <p className="mt-1 text-3xl font-bold">{state.progressPercent}%</p>
         </div>
         <span className="text-xs font-bold text-signal-teal">
           {state.missionComplete
@@ -96,7 +96,7 @@ export function MissionHeroProgress({
         href={state.missionComplete ? replay.href : state.next.href}
         className={cn(
           buttonVariants({ size: 'lg' }),
-          'mt-6 min-h-12 h-auto w-full rounded-2xl bg-signal-teal px-4 py-3 text-center text-sm font-black text-signal-navy hover:bg-signal-teal/90 whitespace-normal leading-snug flex items-center justify-center gap-2 group transition-all',
+          'mt-6 min-h-12 h-auto w-full rounded-2xl bg-signal-teal px-4 py-3 text-center text-sm font-bold text-signal-navy hover:bg-signal-teal/90 whitespace-normal leading-snug flex items-center justify-center gap-2 group transition-all',
         )}
       >
         {state.missionComplete ? (
@@ -189,18 +189,18 @@ export function MissionStageList({
                   <Icon className="size-5" />
                 )}
               </span>
-              <span className="font-mono text-xs font-black text-muted-foreground">
+              <span className="font-mono text-xs font-bold text-muted-foreground">
                 {String(visibleIndex + 1).padStart(2, '0')}
               </span>
             </div>
-            <p className="mt-7 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               {state === 'completed'
                 ? 'Selesai'
                 : state === 'current'
                   ? 'Tahap aktif'
                   : 'Terkunci'}
             </p>
-            <h3 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+            <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
               {stage.title}
             </h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
