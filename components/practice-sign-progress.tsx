@@ -35,7 +35,7 @@ export function PracticeSignProgress({
         <span className="grid size-6 place-items-center rounded-full border-2 border-[#E54D2E]">
           <span className="size-2 rounded-full bg-[#E54D2E]" />
         </span>
-        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">
+        <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
           KOSA KATA
         </span>
       </div>
@@ -76,7 +76,7 @@ export function PracticeSignProgress({
                 href={`/missions/practice?mission=${missionId}&sign=${sign.id}`}
                 aria-current={active ? 'step' : undefined}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                  'inline-flex items-center gap-1.5 rounded-full px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap',
                   active
                     ? 'border-2 border-[#00D5D1] bg-white text-slate-900 shadow-xs ring-2 ring-[#00D5D1]/30'
                     : 'border border-transparent bg-[#ECEFF3] text-slate-700 hover:bg-slate-200 hover:text-slate-900',
@@ -96,7 +96,7 @@ export function PracticeSignProgress({
           {allSignsPassed ? (
             <Link
               href={`/missions/test?mission=${missionId}`}
-              className="inline-block rounded-full border-2 border-[#FFAE00] bg-white px-5 py-1.5 text-xs sm:text-sm font-black text-[#E54D2E] shadow-2xs hover:bg-amber-50 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
+              className="inline-block rounded-full border-2 border-[#FFAE00] bg-white px-5 py-1.5 text-xs sm:text-sm font-bold text-[#E54D2E] shadow-2xs hover:bg-amber-50 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
             >
               Latihan
             </Link>

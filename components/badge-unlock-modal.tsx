@@ -203,14 +203,14 @@ export function BadgeUnlockCelebration() {
         {/* Header Pill */}
         <div className="relative z-10 flex justify-center">
           {activeBadge.unlocked ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-300 px-4 py-1 text-xs font-black tracking-widest uppercase text-[#F06543] shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-300 px-4 py-1 text-xs font-bold tracking-widest uppercase text-[#F06543] shadow-2xs">
               <Sparkles className="size-3.5 text-[#FFAE00] fill-[#FFAE00]" />
               {badgeQueue.length > 1
                 ? `Lencana Baru (${badgeQueue.length} Terbuka!)`
                 : 'Lencana Baru Terbuka!'}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-300 px-4 py-1 text-xs font-black tracking-widest uppercase text-slate-600 shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-300 px-4 py-1 text-xs font-bold tracking-widest uppercase text-slate-600 shadow-2xs">
               🔒 Belum Terbuka
             </span>
           )}
@@ -253,7 +253,7 @@ export function BadgeUnlockCelebration() {
         <div className="relative z-10">
           <h2
             id="badge-modal-title"
-            className={`text-2xl sm:text-3xl font-black tracking-tight ${
+            className={`text-2xl sm:text-3xl font-bold tracking-tight ${
               activeBadge.unlocked ? 'text-slate-900' : 'text-slate-700'
             }`}
           >
@@ -285,7 +285,7 @@ export function BadgeUnlockCelebration() {
           <button
             type="button"
             onClick={handleNextOrClose}
-            className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs sm:text-sm font-black shadow-sm transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
+            className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs sm:text-sm font-bold shadow-sm transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
               activeBadge.unlocked
                 ? 'bg-[#FFAE00] hover:bg-[#F8A51D] text-slate-950'
                 : 'bg-slate-800 hover:bg-slate-900 text-white'

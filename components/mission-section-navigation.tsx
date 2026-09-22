@@ -158,7 +158,7 @@ export function MissionSectionNavigation({
             const iconElement = isCurrent ? (
               <Hand className="size-5 text-slate-950" />
             ) : isDone ? (
-              <Check className="size-5 font-black stroke-[3.5] text-slate-950" />
+              <Check className="size-5 font-bold stroke-[3.5] text-slate-950" />
             ) : isAvailable ? (
               <ArrowRight className="size-4 text-slate-950" />
             ) : (
@@ -203,7 +203,7 @@ export function MissionSectionNavigation({
                   {iconElement}
                 </span>
 
-                <span className="mt-2 text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap">
+                <span className="mt-2 text-xs font-bold text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap">
                   {stage.label}
                 </span>
                 <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 whitespace-nowrap">
@@ -312,7 +312,7 @@ export function MissionSectionNavigation({
           next.available ? (
             <Link
               href={next.href}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-signal-navy px-5 py-2 text-sm font-black text-white hover:bg-signal-navy/90"
+              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-signal-navy px-5 py-2 text-sm font-bold text-white hover:bg-signal-navy/90"
             >
               {next.label} <ArrowRight className="size-4" />
             </Link>

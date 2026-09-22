@@ -176,13 +176,13 @@ export function ChapterAccordionCard({
           <div className="max-w-xl flex-1">
             <span
               className={cn(
-                'inline-block px-4 py-1 rounded-full text-xs sm:text-sm font-black text-white tracking-wide shadow-xs',
+                'inline-block px-4 py-1 rounded-full text-xs sm:text-sm font-bold text-white tracking-wide shadow-xs',
                 theme.pillBg,
               )}
             >
               Bab {chapterIndex + 1}
             </span>
-            <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">
+            <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
               {chapter.title}
             </h3>
             <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm lg:text-base text-slate-600 font-medium leading-relaxed line-clamp-2">
@@ -232,14 +232,14 @@ export function ChapterAccordionCard({
               />
             </div>
 
-            <span className="text-base sm:text-lg lg:text-xl font-black text-slate-800 shrink-0">
+            <span className="text-base sm:text-lg lg:text-xl font-bold text-slate-800 shrink-0">
               {chapterProgress}%
             </span>
 
             {isUnlocked ? (
               <Link
                 href={startHref}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 text-sm sm:text-base font-black text-slate-950 shadow-sm transition-all hover:bg-[#F2A300] hover:scale-105 active:scale-95 shrink-0 min-w-[120px] sm:min-w-[140px]"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 text-sm sm:text-base font-bold text-slate-950 shadow-sm transition-all hover:bg-[#F2A300] hover:scale-105 active:scale-95 shrink-0 min-w-[120px] sm:min-w-[140px]"
               >
                 <Play className="size-4 sm:size-4.5 fill-slate-950" />
                 <span>Mulai</span>
@@ -255,7 +255,7 @@ export function ChapterAccordionCard({
           <button
             type="button"
             onClick={onToggle}
-            className="group mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-slate-800 hover:text-slate-950 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="group mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-800 hover:text-slate-950 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
             aria-expanded={isExpanded}
             aria-controls={`${chapter.id}-missions`}
           >
@@ -332,7 +332,7 @@ export function ChapterAccordionCard({
                             artworkSrc={missionArtworkByChapterId[chapter.id]?.[missionIdx]}
                           />
                         </div>
-                        <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 sm:text-[11px]">
+                        <span className="rounded-full bg-slate-900/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-900 sm:text-[11px]">
                           {mission.type === 'checkpoint'
                             ? `TES BAB ${chapterIndex + 1}`
                             : `MISI ${mission.number}`}
@@ -349,7 +349,7 @@ export function ChapterAccordionCard({
                         <div className="flex flex-1 items-center justify-center">
                           <LockKeyhole className="size-7 text-slate-700/60 sm:size-8" />
                         </div>
-                        <span className="flex items-center gap-1 rounded-full bg-slate-900/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-800 sm:text-[11px]">
+                        <span className="flex items-center gap-1 rounded-full bg-slate-900/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 sm:text-[11px]">
                           <LockKeyhole className="size-2.5" />
                           {mission.type === 'checkpoint'
                             ? `TES BAB ${chapterIndex + 1}`
@@ -361,7 +361,7 @@ export function ChapterAccordionCard({
                       {mission.title}
                     </p>
                     {isCompleted ? (
-                      <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-black text-emerald-700">
+                      <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
                         <Check className="size-3" strokeWidth={3} /> Selesai
                       </span>
                     ) : null}
@@ -409,7 +409,7 @@ function MissionVisualIcon({
 
   if (alphabetRange) {
     return (
-      <span className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+      <span className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
         {alphabetRange}
       </span>
     );

@@ -108,7 +108,7 @@ export default function ProfilPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
                   {displayName}
                 </h1>
                 <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500">
@@ -141,7 +141,7 @@ export default function ProfilPage() {
                   <div className="mt-4 flex items-center justify-center">
                     <Link
                       href="/account"
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[#F8A51D] px-4 py-1.5 text-xs font-black text-slate-900 shadow-2xs hover:bg-[#E59312] transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#F8A51D] px-4 py-1.5 text-xs font-bold text-slate-900 shadow-2xs hover:bg-[#E59312] transition-colors"
                     >
                       Masuk ke Akun
                     </Link>
@@ -163,7 +163,7 @@ export default function ProfilPage() {
               <span className="block text-xs sm:text-sm font-bold text-slate-500">
                 Streak
               </span>
-              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
                 {streakDisplay}
               </span>
             </div>
@@ -178,7 +178,7 @@ export default function ProfilPage() {
               <span className="block text-xs sm:text-sm font-bold text-slate-500">
                 Misi selesai
               </span>
-              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
                 {missionsDisplay}
               </span>
             </div>
@@ -193,7 +193,7 @@ export default function ProfilPage() {
               <span className="block text-xs sm:text-sm font-bold text-slate-500">
                 Kosa kata
               </span>
-              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
                 {vocabDisplay}
               </span>
             </div>
@@ -208,7 +208,7 @@ export default function ProfilPage() {
               <span className="block text-xs sm:text-sm font-bold text-slate-500">
                 Total bintang
               </span>
-              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
                 {starsDisplay}
               </span>
             </div>
@@ -219,10 +219,10 @@ export default function ProfilPage() {
         <section className="rounded-[2.5rem] sm:rounded-[3rem] bg-[#FFFDF0] p-6 sm:p-8 lg:p-12 shadow-sm border-2 border-[#FFAE00]">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#F06543]">
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#F06543]">
                 Koleksi Lencana
               </span>
-              <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
                 Pencapaian yang sudah kamu buka
               </h2>
             </div>
@@ -259,7 +259,7 @@ export default function ProfilPage() {
                 </div>
 
                 <h3
-                  className={`mt-3 sm:mt-3.5 text-xs sm:text-sm font-black ${
+                  className={`mt-3 sm:mt-3.5 text-xs sm:text-sm font-bold ${
                     badge.unlocked ? 'text-slate-900 group-hover:text-amber-600' : 'text-slate-400'
                   }`}
                 >
