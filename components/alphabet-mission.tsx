@@ -946,140 +946,154 @@ function StageTirukan({
         </aside>
 
         {/* Column 2: Center Camera Practice */}
-        <section className="flex flex-col overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
-          <div className="relative aspect-video bg-[#0B0F19] sm:min-h-[360px]">
-            <video
-              ref={videoRef}
-              className={cn(
-                'absolute inset-0 size-full -scale-x-100 object-cover transition-opacity',
-                cameraActive ? 'opacity-100' : 'opacity-0',
-              )}
-              autoPlay
-              muted
-              playsInline
-            />
-            <canvas
-              ref={canvasRef}
-              className="pointer-events-none absolute inset-0 size-full -scale-x-100"
-              aria-hidden="true"
-            />
-
-            <div
-              className="pointer-events-none absolute inset-[10%] rounded-[45%] border border-dashed border-white/25"
-              aria-hidden="true"
-            />
-
-            {!cameraActive && (
-              <div className="absolute inset-0 grid place-items-center p-6 text-center">
-                <div className="max-w-md">
-                  <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
-                    <Camera className="size-8" />
-                  </span>
-                  <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
-                    Siapkan kamera latihan
-                  </h2>
-                  <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
-                    Video diproses langsung di browser. BISARA tidak merekam atau
-                    menyimpan video latihan ini.
-                  </p>
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={() => {
-                      void startCamera();
-                    }}
-                    disabled={loadingCamera}
-                    className="mt-6 h-12 rounded-full bg-[#00D5D1] px-7 font-black text-slate-950 hover:bg-[#00BDCD] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
-                  >
-                    {loadingCamera ? (
-                      <LoaderCircle className="size-4 animate-spin" />
-                    ) : (
-                      <Camera className="size-4" />
-                    )}
-                    {loadingCamera ? 'Menyiapkan kamera…' : 'Aktifkan kamera'}
-                  </Button>
-                  {error && (
-                    <p className="mt-3 text-xs leading-5 text-[#E54D2E]">
-                      {error}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {cameraActive && phase !== 'countdown' && phase !== 'scoring' && (
-              <div className="absolute inset-x-3 top-3 flex items-start sm:inset-x-4 sm:top-4">
-                <span
-                  className={cn(
-                    'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-extrabold leading-4 backdrop-blur-sm',
-                    handCount > 0
-                      ? 'bg-[#00D5D1] text-slate-950'
-                      : 'bg-black/45 text-white',
-                  )}
-                >
-                  {handCount > 0
-                    ? handCount >= requiredHands && requiredHands === 2
-                      ? 'Kedua tangan terdeteksi'
-                      : 'Tangan terdeteksi'
-                    : 'Posisikan tangan di dalam bingkai'}
+        <section className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+                KAMERA LATIHAN
+              </span>
+              {cameraActive && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Kamera Aktif
                 </span>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Countdown overlay */}
-            {cameraActive && phase === 'countdown' && (
-              <div className="absolute inset-0 grid place-items-center bg-slate-950/40 backdrop-blur-sm">
-                <output className="text-center" aria-live="polite">
-                  <span className="mx-auto grid size-24 place-items-center rounded-full bg-[#FFAE00] text-5xl font-black text-[#0B0F19]">
-                    {countdown}
-                  </span>
-                  <p className="mt-4 text-sm font-bold text-white">
-                    Bersiap — peragakan huruf {selectedLetter} setelah hitungan
-                  </p>
-                  <p className="mt-2 text-xs text-white/70">
-                    Pastikan tangan masuk bingkai saat “Mulai!”
-                  </p>
-                </output>
-              </div>
-            )}
+            <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-950 sm:min-h-[360px] shadow-inner">
+              <video
+                ref={videoRef}
+                className={cn(
+                  'absolute inset-0 size-full -scale-x-100 object-cover transition-opacity',
+                  cameraActive ? 'opacity-100' : 'opacity-0',
+                )}
+                autoPlay
+                muted
+                playsInline
+              />
+              <canvas
+                ref={canvasRef}
+                className="pointer-events-none absolute inset-0 size-full -scale-x-100"
+                aria-hidden="true"
+              />
 
-            {/* Recording indicator */}
-            {cameraActive && phase === 'recording' && (
-              <>
-                <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <span className="rounded-full bg-[#00D5D1] px-6 py-3 text-2xl font-black text-[#0B0F19] shadow-lg">
-                    Mulai!
+              <div
+                className="pointer-events-none absolute inset-[10%] rounded-[45%] border border-dashed border-white/25"
+                aria-hidden="true"
+              />
+
+              {!cameraActive && (
+                <div className="absolute inset-0 grid place-items-center p-6 text-center">
+                  <div className="max-w-md">
+                    <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
+                      <Camera className="size-8" />
+                    </span>
+                    <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
+                      Siapkan kamera latihan
+                    </h2>
+                    <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
+                      Video diproses langsung di browser. BISARA tidak merekam atau
+                      menyimpan video latihan ini.
+                    </p>
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={() => {
+                        void startCamera();
+                      }}
+                      disabled={loadingCamera}
+                      className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-black text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+                    >
+                      {loadingCamera ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <Camera className="size-4" />
+                      )}
+                      {loadingCamera ? 'Menyiapkan kamera…' : 'Aktifkan kamera'}
+                    </Button>
+                    {error && (
+                      <p className="mt-3 text-xs leading-5 text-[#E54D2E]">
+                        {error}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {cameraActive && phase !== 'countdown' && phase !== 'scoring' && (
+                <div className="absolute inset-x-3 top-3 flex items-start sm:inset-x-4 sm:top-4">
+                  <span
+                    className={cn(
+                      'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-extrabold leading-4 backdrop-blur-sm',
+                      handCount > 0
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-black/45 text-white',
+                    )}
+                  >
+                    {handCount > 0
+                      ? handCount >= requiredHands && requiredHands === 2
+                        ? 'Kedua tangan terdeteksi'
+                        : 'Tangan terdeteksi'
+                      : 'Posisikan tangan di dalam bingkai'}
                   </span>
                 </div>
-                <div className="absolute inset-x-4 bottom-4 flex items-center gap-3 rounded-full bg-black/50 px-4 py-2.5 backdrop-blur-sm">
-                  <span className="size-3 animate-pulse rounded-full bg-[#E54D2E]" />
-                  <span className="text-xs font-bold text-white">
-                    Peragakan huruf {selectedLetter} lalu tahan…
-                  </span>
-                </div>
-              </>
-            )}
+              )}
 
-            {/* Scoring overlay */}
-            {cameraActive && phase === 'scoring' && (
-              <div className="absolute inset-0 grid place-items-center bg-slate-950/55 p-6 text-center backdrop-blur-sm">
-                <div>
-                  <LoaderCircle className="mx-auto size-8 animate-spin text-[#00D5D1]" />
-                  <p className="mt-4 text-sm font-bold text-white">
-                    Menganalisis kecocokan gerakan…
-                  </p>
+              {/* Countdown overlay */}
+              {cameraActive && phase === 'countdown' && (
+                <div className="absolute inset-0 grid place-items-center bg-slate-950/40 backdrop-blur-sm">
+                  <output className="text-center" aria-live="polite">
+                    <span className="mx-auto grid size-24 place-items-center rounded-full bg-[#FFAE00] text-5xl font-black text-slate-900">
+                      {countdown}
+                    </span>
+                    <p className="mt-4 text-sm font-bold text-white">
+                      Bersiap — peragakan huruf {selectedLetter} setelah hitungan
+                    </p>
+                    <p className="mt-2 text-xs text-white/70">
+                      Pastikan tangan masuk bingkai saat “Mulai!”
+                    </p>
+                  </output>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Recording indicator */}
+              {cameraActive && phase === 'recording' && (
+                <>
+                  <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                    <span className="rounded-full bg-[#F8A51D] px-6 py-3 text-2xl font-black text-slate-900 shadow-lg">
+                      Mulai!
+                    </span>
+                  </div>
+                  <div className="absolute inset-x-4 bottom-4 flex items-center gap-3 rounded-full bg-black/50 px-4 py-2.5 backdrop-blur-sm">
+                    <span className="size-3 animate-pulse rounded-full bg-[#E54D2E]" />
+                    <span className="text-xs font-bold text-white">
+                      Peragakan huruf {selectedLetter} lalu tahan…
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {/* Scoring overlay */}
+              {cameraActive && phase === 'scoring' && (
+                <div className="absolute inset-0 grid place-items-center bg-slate-950/60 p-6 text-center backdrop-blur-sm">
+                  <div>
+                    <LoaderCircle className="mx-auto size-8 animate-spin text-[#F8A51D]" />
+                    <p className="mt-4 text-sm font-bold text-white">
+                      Menganalisis kecocokan gerakan…
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Unified Bottom Dark Status & Control Bar */}
-          <div className="flex flex-col gap-4 border-t border-white/10 bg-[#0B0F19] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          {/* Unified Bottom Control Bar matching rest of white cards */}
+          <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between text-slate-900">
             <div aria-live="polite">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#00D5D1] block">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
                 STATUS KAMERA
               </span>
-              <p className="mt-0.5 text-sm sm:text-base font-bold text-white">
+              <p className="mt-0.5 text-xs sm:text-sm font-bold text-slate-900">
                 {!cameraActive
                   ? 'Kamera belum aktif'
                   : phase === 'countdown'
@@ -1101,9 +1115,9 @@ function StageTirukan({
                     type="button"
                     onClick={beginRecording}
                     disabled={referenceState !== 'ready'}
-                    className="rounded-full bg-[#00D5D1] px-5 py-2 font-black text-slate-950 hover:bg-[#00BDCD] shadow-sm cursor-pointer"
+                    className="rounded-full bg-[#F8A51D] px-5 py-2 font-black text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
                   >
-                    <Play className="size-4" /> Mulai latihan
+                    <Play className="size-4 fill-current" /> Mulai latihan
                   </Button>
                 )}
                 {(phase === 'countdown' || phase === 'recording') && (
@@ -1111,7 +1125,7 @@ function StageTirukan({
                     type="button"
                     variant="outline"
                     onClick={cancelPractice}
-                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 cursor-pointer"
+                    className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
                   >
                     <X className="size-4" /> Batalkan
                   </Button>
@@ -1121,7 +1135,7 @@ function StageTirukan({
                   variant="outline"
                   onClick={retryPractice}
                   disabled={phase !== 'idle' && phase !== 'result'}
-                  className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 cursor-pointer"
+                  className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
                 >
                   <RotateCcw className="size-4" /> Muat ulang
                 </Button>
@@ -1129,7 +1143,7 @@ function StageTirukan({
                   type="button"
                   variant="outline"
                   onClick={stopCamera}
-                  className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 cursor-pointer"
+                  className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
                 >
                   <CameraOff className="size-4" /> Matikan
                 </Button>
@@ -1197,7 +1211,7 @@ function StageTirukan({
                   <Button
                     type="button"
                     onClick={onFinish}
-                    className="h-11 w-full rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00BDCD] shadow-sm cursor-pointer"
+                    className="h-11 w-full rounded-full bg-[#F8A51D] font-black text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer"
                   >
                     Lanjut ke Uji pengenalan <ArrowRight className="size-4 ml-1" />
                   </Button>
@@ -1213,7 +1227,7 @@ function StageTirukan({
                         retryPractice();
                       }
                     }}
-                    className="h-11 w-full rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00BDCD] shadow-sm cursor-pointer"
+                    className="h-11 w-full rounded-full bg-[#F8A51D] font-black text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer"
                   >
                     Huruf berikutnya <ArrowRight className="size-4 ml-1" />
                   </Button>
@@ -1226,7 +1240,7 @@ function StageTirukan({
                   'h-11 w-full rounded-full font-black cursor-pointer',
                   result.passed
                     ? 'border-slate-300 text-slate-800 hover:bg-slate-50'
-                    : 'bg-[#00D5D1] text-slate-900 hover:bg-[#00BDCD] shadow-sm',
+                    : 'bg-[#F8A51D] text-slate-900 hover:bg-[#E59312] shadow-xs',
                 )}
               >
                 <RotateCcw className="size-4 mr-1.5" /> Coba lagi
@@ -2072,7 +2086,7 @@ function StageRecall({
                   type="button"
                   onClick={() => { void startCamera(); }}
                   disabled={loadingCamera}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#00D5D1] px-7 py-3 text-xs sm:text-sm font-black text-slate-900 hover:bg-[#00BDCD] shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-7 py-3 text-xs sm:text-sm font-black text-slate-900 hover:bg-[#E59312] shadow-sm transition-all cursor-pointer disabled:opacity-50"
                 >
                   {loadingCamera ? (
                     <>
@@ -2109,7 +2123,7 @@ function StageRecall({
                 )}
                 {phase === 'scoring' && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 text-white backdrop-blur-xs">
-                    <LoaderCircle className="size-8 animate-spin text-[#00D5D1]" />
+                    <LoaderCircle className="size-8 animate-spin text-[#F8A51D]" />
                     <p className="mt-3 text-xs sm:text-sm font-bold">Mengevaluasi gerakan…</p>
                   </div>
                 )}
@@ -2118,9 +2132,9 @@ function StageRecall({
           </div>
 
           {/* Unified Bottom Dark Status & Control Bar */}
-          <div className="flex flex-col gap-3 border-t border-white/10 bg-[#0B0F19] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-800 bg-[#0F172A] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#00D5D1] block">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
                 STATUS KAMERA
               </span>
               <p className="mt-0.5 text-xs sm:text-sm font-bold text-white">
@@ -2146,7 +2160,7 @@ function StageRecall({
                       type="button"
                       onClick={beginPractice}
                       disabled={referenceState !== 'ready'}
-                      className="rounded-full bg-[#00D5D1] px-5 py-2 text-xs font-black text-slate-900 hover:bg-[#00BDCD] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="rounded-full bg-[#F8A51D] px-5 py-2 text-xs font-black text-slate-900 hover:bg-[#E59312] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       <Play className="size-3.5 fill-current" />
                       {phase === 'result' ? 'Uji lagi' : 'Mulai uji'}
