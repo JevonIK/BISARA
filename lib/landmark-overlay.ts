@@ -2,6 +2,15 @@ import type { HandObservation } from './gesture-scoring';
 
 export type OverlayPoint = { x: number; y: number };
 
+export type LandmarkOverlayAppearance = {
+  strokeColor?: string;
+  pointColor?: string;
+  wristColor?: string;
+  lineWidth?: number;
+  pointRadius?: number;
+  wristRadius?: number;
+};
+
 /** Maps normalized MediaPipe coordinates onto the same crop used by CSS object-cover. */
 export function createObjectCoverProjection(
   sourceWidth: number,
@@ -27,6 +36,7 @@ export function drawHandLandmarkOverlay(
   video: HTMLVideoElement,
   hands: HandObservation[],
   connections: Array<[number, number]>,
+  appearance: LandmarkOverlayAppearance = {},
 ) {
   const displayWidth = canvas.clientWidth;
   const displayHeight = canvas.clientHeight;
@@ -56,8 +66,8 @@ export function drawHandLandmarkOverlay(
   );
 
   for (const { landmarks } of hands) {
-    context.strokeStyle = '#55c7b5';
-    context.lineWidth = Math.max(2, displayWidth / 480);
+    context.strokeStyle = appearance.strokeColor ?? '#55c7b5';
+    context.lineWidth = appearance.lineWidth ?? Math.max(2, displayWidth / 480);
 
     for (const [startIndex, endIndex] of connections) {
       const start = landmarks[startIndex];
@@ -75,8 +85,16 @@ export function drawHandLandmarkOverlay(
     for (const [index, landmark] of landmarks.entries()) {
       const projected = project(landmark);
       context.beginPath();
-      context.fillStyle = index === 0 ? '#f4c95d' : '#ff6f61';
-      context.arc(projected.x, projected.y, index === 0 ? 5 : 3.5, 0, Math.PI * 2);
+      context.fillStyle = index === 0
+        ? (appearance.wristColor ?? '#f4c95d')
+        : (appearance.pointColor ?? '#ff6f61');
+      context.arc(
+        projected.x,
+        projected.y,
+        index === 0 ? (appearance.wristRadius ?? 5) : (appearance.pointRadius ?? 3.5),
+        0,
+        Math.PI * 2,
+      );
       context.fill();
     }
   }

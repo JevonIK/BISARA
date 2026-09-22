@@ -54,6 +54,7 @@ import {
   type GestureFrame,
   type HandObservation,
 } from '@/lib/gesture-scoring';
+import { drawHandLandmarkOverlay } from '@/lib/landmark-overlay';
 import {
   getAlphabetReferenceFrames,
   getAlphabetReferenceSet,
@@ -357,41 +358,14 @@ function drawHandLandmarks(
   video: HTMLVideoElement,
   hands: HandObservation[],
 ) {
-  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-  }
-  const context = canvas.getContext('2d');
-  if (!context) return;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-
-  for (const { landmarks } of hands) {
-    context.strokeStyle = '#00D5D1';
-    context.lineWidth = Math.max(3, canvas.width / 320);
-    for (const [startIndex, endIndex] of HAND_CONNECTIONS) {
-      const start = landmarks[startIndex];
-      const end = landmarks[endIndex];
-      if (!start || !end) continue;
-      context.beginPath();
-      context.moveTo(start.x * canvas.width, start.y * canvas.height);
-      context.lineTo(end.x * canvas.width, end.y * canvas.height);
-      context.stroke();
-    }
-    for (const [index, landmark] of landmarks.entries()) {
-      context.beginPath();
-      context.fillStyle = index === 0 ? '#FFAE00' : '#00D5D1';
-      context.arc(
-        landmark.x * canvas.width,
-        landmark.y * canvas.height,
-        index === 0 ? 7 : 5,
-        0,
-        Math.PI * 2,
-      );
-      context.fill();
-    }
-  }
+  drawHandLandmarkOverlay(canvas, video, hands, HAND_CONNECTIONS, {
+    strokeColor: '#00D5D1',
+    pointColor: '#00D5D1',
+    wristColor: '#FFAE00',
+    lineWidth: Math.max(3, canvas.clientWidth / 320),
+    pointRadius: 5,
+    wristRadius: 7,
+  });
 }
 
 const ALPHABET_LETTER_STORAGE_KEY = 'bisara_alphabet_letters';
