@@ -272,11 +272,7 @@ export function ChapterAccordionCard({
         </div>
       </div>
 
-      {/* Stationary Top Illustration */}
-      <div
-        className="pointer-events-none absolute top-0 right-28 z-[1] hidden opacity-85 sm:right-36 sm:block md:right-48 lg:right-56 lg:opacity-95"
-        aria-hidden="true"
-      >
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-0 hidden h-[365px] overflow-hidden sm:block" aria-hidden="true">
         <ChapterIllustration type={chapter.id} />
       </div>
 
@@ -544,6 +540,20 @@ function ChapterIllustration({ type }: { type: string }) {
   };
 
   const src = illustrationByChapterId[type];
+  const positionByChapterId: Record<string, string> = {
+    'chapter-5': '-top-20 right-[10%]',
+    'chapter-1': 'top-3 right-[13%]',
+    'chapter-2': '-top-9 right-[12%]',
+    'chapter-3': '-top-14 right-[16%] lg:-top-24',
+    'chapter-4': '-top-10 right-[4%]',
+  };
+  const dimensionsByChapterId: Record<string, [number, number]> = {
+    'chapter-5': [2042, 2433],
+    'chapter-1': [1248, 1612],
+    'chapter-2': [1676, 1950],
+    'chapter-3': [1772, 1708],
+    'chapter-4': [2022, 2432],
+  };
 
   if (!src) return null;
 
@@ -551,9 +561,14 @@ function ChapterIllustration({ type }: { type: string }) {
     <Image
       src={src}
       alt=""
-      width={256}
-      height={208}
-      className="h-40 w-52 object-contain object-top sm:h-48 sm:w-60 lg:h-52 lg:w-64"
+      width={dimensionsByChapterId[type][0]}
+      height={dimensionsByChapterId[type][1]}
+      sizes="(min-width: 1024px) 500px, 400px"
+      className={cn(
+        'absolute h-[400px] w-auto max-w-none opacity-50 lg:h-[460px]',
+        type === 'chapter-4' && 'lg:h-[540px]',
+        positionByChapterId[type],
+      )}
       draggable={false}
       loading="lazy"
     />
