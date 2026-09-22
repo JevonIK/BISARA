@@ -10,6 +10,7 @@ import {
   Mail,
   X,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -97,9 +98,15 @@ export function AccountPanel() {
 
   return (
     <section className="grid grid-cols-1 overflow-hidden rounded-[2.5rem] sm:rounded-[3.5rem] bg-white shadow-sm border border-amber-200/50 lg:grid-cols-[1fr_1.2fr] items-stretch">
-      {/* Left Golden Card with Illustration matching mockup */}
-      <div className="relative flex min-h-[500px] lg:min-h-[640px] flex-col justify-between overflow-hidden bg-[#FFAE00] p-8 sm:p-12 lg:p-14 shadow-xs">
-        {/* Top Text content */}
+      <div className="relative flex min-h-[500px] lg:min-h-[640px] flex-col overflow-hidden bg-[#FFAE00] p-8 sm:p-12 lg:p-14 shadow-xs">
+        <Image
+          src="/assets/bisara/LogIn.png"
+          alt=""
+          fill
+          sizes="(min-width: 1280px) 540px, (min-width: 1024px) 45vw, 100vw"
+          className="object-cover object-center"
+          priority
+        />
         <div className="relative z-10">
           <span className="text-xs font-black uppercase tracking-widest text-slate-900/80">
             BISARA
@@ -115,11 +122,6 @@ export function AccountPanel() {
             Masuk untuk menyimpan hasil tes, lencana, dan review ke akunmu. Progres
             tamu tetap tersedia di browser ini.
           </p>
-        </div>
-
-        {/* Vector Hands & Ribbon Illustration */}
-        <div className="relative z-0 mt-auto pt-8">
-          <LoginIllustration />
         </div>
       </div>
 
@@ -592,113 +594,6 @@ function AppleIcon() {
       aria-hidden="true"
     >
       <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.88-11.96-14.52-7.6-11.85-13.41-24.96-17.43-39.32-4.02-14.36-6.03-27.47-6.03-39.32 0-14.99 3.62-27.42 10.86-37.28 7.24-9.86 16.5-14.88 27.78-15.07 5.06 0 10.59 1.34 16.59 4.02 6 2.68 9.94 4.07 11.83 4.17 1.66 0 5.86-1.46 12.61-4.39 6.75-2.93 12.61-4.24 17.58-3.92 13.88.75 25.13 5.73 33.75 14.93-12.18 7.39-18.17 17.51-17.97 30.37.2 10.15 4.06 18.77 11.59 25.86 7.53 7.09 16.48 11.22 26.85 12.39-2.2 6.54-4.8 13.04-7.8 19.51zM119.22 31.84c0-7.39 2.68-14.42 8.04-21.09 5.36-6.67 11.83-10.75 19.41-12.25.13 1.08.2 2.12.2 3.12 0 7.39-2.82 14.57-8.46 21.55-5.64 6.98-12.05 10.97-19.24 11.97-.27-1.1-.42-2.2-.42-3.3z" />
-    </svg>
-  );
-}
-
-function LoginIllustration() {
-  return (
-    <svg
-      className="w-full h-auto max-h-[300px]"
-      viewBox="0 0 380 280"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {/* Top right decorative star */}
-      <path
-        d="M330 20L334 33L348 35L337 44L340 58L328 50L317 58L320 44L309 35L323 33L330 20Z"
-        fill="#FFD268"
-        fillOpacity="0.8"
-      />
-      {/* Top right curly ribbon */}
-      <path
-        d="M340 65 C358 78, 362 95, 348 106 C334 118, 344 135, 360 142"
-        stroke="#D95328"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Bottom left decorative star */}
-      <path
-        d="M25 210L28 219L38 220L30 227L33 236L25 231L17 236L19 227L12 220L21 219L25 210Z"
-        fill="#FFD268"
-        fillOpacity="0.8"
-      />
-      {/* Bottom left small curly ribbon */}
-      <path
-        d="M30 185 C38 190, 40 198, 34 203 C28 208, 32 216, 38 218"
-        stroke="#D95328"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-
-      {/* Left arm sleeve (rust/terracotta) */}
-      <path d="M110 280 L125 190 L175 190 L165 280 Z" fill="#B84A22" />
-      {/* Left sleeve cuff */}
-      <path
-        d="M125 190 Q150 186 175 190 L177 202 Q150 198 123 202 Z"
-        fill="#9C3E1B"
-      />
-
-      {/* Left hand */}
-      <path
-        d="M130 190 C126 168 120 142 115 120 C112 111 123 107 127 115 C132 126 135 142 137 155 C140 137 144 108 150 84 C154 74 163 77 161 88 C158 107 154 133 153 148 C158 128 166 98 173 80 C177 70 187 74 183 85 C178 104 173 130 171 144 C176 132 185 110 192 98 C197 90 206 95 201 105 C193 126 185 152 181 170 C177 182 172 190 169 190 Z"
-        fill="#FCDAC9"
-      />
-      {/* Left hand palm crease */}
-      <path
-        d="M152 160 C156 172 163 180 170 185"
-        stroke="#5A473E"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-
-      {/* Right arm sleeve (warm cream / yellow) */}
-      <path d="M195 280 L205 178 L260 178 L275 280 Z" fill="#F4CD75" />
-      {/* Right sleeve cuff / fold line */}
-      <path
-        d="M205 178 Q232 174 260 178 L262 190 Q232 186 203 190 Z"
-        fill="#E5B953"
-      />
-      <line
-        x1="215"
-        y1="215"
-        x2="258"
-        y2="265"
-        stroke="#DFB246"
-        strokeWidth="2.5"
-      />
-
-      {/* Right hand */}
-      <path
-        d="M207 178 C203 169 196 146 188 130 C182 119 193 112 199 121 C204 130 210 144 214 155 C212 135 210 102 210 78 C210 66 221 66 223 78 C225 100 227 127 229 143 C234 122 240 93 245 75 C249 64 260 68 257 80 C252 101 249 127 247 143 C252 130 261 108 268 97 C273 88 283 93 278 104 C270 125 261 152 257 168 C254 178 248 178 245 178 Z"
-        fill="#FCDAC9"
-      />
-      {/* Right hand palm crease */}
-      <path
-        d="M228 157 C231 168 236 177 244 183"
-        stroke="#5A473E"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-
-      {/* Flowing wrapping ribbon (front of sleeves) */}
-      <path
-        d="M50 240 C90 205 135 190 180 200 C230 210 270 180 310 140 C330 120 360 90 380 70"
-        stroke="#D95328"
-        strokeWidth="18"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M80 255 C125 238 175 230 225 240 C265 248 305 230 345 200"
-        stroke="#BA3F17"
-        strokeWidth="12"
-        strokeLinecap="round"
-        fill="none"
-      />
     </svg>
   );
 }

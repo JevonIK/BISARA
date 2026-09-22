@@ -238,13 +238,18 @@ void test('missions unlock in curriculum order', () => {
   );
 });
 
-void test('local debug opens every mission without manufacturing completion', () => {
-  const original = Object.getOwnPropertyDescriptor(process.env, 'NODE_ENV');
+void test('local debug is off by default and only opens missions when opted in', () => {
+  const originalNodeEnv = Object.getOwnPropertyDescriptor(process.env, 'NODE_ENV');
+  const originalDebugEnv = Object.getOwnPropertyDescriptor(process.env, 'NEXT_PUBLIC_BISARA_CURRICULUM_DEBUG');
   try {
     Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, enumerable: true, writable: true, value: 'production' });
+    Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_BISARA_CURRICULUM_DEBUG');
     assert.equal(isMissionUnlocked('alfabet-u-z', emptyAccountProgress), false);
 
     Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, enumerable: true, writable: true, value: 'development' });
+    assert.equal(isMissionUnlocked('alfabet-u-z', emptyAccountProgress), false);
+
+    Object.defineProperty(process.env, 'NEXT_PUBLIC_BISARA_CURRICULUM_DEBUG', { configurable: true, enumerable: true, writable: true, value: 'true' });
     assert.equal(isMissionUnlocked('alfabet-u-z', emptyAccountProgress), true);
     const learning = getMissionLearningState('alfabet-u-z', emptyAccountProgress);
     assert.equal(learning.unlocked, true);
@@ -252,8 +257,10 @@ void test('local debug opens every mission without manufacturing completion', ()
     assert.equal(learning.progressPercent, 0);
     assert.equal(emptyAccountProgress.completedMissionIds.includes('alfabet-u-z'), false);
   } finally {
-    if (original) Object.defineProperty(process.env, 'NODE_ENV', original);
+    if (originalNodeEnv) Object.defineProperty(process.env, 'NODE_ENV', originalNodeEnv);
     else Reflect.deleteProperty(process.env, 'NODE_ENV');
+    if (originalDebugEnv) Object.defineProperty(process.env, 'NEXT_PUBLIC_BISARA_CURRICULUM_DEBUG', originalDebugEnv);
+    else Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_BISARA_CURRICULUM_DEBUG');
   }
 });
 
@@ -589,4 +596,3 @@ void test('mission signs unlock sequentially and disable downstream signs and la
   assert.equal(isMissionSignUnlocked('maaf', missionSigns, completedMissionProgress, 'berkenalan'), true);
   assert.equal(isMissionPracticeComplete(missionSigns, completedMissionProgress, 'berkenalan'), true);
 });
-

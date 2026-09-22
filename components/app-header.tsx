@@ -1,6 +1,7 @@
 'use client';
 
-import { Flame, Hand, Star } from 'lucide-react';
+import { Flame, Star } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { useProgress } from '@/hooks/use-progress';
@@ -42,17 +43,15 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
           className="group flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
           aria-label="BISARA, kembali ke beranda"
         >
-          <span className="grid size-11 place-items-center rounded-full bg-slate-900 text-[#55c7b5] shadow-xs transition-transform group-hover:-rotate-3">
-            <Hand className="size-6 text-[#F8A51D]" strokeWidth={2.4} />
-          </span>
-          <span>
-            <span className="block text-lg font-black leading-none tracking-[-0.04em] text-slate-900">
-              BISARA
-            </span>
-            <span className="mt-1 hidden text-[9px] font-black uppercase tracking-[0.16em] text-slate-800/80 sm:block">
-              Belajar untuk berkomunikasi
-            </span>
-          </span>
+          <Image
+            src="/assets/bisara/secondary-logo.png"
+            alt=""
+            width={224}
+            height={60}
+            className="h-8 w-auto sm:h-11 lg:h-13"
+            priority
+            draggable={false}
+          />
         </Link>
 
         <nav
