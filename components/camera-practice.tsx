@@ -1049,7 +1049,7 @@ export function CameraPractice({
   return (
     <div
       className={cn(
-        'grid items-stretch gap-5',
+        'grid items-start gap-5',
         exampleCard
           ? 'grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[300px_1fr_300px]'
           : 'grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]',
@@ -1057,69 +1057,82 @@ export function CameraPractice({
     >
       {exampleCard}
 
-      <section className="flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0B0F19] border border-amber-200/50 shadow-sm">
-        <div className="relative aspect-video bg-[#0B0F19] sm:min-h-[360px]">
-          <video
-            ref={videoRef}
-            className={cn(
-              'absolute inset-0 size-full -scale-x-100 object-cover transition-opacity',
-              isReady ||
-                status === 'loading-model' ||
-                status === 'loading-reference'
-                ? 'opacity-100'
-                : 'opacity-0',
+      <section className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+              {productionMode ? 'KAMERA PERAGAAN' : 'KAMERA LATIHAN'}
+            </span>
+            {isReady && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                Kamera Aktif
+              </span>
             )}
-            autoPlay
-            muted
-            playsInline
-          />
-          <canvas
-            ref={canvasRef}
-            className="pointer-events-none absolute inset-0 size-full -scale-x-100"
-            aria-hidden="true"
-          />
+          </div>
 
-          <div
-            className="pointer-events-none absolute inset-[10%] rounded-[45%] border border-dashed border-white/25"
-            aria-hidden="true"
-          />
+          <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-950 sm:min-h-[360px] shadow-inner">
+            <video
+              ref={videoRef}
+              className={cn(
+                'absolute inset-0 size-full -scale-x-100 object-cover transition-opacity',
+                isReady ||
+                  status === 'loading-model' ||
+                  status === 'loading-reference'
+                  ? 'opacity-100'
+                  : 'opacity-0',
+              )}
+              autoPlay
+              muted
+              playsInline
+            />
+            <canvas
+              ref={canvasRef}
+              className="pointer-events-none absolute inset-0 size-full -scale-x-100"
+              aria-hidden="true"
+            />
 
-          {showSetup && (
-            <div className="absolute inset-0 grid place-items-center p-6 text-center">
-              <div className="max-w-md">
-                <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
-                  {status === 'denied' || status === 'unavailable' ? (
-                     <CameraOff className="size-8" />
-                  ) : (
-                    <Camera className="size-8" />
-                  )}
-                </span>
-                <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
-                  Siapkan kamera latihan
-                </h2>
-                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
-                  Video diproses langsung di browser. BISARA tidak merekam atau
-                  menyimpan video latihan ini.
-                </p>
-                <Button
-                  type="button"
-                  size="lg"
-                  onClick={startCamera}
-                  disabled={isBusy}
-                  className="mt-6 h-12 rounded-full bg-[#00D5D1] px-7 font-black text-slate-950 hover:bg-[#00BDCD] transition-all hover:scale-105 active:scale-95 shadow-sm"
-                >
-                  {isBusy ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <Camera className="size-4" />
-                  )}
-                  {status === 'requesting' && 'Menunggu izin kamera'}
-                  {status === 'loading-model' && 'Memuat deteksi tangan'}
-                  {!isBusy && 'Aktifkan kamera'}
-                </Button>
+            <div
+              className="pointer-events-none absolute inset-[10%] rounded-[45%] border border-dashed border-white/25"
+              aria-hidden="true"
+            />
+
+            {showSetup && (
+              <div className="absolute inset-0 grid place-items-center p-6 text-center">
+                <div className="max-w-md">
+                  <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
+                    {status === 'denied' || status === 'unavailable' ? (
+                       <CameraOff className="size-8" />
+                    ) : (
+                      <Camera className="size-8" />
+                    )}
+                  </span>
+                  <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
+                    Siapkan kamera latihan
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
+                    Video diproses langsung di browser. BISARA tidak merekam atau
+                    menyimpan video latihan ini.
+                  </p>
+                  <Button
+                    type="button"
+                    size="lg"
+                    onClick={startCamera}
+                    disabled={isBusy}
+                    className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-black text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+                  >
+                    {isBusy ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Camera className="size-4" />
+                    )}
+                    {status === 'requesting' && 'Menunggu izin kamera'}
+                    {status === 'loading-model' && 'Memuat deteksi tangan'}
+                    {!isBusy && 'Aktifkan kamera'}
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {status === 'loading-model' && (
             <div className="absolute inset-0 grid place-items-center bg-signal-navy/55 p-6 text-center backdrop-blur-sm">
@@ -1194,7 +1207,7 @@ export function CameraPractice({
             <>
               {recordingProgress < 15 && (
                 <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <span className="rounded-full bg-signal-teal px-6 py-3 text-2xl font-black text-signal-navy shadow-lg">
+                  <span className="rounded-full bg-[#F8A51D] px-6 py-3 text-2xl font-black text-slate-900 shadow-lg">
                     Mulai!
                   </span>
                 </div>
@@ -1228,9 +1241,9 @@ export function CameraPractice({
 
           {/* Scoring overlay */}
           {practicePhase === 'scoring' && (
-            <div className="absolute inset-0 grid place-items-center bg-signal-navy/55 p-6 text-center backdrop-blur-sm">
+            <div className="absolute inset-0 grid place-items-center bg-slate-950/60 p-6 text-center backdrop-blur-sm">
               <div>
-                <LoaderCircle className="mx-auto size-8 animate-spin text-signal-teal" />
+                <LoaderCircle className="mx-auto size-8 animate-spin text-[#F8A51D]" />
                 <p className="mt-4 text-sm font-bold text-white">
                   Mengevaluasi gerakan…
                 </p>
@@ -1238,14 +1251,15 @@ export function CameraPractice({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Unified Bottom Dark Status & Control Bar matching reference design */}
-        <div className="flex flex-col gap-4 border-t border-white/10 bg-[#0B0F19] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+      {/* Unified Bottom Control Bar matching rest of white cards */}
+        <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div aria-live="polite">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#00D5D1] block">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
               STATUS KAMERA
             </span>
-            <p className="mt-0.5 text-sm sm:text-base font-bold text-white">
+            <p className="mt-0.5 text-xs sm:text-sm font-bold text-slate-900">
               {practicePhase === 'countdown'
                 ? 'Bersiap…'
                 : practicePhase === 'recording'
@@ -1259,7 +1273,7 @@ export function CameraPractice({
                         : cameraStatusLabel(status, handCount)}
             </p>
             {errorMessage && (
-              <p className="mt-1 max-w-xl text-xs leading-5 text-signal-coral">
+              <p className="mt-1 max-w-xl text-xs leading-5 text-[#E54D2E] font-medium">
                 {errorMessage}
               </p>
             )}
@@ -1272,9 +1286,9 @@ export function CameraPractice({
                   type="button"
                   onClick={startPractice}
                   disabled={!canStartPractice}
-                  className="rounded-full bg-[#00D5D1] px-5 py-2 font-black text-slate-950 hover:bg-[#00BDCD] shadow-sm"
+                  className="rounded-full bg-[#F8A51D] px-5 py-2 font-black text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
                 >
-                  <Play className="size-4" />{' '}
+                  <Play className="size-4 fill-current" />{' '}
                   {productionMode ? 'Mulai uji' : 'Mulai latihan'}
                 </Button>
               )}
@@ -1283,7 +1297,7 @@ export function CameraPractice({
                   type="button"
                   variant="outline"
                   onClick={cancelPractice}
-                  className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+                  className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
                 >
                   <X className="size-4" /> Batalkan
                 </Button>
@@ -1293,7 +1307,7 @@ export function CameraPractice({
                 variant="outline"
                 onClick={retryPractice}
                 disabled={practicePhase !== 'idle' && practicePhase !== 'result'}
-                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
               >
                 <RefreshCw className="size-4" /> Muat ulang
               </Button>
@@ -1301,7 +1315,7 @@ export function CameraPractice({
                 type="button"
                 variant="outline"
                 onClick={stopCamera}
-                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
               >
                 <CameraOff className="size-4" /> Matikan
               </Button>
@@ -1523,7 +1537,7 @@ export function CameraPractice({
                 href={nextAction.href}
                 className={cn(
                   buttonVariants(),
-                  'h-11 w-full rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00D5D1]/90',
+                  'h-11 w-full rounded-full bg-[#F8A51D] font-black text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer',
                 )}
               >
                 {nextAction.label} <ArrowRight className="size-4" />
@@ -1537,7 +1551,7 @@ export function CameraPractice({
                 href={`/missions/test?mission=${missionId}&mode=recognition`}
                 className={cn(
                   buttonVariants({ variant: 'outline' }),
-                  'h-11 w-full rounded-full border-2 border-[#00D5D1] font-black text-slate-900 hover:bg-[#00D5D1]/10',
+                  'h-11 w-full rounded-full border-2 border-[#F8A51D] font-black text-slate-900 hover:bg-amber-50 cursor-pointer',
                 )}
               >
                 Lanjut ke Uji pengenalan <ArrowRight className="size-4" />
@@ -1549,10 +1563,10 @@ export function CameraPractice({
               variant={gestureScore.passed ? 'outline' : 'default'}
               onClick={retryPractice}
               className={cn(
-                'h-11 w-full rounded-full font-black',
+                'h-11 w-full rounded-full font-black cursor-pointer',
                 gestureScore.passed
                   ? 'border-2 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  : 'bg-[#00D5D1] text-slate-900 hover:bg-[#00D5D1]/90',
+                  : 'bg-[#F8A51D] text-slate-900 hover:bg-[#E59312] shadow-xs',
               )}
             >
               <RotateCcw className="size-4" /> Coba lagi
