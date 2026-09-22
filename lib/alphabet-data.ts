@@ -1,3 +1,5 @@
+import type { UserProgress } from './progress-storage';
+
 /** The five alphabet missions and their selected reference clips share this source. */
 export const alphabetMissionGroups = [
   { id: 'alfabet-a-e', number: '01', range: 'A–E', letters: ['A', 'B', 'C', 'D', 'E'] },
@@ -35,6 +37,14 @@ export const alphabetVideos: readonly AlphabetVideo[] = alphabetMissionGroups.fl
     sourceFile: sourceVideos[letter],
   })),
 );
+
+/** Dictionary letters become available with their completed alphabet mission. */
+export function isAlphabetDictionaryUnlocked(
+  video: AlphabetVideo,
+  progress: Pick<UserProgress, 'completedMissionIds'>,
+): boolean {
+  return progress.completedMissionIds.includes(video.missionId);
+}
 
 export function getAlphabetVideosForMission(missionId: string) {
   return alphabetVideos.filter((video) => video.missionId === missionId);
