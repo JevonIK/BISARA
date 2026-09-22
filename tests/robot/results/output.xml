@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.5 (Python 3.14.4 on darwin)" generated="2026-09-22T19:59:08.588141" rpa="false" schemaversion="5">
+<suite id="s1" name="Robot" source="/Users/kevinwilliamfaith/bisara/BISARA/tests/robot">
+<suite id="s1-s1" name="Auth" source="/Users/kevinwilliamfaith/bisara/BISARA/tests/robot/auth.robot">
+<kw name="Open BISARA Browser" owner="common" type="SETUP">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-22T19:59:08.716032" level="INFO">${options} = &lt;selenium.webdriver.chrome.options.Options object at 0x10bde97f0&gt;</msg>
+<var>${options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>modules=selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-22T19:59:08.714977" elapsed="0.001077"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-22T19:59:08.716224" level="INFO">${headless} = --headless=new</msg>
+<var>${headless}</var>
+<arg>--headless=new</arg>
+<doc>Returns the given values which can then be assigned to a variable.</doc>
+<status status="PASS" start="2026-09-22T19:59:08.716125" elapsed="0.000111"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-22T19:59:08.716357" level="INFO">${window_size} = --window-size=1440,900</msg>
+<var>${window_size}</var>
+<arg>--window-size=1440,900</arg>
+<doc>Returns the given values which can then be assigned to a variable.</doc>
+<status status="PASS" start="2026-09-22T19:59:08.716278" elapsed="0.000092"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${options}</arg>
+<arg>add_argument</arg>
+<arg>${headless}</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-22T19:59:08.716430" elapsed="0.000311"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${options}</arg>
+<arg>add_argument</arg>
+<arg>${window_size}</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-22T19:59:08.716863" elapsed="0.000117"/>
+</kw>
+<kw name="Open Browser" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:08.717228" level="INFO">Opening browser 'chrome' to base url 'https://bisara-ebon.vercel.app'.</msg>
+<arg>${BASE_URL}</arg>
+<arg>chrome</arg>
+<arg>options=${options}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:08.717110" elapsed="3.388145"/>
+</kw>
+<kw name="Set Screenshot Directory" owner="SeleniumLibrary">
+<arg>${OUTPUT DIR}${/}screenshots</arg>
+<doc>Sets the directory for captured screenshots.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.111475" elapsed="0.002300"/>
+</kw>
+<kw name="Register Keyword To Run On Failure" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.114227" level="INFO">Capture Page Screenshot will be run on failure.</msg>
+<arg>Capture Page Screenshot</arg>
+<doc>Sets the keyword to execute, when a SeleniumLibrary keyword fails.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.113981" elapsed="0.000281"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:header</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.114524" elapsed="0.015274"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:08.714690" elapsed="3.415806"/>
+</kw>
+<test id="s1-s1-t1" name="Registration And Login Forms Open" line="7">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.136517" level="INFO">Opening url 'https://bisara-ebon.vercel.app/account'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.136260" elapsed="0.099265"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.235740" elapsed="0.009232"/>
+</kw>
+<arg>/account</arg>
+<status status="PASS" start="2026-09-22T19:59:12.135362" elapsed="0.109685"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>xpath://button[normalize-space()="Daftar"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.245129" elapsed="0.420120"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.665646" level="INFO">Clicking button 'xpath://button[normalize-space()="Daftar"]'.</msg>
+<arg>xpath://button[normalize-space()="Daftar"]</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.665431" elapsed="0.044246"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:input[name="displayName"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.709885" elapsed="0.006941"/>
+</kw>
+<kw name="Page Should Contain Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.723885" level="INFO">Current page contains element 'css:button[type="submit"]'.</msg>
+<arg>css:button[type="submit"]</arg>
+<doc>Verifies that element ``locator`` is found on the current page.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.717137" elapsed="0.006825"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.724214" level="INFO">Clicking button 'xpath://button[normalize-space()="Masuk"]'.</msg>
+<arg>xpath://button[normalize-space()="Masuk"]</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.724068" elapsed="0.035852"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:input[name="email"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.760030" elapsed="0.005749"/>
+</kw>
+<kw name="Page Should Contain Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.771207" level="INFO">Current page contains element 'css:input[name="password"]'.</msg>
+<arg>css:input[name="password"]</arg>
+<doc>Verifies that element ``locator`` is found on the current page.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.765885" elapsed="0.005439"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:12.131411" elapsed="0.640085"/>
+</test>
+<test id="s1-s1-t2" name="Invalid Login Shows Error" line="17">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:12.772264" level="INFO">Opening url 'https://bisara-ebon.vercel.app/account'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.772207" elapsed="0.109751"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.882377" elapsed="0.009919"/>
+</kw>
+<arg>/account</arg>
+<status status="PASS" start="2026-09-22T19:59:12.772075" elapsed="0.120382"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:input[name="email"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:12.892627" elapsed="0.214491"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:13.107358" level="INFO">Typing text 'robot.invalid@example.com' into text field 'css:input[name="email"]'.</msg>
+<arg>css:input[name="email"]</arg>
+<arg>robot.invalid@example.com</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:13.107218" elapsed="0.087638"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:13.195100" level="INFO">Typing text 'WrongPassword123!' into text field 'css:input[name="password"]'.</msg>
+<arg>css:input[name="password"]</arg>
+<arg>WrongPassword123!</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:13.194957" elapsed="0.032318"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:13.227723" level="INFO">Clicking button 'css:button[type="submit"]'.</msg>
+<arg>css:button[type="submit"]</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:13.227372" elapsed="0.028463"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>css:p[role="alert"]</arg>
+<arg>kata sandi tidak cocok</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-22T19:59:13.255927" elapsed="3.989292"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:12.771834" elapsed="4.473571"/>
+</test>
+<kw name="Close BISARA Browser" owner="common" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.245866" elapsed="0.074387"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:17.245761" elapsed="0.074554"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:08.603890" elapsed="8.716442"/>
+</suite>
+<suite id="s1-s2" name="Navigation" source="/Users/kevinwilliamfaith/bisara/BISARA/tests/robot/navigation.robot">
+<kw name="Open BISARA Browser" owner="common" type="SETUP">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-22T19:59:17.322022" level="INFO">${options} = &lt;selenium.webdriver.chrome.options.Options object at 0x10b5791d0&gt;</msg>
+<var>${options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>modules=selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.321729" elapsed="0.000317"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-22T19:59:17.322199" level="INFO">${headless} = --headless=new</msg>
+<var>${headless}</var>
+<arg>--headless=new</arg>
+<doc>Returns the given values which can then be assigned to a variable.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.322107" elapsed="0.000101"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-22T19:59:17.322316" level="INFO">${window_size} = --window-size=1440,900</msg>
+<var>${window_size}</var>
+<arg>--window-size=1440,900</arg>
+<doc>Returns the given values which can then be assigned to a variable.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.322248" elapsed="0.000077"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${options}</arg>
+<arg>add_argument</arg>
+<arg>${headless}</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.322358" elapsed="0.000080"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${options}</arg>
+<arg>add_argument</arg>
+<arg>${window_size}</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.322476" elapsed="0.000068"/>
+</kw>
+<kw name="Open Browser" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:17.322732" level="INFO">Opening browser 'chrome' to base url 'https://bisara-ebon.vercel.app'.</msg>
+<arg>${BASE_URL}</arg>
+<arg>chrome</arg>
+<arg>options=${options}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:17.322662" elapsed="3.354820"/>
+</kw>
+<kw name="Set Screenshot Directory" owner="SeleniumLibrary">
+<arg>${OUTPUT DIR}${/}screenshots</arg>
+<doc>Sets the directory for captured screenshots.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.678673" elapsed="0.000543"/>
+</kw>
+<kw name="Register Keyword To Run On Failure" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:20.679525" level="INFO">Capture Page Screenshot will be run on failure.</msg>
+<arg>Capture Page Screenshot</arg>
+<doc>Sets the keyword to execute, when a SeleniumLibrary keyword fails.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.679338" elapsed="0.000236"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:header</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.679673" elapsed="0.009389"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:17.321624" elapsed="3.367561"/>
+</kw>
+<test id="s1-s2-t1" name="Main Navigation Works" line="7">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:20.690109" level="INFO">Opening url 'https://bisara-ebon.vercel.app/'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.690044" elapsed="0.110411"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.800615" elapsed="0.009415"/>
+</kw>
+<arg>/</arg>
+<status status="PASS" start="2026-09-22T19:59:20.689898" elapsed="0.120204"/>
+</kw>
+<kw name="Click Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:20.810518" level="INFO">Clicking element 'css:nav[aria-label="Navigasi utama"] a[href="/kamus"]'.</msg>
+<arg>css:nav[aria-label="Navigasi utama"] a[href="/kamus"]</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.810213" elapsed="0.064522"/>
+</kw>
+<kw name="Page Path Should Be" owner="common">
+<kw name="Wait Until Location Contains" owner="SeleniumLibrary">
+<arg>${BASE_URL}${path}</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the current URL contains ``expected``.</doc>
+<status status="PASS" start="2026-09-22T19:59:20.875595" elapsed="0.205170"/>
+</kw>
+<arg>/kamus</arg>
+<status status="PASS" start="2026-09-22T19:59:20.875151" elapsed="0.205674"/>
+</kw>
+<kw name="Click Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.081025" level="INFO">Clicking element 'css:nav[aria-label="Navigasi utama"] a[href="/profil"]'.</msg>
+<arg>css:nav[aria-label="Navigasi utama"] a[href="/profil"]</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.080903" elapsed="0.036139"/>
+</kw>
+<kw name="Page Path Should Be" owner="common">
+<kw name="Wait Until Location Contains" owner="SeleniumLibrary">
+<arg>${BASE_URL}${path}</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the current URL contains ``expected``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.117465" elapsed="0.001640"/>
+</kw>
+<arg>/profil</arg>
+<status status="PASS" start="2026-09-22T19:59:21.117196" elapsed="0.001956"/>
+</kw>
+<kw name="Click Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.119329" level="INFO">Clicking element 'css:nav[aria-label="Navigasi utama"] a[href="/"]'.</msg>
+<arg>css:nav[aria-label="Navigasi utama"] a[href="/"]</arg>
+<doc>Click the element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.119222" elapsed="0.023333"/>
+</kw>
+<kw name="Wait Until Location Is" owner="SeleniumLibrary">
+<arg>${BASE_URL}/</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the current URL is ``expected``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.142648" elapsed="0.204639"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:20.689358" elapsed="0.658018"/>
+</test>
+<test id="s1-s2-t2" name="Kamus Opens And Search Works" line="16">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.347915" level="INFO">Opening url 'https://bisara-ebon.vercel.app/kamus'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.347862" elapsed="0.147203"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.495204" elapsed="0.006210"/>
+</kw>
+<arg>/kamus</arg>
+<status status="PASS" start="2026-09-22T19:59:21.347714" elapsed="0.153764"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:input[placeholder="Cari kata atau isyarat..."]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.501549" elapsed="0.006136"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.507930" level="INFO">Typing text 'teman' into text field 'css:input[placeholder="Cari kata atau isyarat..."]'.</msg>
+<arg>css:input[placeholder="Cari kata atau isyarat..."]</arg>
+<arg>teman</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.507794" elapsed="0.067024"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>xpath://span[normalize-space()="Teman"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.574940" elapsed="0.007096"/>
+</kw>
+<kw name="Page Should Not Contain Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.585726" level="INFO">Current page does not contain element 'xpath://span[normalize-space()="Air"]'.</msg>
+<arg>xpath://span[normalize-space()="Air"]</arg>
+<doc>Verifies that element ``locator`` is not found on the current page.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.582134" elapsed="0.003652"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.585991" level="INFO">Clicking button 'css:button[aria-label="Hapus pencarian"]'.</msg>
+<arg>css:button[aria-label="Hapus pencarian"]</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.585867" elapsed="0.032598"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>xpath://span[normalize-space()="Air"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.618738" elapsed="0.007036"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:21.347496" elapsed="0.278371"/>
+</test>
+<test id="s1-s2-t3" name="Learning Mission Page Loads" line="25">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:21.626320" level="INFO">Opening url 'https://bisara-ebon.vercel.app/missions/learn?mission=alfabet-a-e'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:21.626259" elapsed="1.215352"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:22.841736" elapsed="0.007716"/>
+</kw>
+<arg>/missions/learn?mission=alfabet-a-e</arg>
+<status status="PASS" start="2026-09-22T19:59:21.626131" elapsed="1.223390"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:h1</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:22.849612" elapsed="0.008373"/>
+</kw>
+<kw name="Page Should Contain" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:22.865372" level="INFO">Current page contains text 'A–E'.</msg>
+<arg>A–E</arg>
+<doc>Verifies that current page contains ``text``.</doc>
+<status status="PASS" start="2026-09-22T19:59:22.858131" elapsed="0.007306"/>
+</kw>
+<kw name="Page Should Contain Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:22.869858" level="INFO">Current page contains element 'css:video'.</msg>
+<arg>css:video</arg>
+<doc>Verifies that element ``locator`` is found on the current page.</doc>
+<status status="PASS" start="2026-09-22T19:59:22.865551" elapsed="0.004373"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:21.625960" elapsed="1.244224"/>
+</test>
+<test id="s1-s2-t4" name="Tirukan Page Loads With Camera Button" line="31">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:22.871433" level="INFO">Opening url 'https://bisara-ebon.vercel.app/missions/learn?mission=alfabet-a-e&amp;section=tirukan'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:22.871296" elapsed="0.501105"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.372697" elapsed="0.009414"/>
+</kw>
+<arg>/missions/learn?mission=alfabet-a-e&amp;section=tirukan</arg>
+<status status="PASS" start="2026-09-22T19:59:22.871036" elapsed="0.511270"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>xpath://button[contains(normalize-space(),"Aktifkan kamera")]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.382450" elapsed="0.008515"/>
+</kw>
+<kw name="Page Should Contain" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:23.397393" level="INFO">Current page contains text 'Tirukan'.</msg>
+<arg>Tirukan</arg>
+<doc>Verifies that current page contains ``text``.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.391077" elapsed="0.006439"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:22.870507" elapsed="0.527098"/>
+</test>
+<kw name="Close BISARA Browser" owner="common" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.398120" elapsed="0.082275"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:23.397885" elapsed="0.082574"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:17.320576" elapsed="6.159901"/>
+</suite>
+<suite id="s1-s3" name="Smoke" source="/Users/kevinwilliamfaith/bisara/BISARA/tests/robot/smoke.robot">
+<kw name="Open BISARA Browser" owner="common" type="SETUP">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-22T19:59:23.482734" level="INFO">${options} = &lt;selenium.webdriver.chrome.options.Options object at 0x10bf2d590&gt;</msg>
+<var>${options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>modules=selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.482402" elapsed="0.000349"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-22T19:59:23.482911" level="INFO">${headless} = --headless=new</msg>
+<var>${headless}</var>
+<arg>--headless=new</arg>
+<doc>Returns the given values which can then be assigned to a variable.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.482816" elapsed="0.000104"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-22T19:59:23.483034" level="INFO">${window_size} = --window-size=1440,900</msg>
+<var>${window_size}</var>
+<arg>--window-size=1440,900</arg>
+<doc>Returns the given values which can then be assigned to a variable.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.482960" elapsed="0.000082"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${options}</arg>
+<arg>add_argument</arg>
+<arg>${headless}</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.483078" elapsed="0.000076"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${options}</arg>
+<arg>add_argument</arg>
+<arg>${window_size}</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.483189" elapsed="0.000070"/>
+</kw>
+<kw name="Open Browser" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:23.483637" level="INFO">Opening browser 'chrome' to base url 'https://bisara-ebon.vercel.app'.</msg>
+<arg>${BASE_URL}</arg>
+<arg>chrome</arg>
+<arg>options=${options}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:23.483449" elapsed="3.205882"/>
+</kw>
+<kw name="Set Screenshot Directory" owner="SeleniumLibrary">
+<arg>${OUTPUT DIR}${/}screenshots</arg>
+<doc>Sets the directory for captured screenshots.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.689714" elapsed="0.000349"/>
+</kw>
+<kw name="Register Keyword To Run On Failure" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:26.690285" level="INFO">Capture Page Screenshot will be run on failure.</msg>
+<arg>Capture Page Screenshot</arg>
+<doc>Sets the keyword to execute, when a SeleniumLibrary keyword fails.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.690144" elapsed="0.000163"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:header</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.690347" elapsed="0.018724"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:23.482291" elapsed="3.227066"/>
+</kw>
+<test id="s1-s3-t1" name="Homepage Opens" line="7">
+<kw name="Open BISARA Page" owner="common">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:26.710603" level="INFO">Opening url 'https://bisara-ebon.vercel.app/'</msg>
+<arg>${BASE_URL}${path}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.710402" elapsed="0.109344"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:main</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.819846" elapsed="0.007351"/>
+</kw>
+<arg>/</arg>
+<status status="PASS" start="2026-09-22T19:59:26.710164" elapsed="0.117091"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>css:a[aria-label="BISARA, kembali ke beranda"]</arg>
+<arg>${WAIT}</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.827512" elapsed="0.006957"/>
+</kw>
+<kw name="Page Should Contain Element" owner="SeleniumLibrary">
+<msg time="2026-09-22T19:59:26.838713" level="INFO">Current page contains element 'css:nav[aria-label="Navigasi utama"]'.</msg>
+<arg>css:nav[aria-label="Navigasi utama"]</arg>
+<doc>Verifies that element ``locator`` is found on the current page.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.834641" elapsed="0.004188"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:26.709606" elapsed="0.129326"/>
+</test>
+<kw name="Close BISARA Browser" owner="common" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-22T19:59:26.839427" elapsed="0.070986"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:26.839301" elapsed="0.071168"/>
+</kw>
+<status status="PASS" start="2026-09-22T19:59:23.480809" elapsed="3.429676"/>
+</suite>
+<status status="PASS" start="2026-09-22T19:59:08.589271" elapsed="18.321443"/>
+</suite>
+<statistics>
+<total>
+<stat pass="7" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Robot" id="s1" pass="7" fail="0" skip="0">Robot</stat>
+<stat name="Auth" id="s1-s1" pass="2" fail="0" skip="0">Robot.Auth</stat>
+<stat name="Navigation" id="s1-s2" pass="4" fail="0" skip="0">Robot.Navigation</stat>
+<stat name="Smoke" id="s1-s3" pass="1" fail="0" skip="0">Robot.Smoke</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
