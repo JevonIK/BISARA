@@ -1,34 +1,31 @@
 # BISARA API
 
-FastAPI, PostgreSQL 16, SQLAlchemy 2 async sessions, and Alembic migrations.
-The frontend accesses `/api/v1` on its own origin. During development, Vite
-proxies these requests to `127.0.0.1:8000`.
+Backend BISARA menangani **akun, sesi, dan sinkronisasi progres** dengan FastAPI, SQLAlchemy async, Alembic, dan PostgreSQL. Penilaian gerakan berlangsung di browser; API menyimpan hasil yang dikirim klien.
 
-## Start the complete local application
+## Deployment dan lingkungan lokal
 
-From the repository root, with Docker Desktop running:
+| Komponen | Produksi | Pengembangan lokal |
+| --- | --- | --- |
+| Frontend | Vercel | `pnpm dev` pada port 3000 |
+| FastAPI | Railway | Docker Compose atau Uvicorn pada port 8000 |
+| PostgreSQL | Neon | Docker Compose (PostgreSQL 16) |
+
+Browser memanggil `/api/v1` pada origin frontend. [Rewrite Vercel](../vercel.json) meneruskan rute produksi itu ke Railway; FastAPI terhubung ke Neon melalui `DATABASE_URL` milik lingkungan Railway. Kredensial dan `SECRET_KEY` tidak disimpan di repositori.
+
+**Perhatikan proxy lokal:** [`vite.config.ts`](../vite.config.ts) saat ini mengarah ke Railway secara default, bukan ke API Docker lokal. Saat menguji akun pada database lokal, arahkan proxy `/api/v1` ke API lokal. Konfigurasi [`next.config.ts`](../next.config.ts) untuk build Next memakai format tujuan rewrite yang berbeda dari target proxy Vite; jangan menganggap satu nilai `BACKEND_URL` cocok untuk keduanya.
+
+## Menjalankan API dan database lokal
+
+Dari root repositori, dengan Docker Desktop aktif:
 
 ```bash
 python3 backend/scripts/setup_local.py
 docker compose up -d --build
-pnpm dev
 ```
 
-The setup script generates a random signing secret in `backend/.env` only
-when the file is missing. It never prints the secret or overwrites existing
-settings. `.env` is excluded from Git and the Docker image.
+Script setup hanya membuat `backend/.env` bila belum ada, dengan secret acak tanpa mencetak nilainya. Compose menjalankan migrasi Alembic sebelum API dimulai. Buka [dokumentasi API](http://localhost:8000/docs) atau [health check](http://localhost:8000/health); health check juga menguji koneksi database. `docker compose stop` menghentikan layanan tanpa menghapus volume PostgreSQL.
 
-Open `http://localhost:3000/account`. The API documentation is available at
-`http://localhost:8000/docs`; `http://localhost:8000/health` checks PostgreSQL.
-Use `localhost`, not `127.0.0.1`, for the frontend because origins are explicit.
-The frontend requires port 3000; it will not silently choose another port.
-
-`docker compose stop` stops the local API and database without removing the
-database volume. Start them again with `docker compose up -d`.
-
-## Run the API without a container
-
-You can run only PostgreSQL in Docker and run Python directly:
+Untuk menjalankan FastAPI langsung dan hanya memakai PostgreSQL dari Docker:
 
 ```bash
 python3 backend/scripts/setup_local.py
@@ -41,80 +38,56 @@ alembic upgrade head
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Do not run this Python server and the API container on port 8000 simultaneously.
+Jangan menjalankan container API dan Uvicorn lokal pada port 8000 bersamaan. Database lokal terpisah dari Neon. Frontend lokal sebaiknya dibuka melalui `http://localhost:3000`; origin itu juga merupakan nilai bawaan `FRONTEND_ORIGINS` untuk API lokal.
 
-## API contract
+## Konfigurasi
 
-| Method | Path                    | Purpose                                        |
-| ------ | ----------------------- | ---------------------------------------------- |
-| POST   | `/api/v1/auth/register` | Create an account and session                  |
-| POST   | `/api/v1/auth/login`    | Issue a new session                            |
-| GET    | `/api/v1/auth/me`       | Read the authenticated user                    |
-| POST   | `/api/v1/auth/logout`   | Revoke the current session and clear cookies   |
-| GET    | `/api/v1/progress`      | Read the user's progress and revision          |
-| PUT    | `/api/v1/progress`      | Save progress if `expectedRevision` is current |
+| Variabel | Kegunaan |
+| --- | --- |
+| `DATABASE_URL` | URL PostgreSQL untuk driver `asyncpg`; di produksi menunjuk ke Neon |
+| `SECRET_KEY` | Kunci penandatanganan sesi, minimal 32 karakter dan bukan placeholder |
+| `FRONTEND_ORIGINS` | Daftar origin frontend yang diizinkan, dipisah koma, tanpa wildcard atau path |
+| `COOKIE_SECURE` | Set `true` untuk cookie pada deployment HTTPS |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Masa berlaku sesi; opsional |
 
-JSON uses camelCase. Registration accepts `email`, `displayName`, and
-`password`; login accepts `email` and `password`. Progress dates use
-`YYYY-MM-DD` or `null`, not empty strings. Both progress endpoints require
-`X-Progress-Owner` to match the authenticated user ID, preventing an in-flight
-request from crossing accounts when another tab changes the session.
+Contoh nilai lokal ada di [`.env.example`](.env.example). Simpan nilai produksi di pengaturan lingkungan Railway; jangan menyalin kredensial Neon atau secret produksi ke file yang dilacak Git. Migrasi dijalankan dengan `alembic upgrade head` dari folder `backend/`; Dockerfile API juga menjalankannya saat start.
 
-All write requests require an allowed `Origin`. Authenticated writes also
-require `X-CSRF-Token` to match both the CSRF cookie and the claim in the signed
-session token. Authentication uses a host-only, HttpOnly, SameSite=Lax cookie.
-JWTs require expiration, issuer, audience, and a database-backed session ID.
-Logout revokes that session, so a copied token can no longer authenticate.
-Passwords are hashed with Argon2 and never included in API responses.
+## Kontrak API
 
-The API rejects stale progress writes with 409. The frontend retains its local
-version and asks the learner to choose a version. Both versions are backed up
-locally before an explicit choice replaces either version. Offline changes are
-cached per account and retried after reconnection; guest data is never uploaded
-automatically. Guest import is offered only for a pristine account.
+| Metode | Rute | Fungsi |
+| --- | --- | --- |
+| `POST` | `/api/v1/auth/register` | Membuat akun dan sesi |
+| `POST` | `/api/v1/auth/login` | Masuk dan membuat sesi |
+| `GET` | `/api/v1/auth/me` | Mengambil identitas sesi aktif |
+| `POST` | `/api/v1/auth/logout` | Mencabut sesi aktif |
+| `GET` | `/api/v1/progress` | Membaca progres dan revisinya |
+| `PUT` | `/api/v1/progress` | Menyimpan progres bila `expectedRevision` masih cocok |
+| `GET` | `/health` | Memeriksa API dan koneksi PostgreSQL |
 
-## Verification
+Payload JSON memakai **camelCase**. Registrasi memerlukan email valid, `displayName` 2–80 karakter, dan password 8–128 karakter. Login memerlukan email dan password. Tanggal progres memakai `YYYY-MM-DD` atau `null`. Detail field berada di [`app/schemas.py`](app/schemas.py).
 
-With migrations applied and PostgreSQL running, from `backend`:
+Progres akun disimpan terpisah dari progres tamu. Tamu menyimpan progres di browser; impor progres tamu ke akun baru hanya terjadi lewat pilihan pengguna. Frontend menyimpan cache per akun dan memakai revisi untuk mencegah penimpaan diam-diam dari perangkat lain. Jika revisi server berubah, `PUT /progress` ditolak dengan `409` dan pengguna dapat memilih versi yang dipertahankan.
+
+### Batas sinkronisasi yang masih ada
+
+Skema API saat ini hanya menerima **20 ID misi kosakata** pada `completedMissionIds` dan membatasi daftar itu sampai 20 item. Lima ID misi alfabet belum tercantum di [`app/schemas.py`](app/schemas.py). Karena frontend mengirim seluruh progres akun, penyelesaian misi alfabet dapat ditolak saat sinkronisasi; cache lokal tetap menyimpan perubahan tetapi **progres alfabet akun belum dapat dianggap tersinkron ke Neon**. Batas ini memerlukan perubahan skema API dan pengujian tersendiri.
+
+## Keamanan dan batas produk
+
+- Password di-hash dengan Argon2. Sesi memakai cookie autentikasi `HttpOnly`, `SameSite=Lax`, serta catatan sesi database yang dapat dicabut saat logout.
+- Request yang mengubah data memerlukan `Origin` yang diizinkan; write terautentikasi juga memerlukan token CSRF. Request progres membawa `X-Progress-Owner` yang harus cocok dengan pengguna aktif.
+- Login dan registrasi dibatasi hingga 10 percobaan per IP per menit **per proses API**. Ini bukan rate limiter terdistribusi.
+- API memvalidasi bentuk data dan kepemilikan, tetapi belum memverifikasi kebenaran skor, XP, atau gerakan yang dikirim browser. Hasilnya bukan sertifikasi kemampuan BISINDO atau leaderboard yang otoritatif.
+- Verifikasi email, reset password, dan MFA belum tersedia.
+
+## Pengujian
+
+Dengan PostgreSQL lokal aktif dan migrasi terpasang:
 
 ```bash
+cd backend
 .venv/bin/python -m pytest tests -q
 .venv/bin/alembic check
 ```
 
-API tests use real PostgreSQL and an outer transaction that is rolled back at
-the end of each test. They cover cookie flags, Argon2, origin/CSRF rejection,
-account isolation, expired/revoked sessions, stale writes, and validation.
-
-From the repository root:
-
-```bash
-pnpm test:sync
-pnpm lint
-pnpm build
-```
-
-The sync test uses a controlled HTTP boundary to check edits during a save,
-account switching, conflicts, offline retries, and session expiry.
-
-## Current scope
-
-This milestone syncs learner-reported progress; the API validates structure and
-ownership, but does not verify the truth of client-submitted XP or scores. It
-must not be used as an authoritative leaderboard or certification result.
-Server-side grading and recognition validation belong to the next phase.
-Some curriculum/homepage progress remains prototype data. New accounts have
-zero progress; importing guest data can also import the prototype's seed values.
-
-Email verification, password reset, MFA, and a distributed rate limiter are not
-included. The existing limiter allows ten registration/login requests per IP
-per minute per API process. Production needs HTTPS, a new signing secret,
-`COOKIE_SECURE=true`, explicit frontend origins, and a same-origin `/api/v1`
-reverse proxy. The local Vite proxy does not exist in a production build.
-This Compose file is for local development, with development database credentials.
-
-## References
-
-- [FastAPI security and Argon2](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
-- [SQLAlchemy async sessions](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)
-- [OWASP CSRF prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+Tes API memakai PostgreSQL nyata dan membatalkan transaksi setelah tiap kasus. Dari root repositori, `pnpm test:sync` memeriksa perilaku sinkronisasi frontend. Smoke test UI didokumentasikan di [pengujian otomatis](../docs/automated_testing.md).
