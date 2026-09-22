@@ -230,8 +230,8 @@ export function AlphabetCameraChecker({
     <section className="overflow-hidden border border-signal-navy/10 bg-card" aria-label={`Checker huruf ${letter}`}>
       <div className="flex items-center justify-between gap-3 border-b border-signal-navy/10 p-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Checker kamera</p>
-          <h3 className="text-xl font-black text-signal-navy">Peragakan huruf {letter}</h3>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Checker kamera</p>
+          <h3 className="text-xl font-bold text-signal-navy">Peragakan huruf {letter}</h3>
         </div>
         <Button size="sm" variant={cameraActive ? 'outline' : 'default'} onClick={cameraActive ? stopCamera : () => { void startCamera(); }} disabled={loadingCamera} className="rounded-full gap-2 text-xs font-bold">
           {loadingCamera ? <><LoaderCircle className="size-3.5 animate-spin" /> Memuat</> : cameraActive ? <><CameraOff className="size-3.5" /> Matikan</> : <><Camera className="size-3.5" /> Nyalakan</>}
@@ -241,19 +241,19 @@ export function AlphabetCameraChecker({
         <video ref={videoRef} playsInline muted className={`h-full w-full -scale-x-100 object-cover ${cameraActive ? '' : 'invisible'}`}><track kind="captions" /></video>
         <canvas ref={canvasRef} className={`pointer-events-none absolute inset-0 h-full w-full -scale-x-100 ${cameraActive ? '' : 'invisible'}`} aria-hidden="true" />
         {!cameraActive && <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-white/70">{error ?? 'Aktifkan kamera untuk memeriksa gerakan huruf.'}</div>}
-        {cameraActive && phase === 'countdown' && <div className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-7xl font-black text-white" aria-live="polite">{countdown}</div>}
-        {cameraActive && phase === 'recording' && <div className="absolute left-4 top-4 rounded-full bg-signal-coral px-4 py-2 text-xs font-black text-white">● Merekam gerakan</div>}
+        {cameraActive && phase === 'countdown' && <div className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-7xl font-bold text-white" aria-live="polite">{countdown}</div>}
+        {cameraActive && phase === 'recording' && <div className="absolute left-4 top-4 rounded-full bg-signal-coral px-4 py-2 text-xs font-bold text-white">● Merekam gerakan</div>}
       </div>
       <div className="space-y-3 border-t border-signal-navy/10 p-4">
         <p className="text-xs text-muted-foreground" aria-live="polite">
           {referenceState === 'loading' ? 'Menyiapkan contoh huruf…' : referenceState === 'error' ? 'Landmark video contoh belum dapat dibaca. Muat ulang halaman dan coba lagi.' : cameraActive ? `${handCount === requiredHands ? (requiredHands === 2 ? 'Kedua tangan terdeteksi' : 'Satu tangan terdeteksi') : `Tunjukkan ${requiredHands === 2 ? 'kedua tangan' : 'satu tangan'} seperti video contoh`}. ${phase === 'recording' ? 'Pertahankan gerakan sampai perekaman selesai.' : ''}` : `Video kamera hanya diproses di perangkatmu. Contoh memakai ${requiredHands === 2 ? 'dua tangan' : 'satu tangan'}.`}
         </p>
         {result && <output className={`block border p-3 text-sm ${result.passed ? 'border-signal-teal bg-signal-teal-soft text-emerald-900' : 'border-signal-coral/25 bg-signal-coral/5 text-signal-navy'}`}>
-          <p className="font-black">{result.passed ? <><Check className="mr-1 inline size-4" /> Huruf {letter} sesuai</> : result.assessable ? 'Belum sesuai' : 'Belum bisa dinilai'}</p>
+          <p className="font-bold">{result.passed ? <><Check className="mr-1 inline size-4" /> Huruf {letter} sesuai</> : result.assessable ? 'Belum sesuai' : 'Belum bisa dinilai'}</p>
           <p className="mt-1">{result.feedback}</p>
           {result.assessable && <p className="mt-1 text-xs">Bentuk {result.shape} · Arah {result.orientation}{result.coordination !== null ? ` · Koordinasi ${result.coordination}` : ''}{result.movement !== null ? ` · Gerakan ${result.movement}` : ''}</p>}
         </output>}
-        <Button onClick={beginRecording} disabled={!cameraActive || referenceState !== 'ready' || phase === 'countdown' || phase === 'recording' || phase === 'scoring'} className="w-full rounded-full bg-signal-teal font-black text-signal-navy hover:bg-signal-teal/90">
+        <Button onClick={beginRecording} disabled={!cameraActive || referenceState !== 'ready' || phase === 'countdown' || phase === 'recording' || phase === 'scoring'} className="w-full rounded-full bg-signal-teal font-bold text-signal-navy hover:bg-signal-teal/90">
           {phase === 'result' ? <><RotateCcw className="mr-2 size-4" /> Coba lagi</> : phase === 'recording' ? 'Sedang merekam…' : phase === 'scoring' ? 'Memeriksa gerakan…' : 'Mulai peragaan (3 · 2 · 1)'}
         </Button>
       </div>

@@ -41,10 +41,10 @@ export function DailyQuestCard() {
               : `${total - completed} tanda`}
           </Badge>
         </div>
-        <p className="text-xs font-black uppercase tracking-[0.15em] text-signal-coral">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-signal-coral">
           Review berkala
         </p>
-        <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy">
+        <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-signal-navy">
           {isComplete
             ? 'Latihan hari ini sudah selesai'
             : `Ingat kembali ${total - completed} tanda`}
@@ -66,7 +66,7 @@ export function DailyQuestCard() {
         </Progress>
         <Link
           href="/review"
-          className="mt-6 flex w-full items-center justify-between border-t border-signal-navy/10 pt-5 text-left text-sm font-extrabold text-signal-navy transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-6 flex w-full items-center justify-between border-t border-signal-navy/10 pt-5 text-left text-sm font-bold text-signal-navy transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {isComplete ? 'Lihat jadwal review' : 'Mulai review'}
           <ArrowRight className="size-4" />

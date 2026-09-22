@@ -146,7 +146,7 @@ export function AlphabetMission({
         ) : !learning.unlocked ? (
           <section className="mt-6 rounded-[2rem] border border-amber-200/50 bg-white p-6 sm:p-8 shadow-xs">
             <LockKeyhole className="size-7 text-slate-500" />
-            <h2 className="mt-4 text-2xl font-black text-slate-900">Misi masih terkunci</h2>
+            <h2 className="mt-4 text-2xl font-bold text-slate-900">Misi masih terkunci</h2>
             <p className="mt-2 text-sm font-semibold text-slate-600">
               Selesaikan misi sebelumnya untuk membuka materi {mission.title}.
             </p>
@@ -166,13 +166,13 @@ export function AlphabetMission({
                   <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_350px] gap-8 items-center">
                     {/* Left: Mission Information */}
                     <div>
-                      <span className="inline-block rounded-full bg-[#FFAE00] px-4 py-1 text-xs font-black text-slate-950 shadow-2xs">
+                      <span className="inline-block rounded-full bg-[#FFAE00] px-4 py-1 text-xs font-bold text-slate-950 shadow-2xs">
                         Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number.replace(/^0/, '')}
                       </span>
-                      <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block mt-4">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block mt-4">
                         MISI AKTIF
                       </span>
-                      <h1 className="mt-1.5 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.1]">
+                      <h1 className="mt-1.5 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 leading-[1.1]">
                         Huruf {mission.title}
                       </h1>
                       <p className="mt-4 max-w-xl text-sm sm:text-base font-semibold text-slate-600 leading-relaxed">
@@ -200,19 +200,19 @@ export function AlphabetMission({
                 {(activeSection === 'recognition' || activeSection === 'recall') && (
                   <div>
                     <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                      <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
+                      <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-bold text-slate-900 shadow-2xs">
                         Bab {chapter.number.replace(/^0/, '')} • Misi {mission.number}
                       </span>
-                      <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-black text-[#E54D2E]">
+                      <span className="rounded-full border border-[#E54D2E] bg-white/70 px-4 py-1 text-xs font-bold text-[#E54D2E]">
                         Tahap Latihan
                       </span>
                       {replay ? (
-                        <Badge className="bg-[#FFAE00] text-slate-900 font-black rounded-full px-3 py-1">
+                        <Badge className="bg-[#FFAE00] text-slate-900 font-bold rounded-full px-3 py-1">
                           <RotateCcw className="size-3" /> Mode ulang misi
                         </Badge>
                       ) : null}
                     </div>
-                    <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+                    <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
                       Asah Kemampuanmu!
                     </h1>
                     <p className="mt-2 text-sm sm:text-base font-semibold text-slate-700">
@@ -757,18 +757,18 @@ function StageTirukan({
     <div>
       {/* Chapter / Mission Badge & Replay badge */}
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
-        <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-black text-slate-900 shadow-2xs">
+        <span className="inline-block rounded-full bg-[#00D5D1] px-4 py-1 text-xs font-bold text-slate-900 shadow-2xs">
           Bab {chapterNumber} • Misi {missionNumber}
         </span>
         {replay ? (
-          <Badge className="bg-[#FFAE00] text-slate-900 font-black rounded-full px-3 py-1">
+          <Badge className="bg-[#FFAE00] text-slate-900 font-bold rounded-full px-3 py-1">
             <RotateCcw className="size-3" /> Mode ulang misi
           </Badge>
         ) : null}
       </div>
 
       {/* Heading */}
-      <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+      <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
         Latih tanda “Huruf {selectedLetter}”
       </h1>
 
@@ -779,7 +779,7 @@ function StageTirukan({
           <span className="grid size-6 place-items-center rounded-full border-2 border-[#E54D2E]">
             <span className="size-2 rounded-full bg-[#E54D2E]" />
           </span>
-          <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">
+          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
             HURUF
           </span>
         </div>
@@ -820,7 +820,7 @@ function StageTirukan({
                   onClick={() => setSelectedLetter(letter)}
                   aria-current={active ? 'step' : undefined}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-black transition-all whitespace-nowrap cursor-pointer',
+                    'inline-flex items-center gap-1.5 rounded-full px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer',
                     active
                       ? 'border-2 border-[#00D5D1] bg-white text-slate-900 shadow-xs ring-2 ring-[#00D5D1]/30'
                       : 'border border-transparent bg-[#ECEFF3] text-slate-700 hover:bg-slate-200 hover:text-slate-900',
@@ -841,7 +841,7 @@ function StageTirukan({
               <button
                 type="button"
                 onClick={onFinish}
-                className="inline-block rounded-full border-2 border-[#FFAE00] bg-white px-5 py-1.5 text-xs sm:text-sm font-black text-[#E54D2E] shadow-2xs hover:bg-amber-50 hover:scale-105 active:scale-95 transition-all whitespace-nowrap cursor-pointer"
+                className="inline-block rounded-full border-2 border-[#FFAE00] bg-white px-5 py-1.5 text-xs sm:text-sm font-bold text-[#E54D2E] shadow-2xs hover:bg-amber-50 hover:scale-105 active:scale-95 transition-all whitespace-nowrap cursor-pointer"
               >
                 Latihan
               </button>
@@ -876,7 +876,7 @@ function StageTirukan({
         {/* Column 1: CONTOH TANDA */}
         <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
           <div>
-            <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
               CONTOH TANDA
             </span>
             <div className="mt-4 overflow-hidden rounded-2xl bg-black aspect-[4/3] relative">
@@ -895,10 +895,10 @@ function StageTirukan({
           </div>
 
           <div className="mt-6 border-t border-slate-100 pt-5">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-900 block">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 block">
               AMATI SECARA MENYELURUH
             </span>
-            <ul className="mt-3.5 space-y-2.5 text-xs sm:text-sm font-black text-slate-800">
+            <ul className="mt-3.5 space-y-2.5 text-xs sm:text-sm font-bold text-slate-800">
               <li className="flex items-center gap-2.5">
                 <span className="size-2 rounded-full bg-[#00D5D1] shrink-0" />
                 <span>Bentuk tangan</span>
@@ -923,7 +923,7 @@ function StageTirukan({
         <section className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
                 KAMERA LATIHAN
               </span>
               {cameraActive && (
@@ -962,7 +962,7 @@ function StageTirukan({
                     <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
                       <Camera className="size-8" />
                     </span>
-                    <h2 className="mt-5 text-2xl sm:text-3xl font-black text-white">
+                    <h2 className="mt-5 text-2xl sm:text-3xl font-bold text-white">
                       Siapkan kamera latihan
                     </h2>
                     <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
@@ -976,7 +976,7 @@ function StageTirukan({
                         void startCamera();
                       }}
                       disabled={loadingCamera}
-                      className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-black text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+                      className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-bold text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
                     >
                       {loadingCamera ? (
                         <LoaderCircle className="size-4 animate-spin" />
@@ -998,7 +998,7 @@ function StageTirukan({
                 <div className="absolute inset-x-3 top-3 flex items-start sm:inset-x-4 sm:top-4">
                   <span
                     className={cn(
-                      'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-extrabold leading-4 backdrop-blur-sm',
+                      'max-w-full whitespace-normal break-words rounded-full px-3 py-2 text-center text-xs font-bold leading-4 backdrop-blur-sm',
                       handCount > 0
                         ? 'bg-emerald-500 text-white'
                         : 'bg-black/45 text-white',
@@ -1017,7 +1017,7 @@ function StageTirukan({
               {cameraActive && phase === 'countdown' && (
                 <div className="absolute inset-0 grid place-items-center bg-slate-950/40 backdrop-blur-sm">
                   <output className="text-center" aria-live="polite">
-                    <span className="mx-auto grid size-24 place-items-center rounded-full bg-[#FFAE00] text-5xl font-black text-slate-900">
+                    <span className="mx-auto grid size-24 place-items-center rounded-full bg-[#FFAE00] text-5xl font-bold text-slate-900">
                       {countdown}
                     </span>
                     <p className="mt-4 text-sm font-bold text-white">
@@ -1034,7 +1034,7 @@ function StageTirukan({
               {cameraActive && phase === 'recording' && (
                 <>
                   <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <span className="rounded-full bg-[#F8A51D] px-6 py-3 text-2xl font-black text-slate-900 shadow-lg">
+                    <span className="rounded-full bg-[#F8A51D] px-6 py-3 text-2xl font-bold text-slate-900 shadow-lg">
                       Mulai!
                     </span>
                   </div>
@@ -1064,7 +1064,7 @@ function StageTirukan({
           {/* Unified Bottom Control Bar matching rest of white cards */}
           <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between text-slate-900">
             <div aria-live="polite">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
                 STATUS KAMERA
               </span>
               <p className="mt-0.5 text-xs sm:text-sm font-bold text-slate-900">
@@ -1089,7 +1089,7 @@ function StageTirukan({
                     type="button"
                     onClick={beginRecording}
                     disabled={referenceState !== 'ready'}
-                    className="rounded-full bg-[#F8A51D] px-5 py-2 font-black text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
+                    className="rounded-full bg-[#F8A51D] px-5 py-2 font-bold text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
                   >
                     <Play className="size-4 fill-current" /> Mulai latihan
                   </Button>
@@ -1131,10 +1131,10 @@ function StageTirukan({
           <aside className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
             <div>
               <div className="mb-5">
-                <p className="text-xs font-black uppercase tracking-[0.13em] text-[#E54D2E]">
+                <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#E54D2E]">
                   HASIL LATIHAN
                 </p>
-                <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
                   {result.passed
                     ? 'Gerakan sesuai!'
                     : result.assessable
@@ -1164,7 +1164,7 @@ function StageTirukan({
 
               {result.passed && (
                 <div className="mt-5 border border-emerald-500 bg-emerald-50 p-4 rounded-2xl">
-                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-emerald-800">
+                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-800">
                     <Check className="size-4" strokeWidth={3} />{' '}
                     {allPracticed
                       ? 'Tahap Tirukan selesai'
@@ -1185,7 +1185,7 @@ function StageTirukan({
                   <Button
                     type="button"
                     onClick={onFinish}
-                    className="h-11 w-full rounded-full bg-[#F8A51D] font-black text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer"
+                    className="h-11 w-full rounded-full bg-[#F8A51D] font-bold text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer"
                   >
                     Lanjut ke Uji pengenalan <ArrowRight className="size-4 ml-1" />
                   </Button>
@@ -1201,7 +1201,7 @@ function StageTirukan({
                         retryPractice();
                       }
                     }}
-                    className="h-11 w-full rounded-full bg-[#F8A51D] font-black text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer"
+                    className="h-11 w-full rounded-full bg-[#F8A51D] font-bold text-slate-900 hover:bg-[#E59312] shadow-xs cursor-pointer"
                   >
                     Huruf berikutnya <ArrowRight className="size-4 ml-1" />
                   </Button>
@@ -1211,7 +1211,7 @@ function StageTirukan({
                 variant={result.passed ? 'outline' : 'default'}
                 onClick={retryPractice}
                 className={cn(
-                  'h-11 w-full rounded-full font-black cursor-pointer',
+                  'h-11 w-full rounded-full font-bold cursor-pointer',
                   result.passed
                     ? 'border-slate-300 text-slate-800 hover:bg-slate-50'
                     : 'bg-[#F8A51D] text-slate-900 hover:bg-[#E59312] shadow-xs',
@@ -1226,10 +1226,10 @@ function StageTirukan({
             <div>
               <div className="mb-7 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#E54D2E]">
                     KALIBRASI
                   </p>
-                  <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                  <h2 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                     Sebelum berlatih
                   </h2>
                 </div>
@@ -1254,7 +1254,7 @@ function StageTirukan({
                     )}
                   </span>
                   <div>
-                    <span className="block text-sm font-black text-slate-900">
+                    <span className="block text-sm font-bold text-slate-900">
                       Kamera aktif
                     </span>
                     <span className="text-xs font-semibold text-slate-500">
@@ -1280,7 +1280,7 @@ function StageTirukan({
                     )}
                   </span>
                   <div>
-                    <span className="block text-sm font-black text-slate-900">
+                    <span className="block text-sm font-bold text-slate-900">
                       Pencahayaan
                     </span>
                     <span className="text-xs font-semibold text-slate-500">
@@ -1306,7 +1306,7 @@ function StageTirukan({
                     )}
                   </span>
                   <div>
-                    <span className="block text-sm font-black text-slate-900">
+                    <span className="block text-sm font-bold text-slate-900">
                       Tangan terlihat
                     </span>
                     <span className="text-xs font-semibold text-slate-500">
@@ -1406,7 +1406,7 @@ function StageRecognition({
         <div className="max-w-2xl mx-auto py-4">
           <span
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-black uppercase tracking-wider',
+              'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-wider',
               passed
                 ? 'bg-emerald-100 text-emerald-800'
                 : 'bg-[#FFF0ED] text-[#E54D2E]',
@@ -1415,7 +1415,7 @@ function StageRecognition({
             {passed ? 'Lulus' : 'Perlu diulang'}
           </span>
 
-          <h2 className="mt-4 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">
+          <h2 className="mt-4 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
             {correctCount} dari {questions.length} jawaban benar
           </h2>
 
@@ -1433,7 +1433,7 @@ function StageRecognition({
                 <div
                   key={i}
                   className={cn(
-                    'inline-flex min-w-[68px] sm:min-w-[76px] items-center justify-center rounded-full border-2 px-5 sm:px-6 py-2 text-sm font-black shadow-2xs',
+                    'inline-flex min-w-[68px] sm:min-w-[76px] items-center justify-center rounded-full border-2 px-5 sm:px-6 py-2 text-sm font-bold shadow-2xs',
                     isCorrect
                       ? 'border-[#00BDCD] bg-white text-slate-900'
                       : 'border-[#E54D2E] bg-[#FFF0ED] text-[#E54D2E]',
@@ -1448,7 +1448,7 @@ function StageRecognition({
           {/* Missed answers list if any */}
           {missed.length > 0 && (
             <div className="mt-6 w-full rounded-2xl border border-amber-200/60 bg-[#FFFDF5] p-4 sm:p-5">
-              <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#E54D2E]">
                 Huruf yang perlu diperkuat :
               </p>
               <ul className="mt-2.5 space-y-2 text-xs sm:text-sm">
@@ -1478,7 +1478,7 @@ function StageRecognition({
             <button
               type="button"
               onClick={handleRetry}
-              className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-6 sm:px-7 py-3 sm:py-3.5 text-sm sm:text-base font-black text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-6 sm:px-7 py-3 sm:py-3.5 text-sm sm:text-base font-bold text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
             >
               <RotateCcw className="size-4 stroke-[2.5]" />
               <span>Coba lagi</span>
@@ -1488,7 +1488,7 @@ function StageRecognition({
               <button
                 type="button"
                 onClick={onPass}
-                className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-black text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-full bg-[#FFAE00] px-7 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-bold text-slate-950 shadow-xs transition-transform hover:bg-[#ff9f00] hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <span>Lanjut ke Uji peragaan</span>
                 <ArrowRight className="size-4 stroke-[2.5]" />
@@ -1523,10 +1523,10 @@ function StageRecognition({
 
       {/* Question Heading matching Image 2 */}
       <div>
-        <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
           PERHATIKAN TANDA
         </span>
-        <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+        <h2 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
           Apa arti tanda dalam video ini?
         </h2>
       </div>
@@ -1556,7 +1556,7 @@ function StageRecognition({
         {/* Right: Choices & Submit */}
         <div className="flex flex-col justify-between h-full pt-1">
           <div>
-            <span className="text-xs font-black uppercase tracking-wider text-slate-900 block mb-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 block mb-4">
               PILIH SATU JAWABAN
             </span>
             <div className="space-y-3" role="radiogroup">
@@ -1596,13 +1596,13 @@ function StageRecognition({
                   >
                     <span
                       className={cn(
-                        'grid size-8 sm:size-9 shrink-0 place-items-center rounded-full border text-xs sm:text-sm font-black transition-colors',
+                        'grid size-8 sm:size-9 shrink-0 place-items-center rounded-full border text-xs sm:text-sm font-bold transition-colors',
                         circleStyle,
                       )}
                     >
                       {String.fromCharCode(65 + optionIndex)}
                     </span>
-                    <span className="text-sm sm:text-base font-black text-slate-900">
+                    <span className="text-sm sm:text-base font-bold text-slate-900">
                       Huruf {option}
                     </span>
                   </button>
@@ -1646,7 +1646,7 @@ function StageRecognition({
                 disabled={selectedOption === null}
                 onClick={handleSubmitAnswer}
                 className={cn(
-                  'w-full rounded-2xl py-4 text-sm font-black transition-all flex items-center justify-center gap-2 select-none shadow-xs',
+                  'w-full rounded-2xl py-4 text-sm font-bold transition-all flex items-center justify-center gap-2 select-none shadow-xs',
                   selectedOption !== null
                     ? 'bg-slate-700 sm:bg-slate-800 hover:bg-slate-900 text-white cursor-pointer'
                     : 'bg-[#94A3B8] text-white cursor-not-allowed opacity-90',
@@ -1659,7 +1659,7 @@ function StageRecognition({
               <button
                 type="button"
                 onClick={handleNextQuestion}
-                className="w-full rounded-2xl bg-slate-900 hover:bg-slate-800 py-4 text-sm font-black text-white cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-2"
+                className="w-full rounded-2xl bg-slate-900 hover:bg-slate-800 py-4 text-sm font-bold text-white cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-2"
               >
                 <span>
                   {currentIndex + 1 < questions.length
@@ -1945,7 +1945,7 @@ function StageRecall({
           <Check className="size-8 stroke-[2.5]" />
         </div>
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
             Uji Peragaan Selesai!
           </h2>
           <p className="mt-3 text-sm font-medium text-slate-600 leading-relaxed">
@@ -1956,7 +1956,7 @@ function StageRecall({
           <Button
             variant="outline"
             onClick={onRestart}
-            className="rounded-full font-black border-slate-300 text-slate-800 hover:bg-slate-100 cursor-pointer w-full sm:w-auto"
+            className="rounded-full font-bold border-slate-300 text-slate-800 hover:bg-slate-100 cursor-pointer w-full sm:w-auto"
           >
             <RotateCcw className="size-4 mr-2" /> Ulangi dari awal
           </Button>
@@ -1965,7 +1965,7 @@ function StageRecall({
               href={nextMission.href}
               className={cn(
                 buttonVariants(),
-                'rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs w-full sm:w-auto',
+                'rounded-full bg-[#00D5D1] font-bold text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs w-full sm:w-auto',
               )}
             >
               Lanjut ke: {nextMission.title} <ArrowRight className="size-4 ml-2" />
@@ -1975,7 +1975,7 @@ function StageRecall({
               href="/missions"
               className={cn(
                 buttonVariants(),
-                'rounded-full bg-[#00D5D1] font-black text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs w-full sm:w-auto',
+                'rounded-full bg-[#00D5D1] font-bold text-slate-900 hover:bg-[#00c2be] px-8 shadow-xs w-full sm:w-auto',
               )}
             >
               Kembali ke perjalanan <ArrowRight className="size-4 ml-2" />
@@ -2010,10 +2010,10 @@ function StageRecall({
       {/* Heading matching Image 3 */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
             TIRUKAN TANDA
           </span>
-          <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+          <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">
             Tunjukkan isyarat untuk kata: <span className="text-slate-900">Huruf {currentLetter}</span>
           </h2>
         </div>
@@ -2050,7 +2050,7 @@ function StageRecall({
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white shadow-xs">
                   <Camera className="size-7" />
                 </div>
-                <h3 className="mt-4 text-xl sm:text-2xl font-black text-white">
+                <h3 className="mt-4 text-xl sm:text-2xl font-bold text-white">
                   Siapkan kamera latihan
                 </h3>
                 <p className="mt-2 max-w-sm text-xs font-medium text-slate-300 leading-relaxed">
@@ -2060,7 +2060,7 @@ function StageRecall({
                   type="button"
                   onClick={() => { void startCamera(); }}
                   disabled={loadingCamera}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-7 py-3 text-xs sm:text-sm font-black text-slate-900 hover:bg-[#E59312] shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-7 py-3 text-xs sm:text-sm font-bold text-slate-900 hover:bg-[#E59312] shadow-sm transition-all cursor-pointer disabled:opacity-50"
                 >
                   {loadingCamera ? (
                     <>
@@ -2083,14 +2083,14 @@ function StageRecall({
                 {/* Overlays */}
                 {phase === 'countdown' && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-7xl font-black text-white backdrop-blur-2xs"
+                    className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-7xl font-bold text-white backdrop-blur-2xs"
                     aria-live="polite"
                   >
                     {countdown}
                   </div>
                 )}
                 {phase === 'recording' && (
-                  <div className="absolute left-4 top-4 rounded-full bg-[#E54D2E] px-4 py-1.5 text-xs font-black text-white flex items-center gap-2 shadow-sm">
+                  <div className="absolute left-4 top-4 rounded-full bg-[#E54D2E] px-4 py-1.5 text-xs font-bold text-white flex items-center gap-2 shadow-sm">
                     <span className="size-2 rounded-full bg-white animate-ping" />
                     Merekam gerakan
                   </div>
@@ -2108,7 +2108,7 @@ function StageRecall({
           {/* Unified Bottom Dark Status & Control Bar */}
           <div className="flex flex-col gap-3 border-t border-slate-800 bg-[#0F172A] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
                 STATUS KAMERA
               </span>
               <p className="mt-0.5 text-xs sm:text-sm font-bold text-white">
@@ -2134,7 +2134,7 @@ function StageRecall({
                       type="button"
                       onClick={beginPractice}
                       disabled={referenceState !== 'ready'}
-                      className="rounded-full bg-[#F8A51D] px-5 py-2 text-xs font-black text-slate-900 hover:bg-[#E59312] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="rounded-full bg-[#F8A51D] px-5 py-2 text-xs font-bold text-slate-900 hover:bg-[#E59312] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       <Play className="size-3.5 fill-current" />
                       {phase === 'result' ? 'Uji lagi' : 'Mulai uji'}
@@ -2188,7 +2188,7 @@ function StageRecall({
                 )}
               </div>
               {result.passed && (
-                <span className="rounded-full bg-emerald-200 text-emerald-900 px-3 py-1 text-xs font-black">
+                <span className="rounded-full bg-emerald-200 text-emerald-900 px-3 py-1 text-xs font-bold">
                   Lulus
                 </span>
               )}
@@ -2201,10 +2201,10 @@ function StageRecall({
           <div>
             <div className="mb-7 flex items-center justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-wider text-[#E54D2E]">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#E54D2E]">
                   KALIBRASI
                 </p>
-                <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                <h2 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                   Sebelum berlatih
                 </h2>
               </div>
@@ -2229,7 +2229,7 @@ function StageRecall({
                   )}
                 </span>
                 <div>
-                  <span className="block text-sm font-black text-slate-900">
+                  <span className="block text-sm font-bold text-slate-900">
                     Kamera aktif
                   </span>
                   <span className="text-xs font-semibold text-slate-500">
@@ -2255,7 +2255,7 @@ function StageRecall({
                   )}
                 </span>
                 <div>
-                  <span className="block text-sm font-black text-slate-900">
+                  <span className="block text-sm font-bold text-slate-900">
                     Pencahayaan
                   </span>
                   <span className="text-xs font-semibold text-slate-500">
@@ -2281,7 +2281,7 @@ function StageRecall({
                   )}
                 </span>
                 <div>
-                  <span className="block text-sm font-black text-slate-900">
+                  <span className="block text-sm font-bold text-slate-900">
                     Tangan terlihat
                   </span>
                   <span className="text-xs font-semibold text-slate-500">
@@ -2324,7 +2324,7 @@ function StageRecall({
                   setShowHint(false);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-black transition-all cursor-pointer',
+                  'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all cursor-pointer',
                   isCurrent
                     ? 'border-2 border-slate-900 bg-slate-900 text-white shadow-xs'
                     : isPassed
@@ -2352,7 +2352,7 @@ function StageRecall({
             onClick={handleNextLetter}
             disabled={!isPassedCurrent}
             className={cn(
-              'rounded-full px-7 py-3 text-sm font-black transition-all shadow-xs flex items-center gap-2 cursor-pointer',
+              'rounded-full px-7 py-3 text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer',
               isPassedCurrent
                 ? 'bg-[#00D5D1] text-slate-900 hover:bg-[#00c2be]'
                 : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75',
@@ -2413,7 +2413,7 @@ function AlphabetGate({
         <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-100 text-amber-900">
           <LockKeyhole className="size-7" />
         </span>
-        <h2 className="mt-5 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        <h2 className="mt-5 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
           {title}
         </h2>
         <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
@@ -2422,7 +2422,7 @@ function AlphabetGate({
         <Link
           href={href}
           onClick={onAction}
-          className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-sm font-black text-white hover:bg-slate-800 transition-all shadow-sm"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-sm"
         >
           {action} <ArrowRight className="size-4" />
         </Link>

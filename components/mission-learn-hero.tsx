@@ -140,10 +140,10 @@ export function MissionHeroProgressCard({
 
   return (
     <div className="relative z-10 w-full max-w-xs rounded-3xl border border-white/70 bg-white/85 p-6 shadow-lg backdrop-blur-md">
-      <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
         PROGRES MISI
       </p>
-      <p className="mt-1 text-4xl sm:text-5xl font-black tracking-tight text-slate-900">
+      <p className="mt-1 text-4xl sm:text-5xl font-bold tracking-tight text-slate-900">
         {state.progressPercent}%
       </p>
       <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-slate-200/90">
@@ -154,7 +154,7 @@ export function MissionHeroProgressCard({
       </div>
       <Link
         href={actionHref}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#FFAE00] px-5 py-3.5 text-sm font-black text-slate-950 shadow-xs transition-colors hover:bg-[#ff9f00] cursor-pointer"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#FFAE00] px-5 py-3.5 text-sm font-bold text-slate-950 shadow-xs transition-colors hover:bg-[#ff9f00] cursor-pointer"
       >
         {actionLabel} <ArrowRight className="size-4" />
       </Link>

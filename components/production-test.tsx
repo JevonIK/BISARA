@@ -59,7 +59,7 @@ export function ProductionTest({
           <Check className="size-8 stroke-[2.5]" />
         </div>
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
             Uji Peragaan Selesai!
           </h2>
           <p className="mt-3 text-sm font-medium text-slate-600 leading-relaxed">
@@ -119,10 +119,10 @@ export function ProductionTest({
         {/* Question Heading matching reference */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-black uppercase tracking-wider text-[#E54D2E] block">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
               TIRUKAN TANDA
             </span>
-            <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+            <h2 className="mt-1 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">
               Tunjukkan isyarat untuk kata: <span className="text-slate-900">{sign.label}</span>
             </h2>
           </div>
@@ -186,7 +186,7 @@ export function ProductionTest({
                 <Check className="size-5 stroke-[3]" />
               </div>
               <p className="text-sm font-bold text-emerald-950">
-                Hebat! Tanda <span className="font-black underline">{sign.label}</span> lulus uji tanpa contoh.
+                Hebat! Tanda <span className="font-bold underline">{sign.label}</span> lulus uji tanpa contoh.
               </p>
             </div>
             <Button

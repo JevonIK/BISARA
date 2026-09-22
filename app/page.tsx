@@ -122,7 +122,7 @@ export default function Home() {
                     <Hand className="size-6 text-[#F8A51D]" strokeWidth={2.4} />
                   </div>
                   <div>
-                    <p className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                    <p className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                       Selamat datang kembali,{' '}
                       <span className="text-[#E54D2E]">{welcomeAlert}</span>.
                     </p>
@@ -148,12 +148,12 @@ export default function Home() {
         <section className="relative overflow-hidden rounded-[2.5rem] border-b-[10px] border-[#FED96A] bg-white p-6 shadow-sm sm:rounded-[3.5rem] sm:p-10 lg:p-12">
           <div className="mb-2 flex items-center gap-2">
             <span className="size-2.5 rounded-full bg-[#E54D2E]" />
-            <span className="text-xs font-black tracking-wide text-slate-900 sm:text-sm">
+            <span className="text-xs font-bold tracking-wide text-slate-900 sm:text-sm">
               Selamat datang kembali{account.user?.displayName ? `, ${account.user.displayName}` : ''}
             </span>
           </div>
 
-          <h1 className="max-w-2xl text-3xl font-black leading-[1.08] tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+          <h1 className="max-w-2xl text-3xl font-bold leading-[1.08] tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
             Lanjutkan langkahmu untuk berkomunikasi.
           </h1>
 
@@ -162,13 +162,13 @@ export default function Home() {
             <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[#FCE5B5] bg-[#FFF8EA] p-6 shadow-2xs sm:p-8">
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
                 <div>
-                  <span className="inline-block rounded-full bg-[#F8A51D] px-3.5 py-1 text-[11px] font-black tracking-wide text-white shadow-2xs">
+                  <span className="inline-block rounded-full bg-[#F8A51D] px-3.5 py-1 text-[11px] font-bold tracking-wide text-white shadow-2xs">
                     Misi aktif • Bab {currentChapter.number}
                   </span>
-                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-900">
+                  <p className="mt-4 text-xs font-bold uppercase tracking-widest text-slate-900">
                     MISI {currentMission.number}
                   </p>
-                  <h2 className="mt-1 text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-3xl">
+                  <h2 className="mt-1 text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl">
                     {currentMission.title}
                   </h2>
                   <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
@@ -178,7 +178,7 @@ export default function Home() {
                   <div className="mt-6">
                     <Link
                       href={getMissionActiveStageHref(currentMission, progress)}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-6 py-3 text-sm font-black text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-6 py-3 text-sm font-bold text-slate-900 shadow-sm transition-transform hover:bg-[#E59312] hover:scale-105 active:scale-95"
                     >
                       <Play className="size-4 fill-slate-900" />
                       Lanjutkan latihan
@@ -210,7 +210,7 @@ export default function Home() {
                   <p className="text-xs font-bold text-slate-500">
                     Misi selesai
                   </p>
-                  <p className="text-3xl font-black text-slate-900">
+                  <p className="text-3xl font-bold text-slate-900">
                     {completedMissions}
                   </p>
                 </div>
@@ -224,7 +224,7 @@ export default function Home() {
                   <p className="text-xs font-bold text-slate-500">
                     Tanda dikuasai
                   </p>
-                  <p className="text-3xl font-black text-slate-900">
+                  <p className="text-3xl font-bold text-slate-900">
                     {progress.masteredSigns}
                   </p>
                 </div>
@@ -238,7 +238,7 @@ export default function Home() {
                   <p className="text-xs font-bold text-slate-500">
                     Lencana
                   </p>
-                  <p className="text-3xl font-black text-slate-900">
+                  <p className="text-3xl font-bold text-slate-900">
                     {badgeCount}
                   </p>
                 </div>
@@ -258,10 +258,10 @@ export default function Home() {
               />
               <Headphones className="size-8 text-[#1B2023]" />
               <div className="mt-12">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#1B2023]/70">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1B2023]/70">
                   CARA BELAJAR BISARA
                 </p>
-                <h2 className="mt-3 max-w-lg text-2xl font-black leading-tight tracking-tight text-[#1B2023] sm:text-3xl">
+                <h2 className="mt-3 max-w-lg text-2xl font-bold leading-tight tracking-tight text-[#1B2023] sm:text-3xl">
                   Bukan hanya tahu. Kamu berlatih sampai siap merespons.
                 </h2>
               </div>
@@ -269,11 +269,11 @@ export default function Home() {
 
             <div className="flex flex-col justify-between px-7 py-5 sm:px-9 md:py-7">
               <div className="flex items-center gap-4 py-3">
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#FF7D47] text-xl font-black text-[#1B2023]">
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#FF7D47] text-xl font-bold text-[#1B2023]">
                   ✓
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-[#1B2023]">Kenali</h3>
+                  <h3 className="text-lg font-bold text-[#1B2023]">Kenali</h3>
                   <p className="mt-1 text-sm text-slate-600">
                     Pahami bentuk, konteks, dan arti tanda.
                   </p>
@@ -287,7 +287,7 @@ export default function Home() {
                   <Hand className="size-5" />
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-[#1B2023]">Tirukan</h3>
+                  <h3 className="text-lg font-bold text-[#1B2023]">Tirukan</h3>
                   <p className="mt-1 text-sm text-slate-600">
                     Tirukan dengan bantuan contoh dan umpan balik.
                   </p>
@@ -301,7 +301,7 @@ export default function Home() {
                   <MessageSquare className="size-5" />
                 </span>
                 <div>
-                  <h3 className="text-lg font-black text-[#1B2023]">Latihan</h3>
+                  <h3 className="text-lg font-bold text-[#1B2023]">Latihan</h3>
                   <p className="mt-1 text-sm text-slate-600">
                     Gunakan tanpa petunjuk di dalam skenario.
                   </p>
@@ -314,10 +314,10 @@ export default function Home() {
         {/* Perjalanan Belajarmu Section */}
         <section className="mt-12 sm:mt-14">
           <div className="mb-6">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-slate-800">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-800">
               <BookOpen className="size-4" /> Perjalanan Belajarmu
             </p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               Lima bab, satu tujuan nyata.
             </h2>
           </div>

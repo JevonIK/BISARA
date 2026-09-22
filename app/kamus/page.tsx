@@ -159,7 +159,7 @@ export default function KamusPage() {
           >
             {/* Yellow Header with Circular Letter Badge */}
             <div className="bg-[#FFCF52] px-6 py-3.5 sm:px-8 sm:py-4 flex items-center">
-              <div className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-[#FFAE00] text-slate-950 font-black text-xs sm:text-sm shadow-xs">
+              <div className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-[#FFAE00] text-slate-950 font-bold text-xs sm:text-sm shadow-xs">
                 {letter}
               </div>
             </div>
@@ -193,7 +193,7 @@ export default function KamusPage() {
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="mt-4 rounded-full bg-[#FFAE00] px-6 py-2 text-xs font-black text-slate-950 shadow-xs hover:bg-[#F2A300]"
+              className="mt-4 rounded-full bg-[#FFAE00] px-6 py-2 text-xs font-bold text-slate-950 shadow-xs hover:bg-[#F2A300]"
             >
               Reset Pencarian
             </button>

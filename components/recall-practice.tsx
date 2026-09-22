@@ -49,7 +49,7 @@ export function RecallPractice({
     return (
       <section className="border border-signal-teal bg-signal-teal-soft p-6 sm:p-9">
         <Check className="size-9 text-emerald-700" />
-        <h2 className="mt-4 text-3xl font-black text-signal-navy">
+        <h2 className="mt-4 text-3xl font-bold text-signal-navy">
           Latihan mengingat selesai
         </h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -59,7 +59,7 @@ export function RecallPractice({
         <ul className="mt-6 divide-y divide-signal-navy/10">
           {results.map(({ id, outcome, due }) => (
             <li key={id} className="flex flex-wrap justify-between gap-2 py-4">
-              <span className="font-black text-signal-navy">
+              <span className="font-bold text-signal-navy">
                 {getSign(id).label}
               </span>
               <span className="text-sm text-muted-foreground">
@@ -123,10 +123,10 @@ export function RecallPractice({
       </div>
       <div className="grid lg:grid-cols-2">
         <div className="bg-signal-navy p-6 text-white sm:p-9">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-signal-teal">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-signal-teal">
             Peragakan dari ingatan
           </p>
-          <h2 className="mt-4 text-4xl font-black sm:text-5xl">{sign.label}</h2>
+          <h2 className="mt-4 text-4xl font-bold sm:text-5xl">{sign.label}</h2>
           {phase === 'prompt' ? (
             <div className="mt-8 grid min-h-64 place-items-center rounded-2xl border border-dashed border-white/25 p-6 text-center">
               <div>
@@ -180,7 +180,7 @@ export function RecallPractice({
           {phase === 'prompt' ? (
             <>
               <Hand className="size-8 text-emerald-700" />
-              <h3 className="mt-4 text-2xl font-black">
+              <h3 className="mt-4 text-2xl font-bold">
                 Masih ingat gerakannya?
               </h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -214,7 +214,7 @@ export function RecallPractice({
             </>
           ) : phase === 'compare' ? (
             <>
-              <h3 className="text-2xl font-black">
+              <h3 className="text-2xl font-bold">
                 Bandingkan dengan gerakanmu
               </h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -253,7 +253,7 @@ export function RecallPractice({
           ) : (
             <div aria-live="polite">
               <Check className="size-8 text-emerald-700" />
-              <h3 className="mt-4 text-2xl font-black">
+              <h3 className="mt-4 text-2xl font-bold">
                 {outcomeLabels[results.at(-1)!.outcome]}
               </h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">

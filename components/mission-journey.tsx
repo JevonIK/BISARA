@@ -38,10 +38,10 @@ export function MissionJourney() {
     <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8 lg:py-12">
       <header className="grid gap-8 border-b border-signal-navy/10 pb-10 lg:grid-cols-[1fr_370px] lg:items-end">
         <div>
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
             <Map className="size-4" /> Perjalanan belajar
           </p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[1.08] tracking-[-0.05em] text-signal-navy sm:text-5xl">
+          <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-[1.08] tracking-[-0.05em] text-signal-navy sm:text-5xl">
             Setiap misi membawamu lebih dekat ke percakapan nyata.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">
@@ -54,10 +54,10 @@ export function MissionJourney() {
         <aside className="border-l-4 border-signal-teal bg-card p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.13em] text-emerald-700">
+              <p className="text-xs font-bold uppercase tracking-[0.13em] text-emerald-700">
                 Progres keseluruhan
               </p>
-              <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-signal-navy">
+              <p className="mt-1 text-3xl font-bold tracking-[-0.04em] text-signal-navy">
                 {overallProgress}%
               </p>
             </div>
@@ -112,7 +112,7 @@ export function MissionJourney() {
               <header className="lg:sticky lg:top-6 lg:self-start">
                 <div
                   className={cn(
-                    'mb-5 grid size-16 place-items-center rounded-full text-xl font-black',
+                    'mb-5 grid size-16 place-items-center rounded-full text-xl font-bold',
                     chapterUnlocked
                       ? 'bg-signal-teal text-signal-navy'
                       : 'bg-muted text-muted-foreground',
@@ -124,12 +124,12 @@ export function MissionJourney() {
                     chapter.number
                   )}
                 </div>
-                <p className="text-[11px] font-black uppercase tracking-[0.15em] text-emerald-700">
+                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700">
                   Bab {chapter.number} · {chapter.eyebrow}
                 </p>
                 <h2
                   id={`${chapter.id}-title`}
-                  className="mt-2 text-2xl font-black tracking-[-0.035em] text-signal-navy"
+                  className="mt-2 text-2xl font-bold tracking-[-0.035em] text-signal-navy"
                 >
                   {chapter.title}
                 </h2>
@@ -193,7 +193,7 @@ function MissionRow({ mission }: { mission: Mission }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
             Misi {mission.number}
           </span>
           {mission.type === 'checkpoint' ? (
@@ -205,17 +205,17 @@ function MissionRow({ mission }: { mission: Mission }) {
             </Badge>
           ) : null}
           {mission.status === 'available' ? (
-            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-700">Tersedia</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700">Tersedia</span>
           ) : null}
         </span>
-        <span className="mt-1 block text-base font-black text-signal-navy">
+        <span className="mt-1 block text-base font-bold text-signal-navy">
           {mission.title}
         </span>
         <span className="mt-1 block text-sm leading-5 text-muted-foreground">
           {mission.description}
         </span>
         {replay ? (
-          <span className="mt-2 flex items-center gap-1 text-xs font-black text-emerald-700 sm:hidden">
+          <span className="mt-2 flex items-center gap-1 text-xs font-bold text-emerald-700 sm:hidden">
             <Play className="size-3" fill="currentColor" /> Ulangi misi
           </span>
         ) : null}
@@ -226,7 +226,7 @@ function MissionRow({ mission }: { mission: Mission }) {
           {mission.duration} menit
         </span>
         {replay ? (
-          <span className="mt-2 inline-flex items-center gap-1 text-xs font-black text-emerald-700">
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
             <Play className="size-3" fill="currentColor" /> Ulangi misi
           </span>
         ) : null}
