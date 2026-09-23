@@ -184,6 +184,7 @@ export function CameraPractice({
     useRef<GestureFrame['poseLandmarks']>(undefined);
   const lastBrightnessCheckRef = useRef(0);
   const mountedRef = useRef(true);
+  const mobileControlsRef = useRef<HTMLDivElement>(null);
 
   // Scoring refs
   const referenceFramesRef = useRef<GestureFrame[]>([]);
@@ -953,6 +954,19 @@ export function CameraPractice({
     (id) => userProgress.signMastery[id].passed,
   );
 
+  useEffect(() => {
+    if (!isReady || window.matchMedia('(min-width: 640px)').matches) return;
+    const frame = requestAnimationFrame(() => {
+      mobileControlsRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+        block: 'center',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isReady]);
+
   const calibrationChecks = [
     {
       label: 'Kamera aktif',
@@ -1057,7 +1071,7 @@ export function CameraPractice({
     >
       {exampleCard}
 
-      <section className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+      <section className="min-w-0 flex flex-col justify-between rounded-[2rem] bg-white p-4 sm:p-7 shadow-xs border border-amber-200/50">
         <div>
           <div className="mb-4 flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
@@ -1071,7 +1085,7 @@ export function CameraPractice({
             )}
           </div>
 
-          <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-950 sm:min-h-[360px] shadow-inner">
+          <div className="relative min-h-[360px] overflow-hidden rounded-2xl bg-slate-950 shadow-inner sm:aspect-video">
             <video
               ref={videoRef}
               className={cn(
@@ -1098,16 +1112,16 @@ export function CameraPractice({
             />
 
             {showSetup && (
-              <div className="absolute inset-0 grid place-items-center p-6 text-center">
-                <div className="max-w-md">
-                  <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
+              <div className="absolute inset-0 grid place-items-center p-4 text-center sm:p-6">
+                <div className="w-full max-w-md">
+                  <span className="mx-auto grid size-14 place-items-center rounded-full border border-white/10 bg-white/5 text-white sm:size-20">
                     {status === 'denied' || status === 'unavailable' ? (
                        <CameraOff className="size-8" />
                     ) : (
                       <Camera className="size-8" />
                     )}
                   </span>
-                  <h2 className="mt-5 text-2xl sm:text-3xl font-bold text-white">
+                  <h2 className="mt-3 text-xl font-bold text-white sm:mt-5 sm:text-3xl">
                     Siapkan kamera latihan
                   </h2>
                   <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
@@ -1119,7 +1133,7 @@ export function CameraPractice({
                     size="lg"
                     onClick={startCamera}
                     disabled={isBusy}
-                    className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-bold text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+                    className="mt-4 h-12 w-full max-w-[220px] rounded-full bg-[#F8A51D] px-5 font-bold text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer sm:mt-6 sm:w-auto sm:px-7"
                   >
                     {isBusy ? (
                       <LoaderCircle className="size-4 animate-spin" />
@@ -1254,7 +1268,10 @@ export function CameraPractice({
       </div>
 
       {/* Unified Bottom Control Bar matching rest of white cards */}
-        <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          ref={mobileControlsRef}
+          className="mt-5 scroll-mt-32 scroll-mb-36 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div aria-live="polite">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
               STATUS KAMERA
@@ -1280,13 +1297,13 @@ export function CameraPractice({
           </div>
 
           {isReady && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               {practicePhase === 'idle' && (
                 <Button
                   type="button"
                   onClick={startPractice}
                   disabled={!canStartPractice}
-                  className="rounded-full bg-[#F8A51D] px-5 py-2 font-bold text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
+                  className="w-full justify-center rounded-full bg-[#F8A51D] px-5 py-2 font-bold text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer sm:w-auto"
                 >
                   <Play className="size-4 fill-current" />{' '}
                   {productionMode ? 'Mulai uji' : 'Mulai latihan'}
@@ -1297,7 +1314,7 @@ export function CameraPractice({
                   type="button"
                   variant="outline"
                   onClick={cancelPractice}
-                  className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                  className="w-full justify-center rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer sm:w-auto"
                 >
                   <X className="size-4" /> Batalkan
                 </Button>
@@ -1307,7 +1324,7 @@ export function CameraPractice({
                 variant="outline"
                 onClick={retryPractice}
                 disabled={practicePhase !== 'idle' && practicePhase !== 'result'}
-                className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                className="w-full justify-center rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer sm:w-auto"
               >
                 <RefreshCw className="size-4" /> Muat ulang
               </Button>
@@ -1315,7 +1332,7 @@ export function CameraPractice({
                 type="button"
                 variant="outline"
                 onClick={stopCamera}
-                className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                className="w-full justify-center rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer sm:w-auto"
               >
                 <CameraOff className="size-4" /> Matikan
               </Button>
