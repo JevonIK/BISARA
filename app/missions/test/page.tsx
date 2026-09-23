@@ -59,7 +59,7 @@ export default async function MissionTestPage({
   return (
     <main className="min-h-screen bg-[#FFE8A3] pb-44">
       <AppHeader active="home" />
-      <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8 lg:py-5">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-5 lg:px-8 lg:py-5">
         {/* Back link */}
         <Link
           href={mission.href}

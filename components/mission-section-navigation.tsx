@@ -127,7 +127,7 @@ export function MissionSectionNavigation({
     return (
       <nav
         aria-label={`Navigasi bagian misi ${mission.title}`}
-        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FFAE00] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-4 px-2 sm:px-6"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF7] border-t-2 border-[#FFAE00] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] px-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-4"
       >
         <div
           className="mx-auto max-w-xl relative grid pt-1"
@@ -203,10 +203,10 @@ export function MissionSectionNavigation({
                   {iconElement}
                 </span>
 
-                <span className="mt-2 text-xs font-bold text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap">
+                <span className="mt-2 flex min-h-[22px] max-w-full items-center text-[10px] font-bold leading-[1.1] text-slate-900 transition-colors group-hover:text-amber-700 sm:text-xs">
                   {stage.label}
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 whitespace-nowrap">
+                <span className="max-w-full text-[8px] font-semibold leading-tight text-slate-500 sm:text-[11px]">
                   {subtext}
                 </span>
               </>
