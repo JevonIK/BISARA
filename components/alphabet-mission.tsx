@@ -122,7 +122,7 @@ export function AlphabetMission({
   return (
     <main className="min-h-screen bg-[#FFE8A3] pb-44">
       <AppHeader active="home" />
-      <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8 lg:py-5">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-5 lg:px-8 lg:py-5">
         {activeSection === 'amati' ? (
           <Link
             href="/"
@@ -491,6 +491,7 @@ function StageTirukan({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
   const attemptLetterRef = useRef(selectedLetter);
+  const mobileControlsRef = useRef<HTMLDivElement>(null);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [loadingCamera, setLoadingCamera] = useState(false);
@@ -502,6 +503,19 @@ function StageTirukan({
   const [lighting, setLighting] = useState<LightingStatus>('unknown');
   const [result, setResult] = useState<AlphabetAssessment | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!cameraActive || window.matchMedia('(min-width: 640px)').matches) return;
+    const frame = requestAnimationFrame(() => {
+      mobileControlsRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+        block: 'center',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [cameraActive]);
 
   const currentVideo = useMemo(
     () => videos.find((v) => v.letter === selectedLetter) ?? videos[0],
@@ -920,7 +934,7 @@ function StageTirukan({
         </aside>
 
         {/* Column 2: Center Camera Practice */}
-        <section className="flex flex-col justify-between rounded-[2rem] bg-white p-6 sm:p-7 shadow-xs border border-amber-200/50">
+        <section className="min-w-0 flex flex-col justify-between rounded-[2rem] bg-white p-4 sm:p-7 shadow-xs border border-amber-200/50">
           <div>
             <div className="mb-4 flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-[#E54D2E] block">
@@ -934,7 +948,7 @@ function StageTirukan({
               )}
             </div>
 
-            <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-950 sm:min-h-[360px] shadow-inner">
+            <div className="relative min-h-[360px] overflow-hidden rounded-2xl bg-slate-950 shadow-inner sm:aspect-video">
               <video
                 ref={videoRef}
                 className={cn(
@@ -957,12 +971,12 @@ function StageTirukan({
               />
 
               {!cameraActive && (
-                <div className="absolute inset-0 grid place-items-center p-6 text-center">
-                  <div className="max-w-md">
-                    <span className="mx-auto grid size-16 sm:size-20 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
+                <div className="absolute inset-0 grid place-items-center p-4 text-center sm:p-6">
+                  <div className="w-full max-w-md">
+                    <span className="mx-auto grid size-14 place-items-center rounded-full border border-white/10 bg-white/5 text-white sm:size-20">
                       <Camera className="size-8" />
                     </span>
-                    <h2 className="mt-5 text-2xl sm:text-3xl font-bold text-white">
+                    <h2 className="mt-3 text-xl font-bold text-white sm:mt-5 sm:text-3xl">
                       Siapkan kamera latihan
                     </h2>
                     <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/60">
@@ -976,7 +990,7 @@ function StageTirukan({
                         void startCamera();
                       }}
                       disabled={loadingCamera}
-                      className="mt-6 h-12 rounded-full bg-[#F8A51D] px-7 font-bold text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+                      className="mt-4 h-12 w-full max-w-[220px] rounded-full bg-[#F8A51D] px-5 font-bold text-slate-950 hover:bg-[#E59312] transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer sm:mt-6 sm:w-auto sm:px-7"
                     >
                       {loadingCamera ? (
                         <LoaderCircle className="size-4 animate-spin" />
@@ -1062,7 +1076,10 @@ function StageTirukan({
           </div>
 
           {/* Unified Bottom Control Bar matching rest of white cards */}
-          <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between text-slate-900">
+          <div
+            ref={mobileControlsRef}
+            className="mt-5 scroll-mt-32 scroll-mb-36 flex flex-col gap-4 border-t border-slate-100 pt-4 text-slate-900 sm:flex-row sm:items-center sm:justify-between"
+          >
             <div aria-live="polite">
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
                 STATUS KAMERA
@@ -1083,13 +1100,13 @@ function StageTirukan({
             </div>
 
             {cameraActive && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                 {phase === 'idle' && (
                   <Button
                     type="button"
                     onClick={beginRecording}
                     disabled={referenceState !== 'ready'}
-                    className="rounded-full bg-[#F8A51D] px-5 py-2 font-bold text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer"
+                    className="w-full justify-center rounded-full bg-[#F8A51D] px-5 py-2 font-bold text-slate-950 hover:bg-[#E59312] shadow-xs cursor-pointer sm:w-auto"
                   >
                     <Play className="size-4 fill-current" /> Mulai latihan
                   </Button>
@@ -1099,7 +1116,7 @@ function StageTirukan({
                     type="button"
                     variant="outline"
                     onClick={cancelPractice}
-                    className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                    className="w-full justify-center rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer sm:w-auto"
                   >
                     <X className="size-4" /> Batalkan
                   </Button>
@@ -1109,7 +1126,7 @@ function StageTirukan({
                   variant="outline"
                   onClick={retryPractice}
                   disabled={phase !== 'idle' && phase !== 'result'}
-                  className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                  className="w-full justify-center rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer sm:w-auto"
                 >
                   <RotateCcw className="size-4" /> Muat ulang
                 </Button>
@@ -1117,7 +1134,7 @@ function StageTirukan({
                   type="button"
                   variant="outline"
                   onClick={stopCamera}
-                  className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                  className="w-full justify-center rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer sm:w-auto"
                 >
                   <CameraOff className="size-4" /> Matikan
                 </Button>
@@ -1715,6 +1732,7 @@ function StageRecall({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
   const attemptLetterRef = useRef(currentLetter);
+  const mobileControlsRef = useRef<HTMLDivElement>(null);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [loadingCamera, setLoadingCamera] = useState(false);
@@ -1726,6 +1744,19 @@ function StageRecall({
   const [lighting, setLighting] = useState<LightingStatus>('unknown');
   const [result, setResult] = useState<AlphabetAssessment | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!cameraActive || window.matchMedia('(min-width: 640px)').matches) return;
+    const frame = requestAnimationFrame(() => {
+      mobileControlsRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+        block: 'center',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [cameraActive]);
 
   const setPracticePhase = useCallback((next: TirukanPhase) => {
     phaseRef.current = next;
@@ -2023,7 +2054,7 @@ function StageRecall({
       <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 sm:gap-10 items-start mt-6 sm:mt-8">
         {/* Left Column: Camera Box */}
         <div className="overflow-hidden rounded-2xl bg-[#0F172A] shadow-inner border border-slate-800">
-          <div className="relative aspect-[16/10] w-full bg-slate-950 flex items-center justify-center overflow-hidden">
+          <div className="relative flex min-h-[360px] w-full items-center justify-center overflow-hidden bg-slate-950 sm:aspect-[16/10] sm:min-h-0">
             <video
               ref={videoRef}
               playsInline
@@ -2046,7 +2077,7 @@ function StageRecall({
             />
 
             {!cameraActive && (
-              <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
+              <div className="relative z-10 flex w-full flex-col items-center justify-center p-4 text-center sm:p-6">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white shadow-xs">
                   <Camera className="size-7" />
                 </div>
@@ -2060,7 +2091,7 @@ function StageRecall({
                   type="button"
                   onClick={() => { void startCamera(); }}
                   disabled={loadingCamera}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#F8A51D] px-7 py-3 text-xs sm:text-sm font-bold text-slate-900 hover:bg-[#E59312] shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  className="mt-4 inline-flex w-full max-w-[220px] items-center justify-center gap-2 rounded-full bg-[#F8A51D] px-5 py-3 text-xs font-bold text-slate-900 hover:bg-[#E59312] shadow-sm transition-all cursor-pointer disabled:opacity-50 sm:mt-6 sm:w-auto sm:px-7 sm:text-sm"
                 >
                   {loadingCamera ? (
                     <>
@@ -2106,7 +2137,10 @@ function StageRecall({
           </div>
 
           {/* Unified Bottom Dark Status & Control Bar */}
-          <div className="flex flex-col gap-3 border-t border-slate-800 bg-[#0F172A] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div
+            ref={mobileControlsRef}
+            className="scroll-mt-32 scroll-mb-36 flex flex-col gap-3 border-t border-slate-800 bg-[#0F172A] px-4 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-6"
+          >
             <div>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
                 STATUS KAMERA
@@ -2127,14 +2161,14 @@ function StageRecall({
             </div>
 
             {cameraActive && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                 {phase === 'idle' || phase === 'result' ? (
                   <>
                     <button
                       type="button"
                       onClick={beginPractice}
                       disabled={referenceState !== 'ready'}
-                      className="rounded-full bg-[#F8A51D] px-5 py-2 text-xs font-bold text-slate-900 hover:bg-[#E59312] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="w-full justify-center rounded-full bg-[#F8A51D] px-5 py-2 text-xs font-bold text-slate-900 hover:bg-[#E59312] shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 sm:w-auto"
                     >
                       <Play className="size-3.5 fill-current" />
                       {phase === 'result' ? 'Uji lagi' : 'Mulai uji'}
@@ -2142,7 +2176,7 @@ function StageRecall({
                     <button
                       type="button"
                       onClick={stopCamera}
-                      className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer"
+                      className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer sm:w-auto"
                     >
                       <CameraOff className="size-3.5 mr-1 inline" /> Matikan
                     </button>
@@ -2155,7 +2189,7 @@ function StageRecall({
                       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
                       setPracticePhase('idle');
                     }}
-                    className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer"
+                    className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors cursor-pointer sm:w-auto"
                   >
                     <X className="size-3.5 mr-1 inline" /> Batalkan
                   </button>
@@ -2430,4 +2464,3 @@ function AlphabetGate({
     </section>
   );
 }
-

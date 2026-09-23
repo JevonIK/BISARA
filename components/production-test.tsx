@@ -99,7 +99,7 @@ export function ProductionTest({
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 lg:p-10 shadow-xs border border-amber-200/50">
+      <div className="rounded-[2rem] bg-white p-4 shadow-xs border border-amber-200/50 sm:rounded-[2.5rem] sm:p-8 lg:p-10">
         {/* Top Progress Track matching reference */}
         <div className="mb-6 sm:mb-8 border-b border-slate-100 pb-6">
           <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
