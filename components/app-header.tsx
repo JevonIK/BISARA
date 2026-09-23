@@ -76,14 +76,22 @@ export function AppHeader({ active = 'home' }: AppHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs">
+          <Link
+            href="/profil"
+            className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs transition-transform hover:scale-105 hover:border-amber-400 hover:shadow-xs"
+            aria-label="Lihat bintang di profil"
+          >
             <Star className="size-3.5 text-amber-500 fill-amber-500" />
             <span>20</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs">
+          </Link>
+          <Link
+            href="/profil"
+            className="flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs transition-transform hover:scale-105 hover:border-amber-400 hover:shadow-xs"
+            aria-label="Lihat streak di profil"
+          >
             <Flame className="size-3.5 text-orange-500" fill="currentColor" />
             <span>{progress.streak > 0 ? progress.streak : 7} hari</span>
-          </div>
+          </Link>
           <Link
             href={account.user ? '/profil' : '/account'}
             className="grid h-9 min-w-9 place-items-center rounded-full bg-slate-900 px-5 text-xs font-bold text-white shadow-xs outline-none ring-offset-2 transition-transform hover:scale-105 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-ring"
